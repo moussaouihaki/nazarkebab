@@ -261,7 +261,7 @@ export const useCartStore = create<CartState>((set, get) => ({
       paymentMethod: 'À la livraison',
       subTotal,
       taxAmount,
-      userId: userId || null,
+      userId: userId || useAuthStore.getState().user?.id || null,
       pushToken: useAuthStore.getState().user?.pushToken || null
     };
 

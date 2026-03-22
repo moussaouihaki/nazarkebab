@@ -86,7 +86,7 @@ export default function CartScreen() {
   const handlePlaceOrder = () => {
     setCustomerInfo(name, phone, address);
     setOrderNote(note);
-    placeOrder();
+    placeOrder(user?.id);
     // Navigate to tracking screen
     router.replace('/tracking');
   };
