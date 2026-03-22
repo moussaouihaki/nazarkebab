@@ -62,9 +62,16 @@ export default function HomeScreen() {
                  </View>
                )}
              </TouchableOpacity>
-             <View style={styles.logoWrapper}>
-               <Text style={styles.logoNazar}>NAZAR</Text>
-               <Text style={styles.logoKebab}>KEBAB</Text>
+             <View style={[styles.logoWrapper, { flexDirection: 'row', alignItems: 'center' }]}>
+               <Image 
+                 source={require('../assets/images/logo.png')} 
+                 style={{ width: 30, height: 30, borderRadius: 15, marginRight: 10 }}
+                 contentFit="contain"
+               />
+               <View>
+                 <Text style={styles.logoNazar}>NAZAR</Text>
+                 <Text style={styles.logoKebab}>KEBAB</Text>
+               </View>
              </View>
              <TouchableOpacity style={styles.cartButton} onPress={() => router.push('/cart')}>
                <Ionicons name="bag-handle-outline" size={24} color={Theme.colors.text} />
