@@ -12,6 +12,10 @@
       "resizeMode": "contain",
       "backgroundColor": "#040404"
     },
+    "notification": {
+      "icon": "./assets/images/logo.png",
+      "color": "#FFD700"
+    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.nazar.kebab"
