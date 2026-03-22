@@ -476,7 +476,7 @@ const styles = StyleSheet.create({
   timeText: {
     fontFamily: Theme.fonts.bodyBold,
     fontSize: 11,
-    color: Theme.colors.success,
+    color: '#FFFFFF', // Changed from success (red) to white for better visibility
     letterSpacing: 2,
   },
 });
