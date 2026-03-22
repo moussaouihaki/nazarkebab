@@ -215,22 +215,6 @@ export const useCartStore = create<CartState>((set, get) => ({
         const matching = orderList.find(o => o.id === currentActiveId);
         if (matching) {
           const currentActive = get().activeOrder;
-          if (currentActive && matching.status !== currentActive.status) {
-            const statusMessages: any = {
-              confirmed: "Le restaurant a validé votre commande !",
-              preparing: "Votre repas est en préparation 👨‍🍳",
-              ready: "Votre commande est prête / en route ! 🛵",
-              delivered: "Bon appétit ! Votre commande a été livrée.",
-              cancelled: "Désolé, votre commande a été annulée."
-            };
-            if (statusMessages[matching.status] && Platform.OS !== 'web') {
-              console.log('[Local Notification] Envoi notification locale status :', matching.status);
-              Notifications.scheduleNotificationAsync({
-                content: { title: "Nazar Kebab 🗞️", body: statusMessages[matching.status], sound: true },
-                trigger: null
-              });
-            }
-          }
           set({ activeOrder: matching });
         }
       }
@@ -290,22 +274,6 @@ export const useCartStore = create<CartState>((set, get) => ({
           adminMessages[status],
           `Statut mis à jour pour #${orderId}`
         );
-        const order = get().orders.find(o => o.id === orderId);
-        if (order?.pushToken) {
-          const statusLabels: Record<string, string> = {
-            confirmed: "Confirmée",
-            preparing: "En préparation",
-            ready: "Prête / En livraison",
-            delivered: "Livrée",
-            cancelled: "Annulée"
-          };
-          
-          await sendPushNotification(
-            order.pushToken,
-            adminMessages[status],
-            `Votre commande #${orderId} est ${statusLabels[status] || status}.`
-          );
-        }
       }
     } catch (err) { console.error('Error updating order:', err); }
   },

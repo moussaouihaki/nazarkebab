@@ -194,16 +194,50 @@ function DashboardTab() {
   const { width } = useWindowDimensions();
   const isDesktop = Platform.OS === 'web' && width >= 768;
 
-  const active  = orders.filter(o => !['delivered','cancelled'].includes(o.status));
-  const today   = orders.filter(o => o.status !== 'cancelled');
-  const revenue = today.reduce((s, o) => s + o.total, 0);
-  const avgOrder = today.length ? revenue / today.length : 0;
+  // REAL STATS CALCULATION
+  const getOrderDate = (o: any) => {
+    if (!o.createdAt) return new Date();
+    return o.createdAt.toDate ? o.createdAt.toDate() : new Date(o.createdAt);
+  };
+
+  const todayDate = new Date();
+  todayDate.setHours(0, 0, 0, 0);
+
+  const todayOrders = orders.filter(o => {
+    const d = getOrderDate(o);
+    d.setHours(0, 0, 0, 0);
+    return o.status !== 'cancelled' && d.getTime() === todayDate.getTime();
+  });
+
+  const dailyRevenue = todayOrders.reduce((s, o) => s + o.total, 0);
+  const totalRevenue = orders.filter(o => o.status !== 'cancelled').reduce((s, o) => s + o.total, 0);
+  const activeCount = orders.filter(o => !['delivered', 'cancelled'].includes(o.status)).length;
+  const avgOrder = todayOrders.length ? dailyRevenue / todayOrders.length : 0;
+
+  // Calculate last 7 days for the chart
+  const last7Days = [...Array(7)].map((_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (6 - i));
+    d.setHours(0, 0, 0, 0);
+    
+    const dayOrders = orders.filter(o => {
+      const od = getOrderDate(o);
+      od.setHours(0, 0, 0, 0);
+      return o.status !== 'cancelled' && od.getTime() === d.getTime();
+    });
+    
+    return {
+      label: d.toLocaleDateString('fr-FR', { weekday: 'short' }),
+      value: dayOrders.reduce((s, o) => s + o.total, 0),
+    };
+  });
+
+  const maxDayRevenue = Math.max(...last7Days.map(d => d.value), 100);
 
   return (
     <ScrollView contentContainerStyle={styles.scrollContent}>
       <View style={[isDesktop && { flexDirection: 'row', gap: 24 }]}>
         <View style={{ flex: isDesktop ? 2 : 1 }}>
-          {/* NEW PREMIUM HEADER FOR DASHBOARD */}
           <View style={{ marginBottom: 24 }}>
              <Text style={{ fontFamily: Theme.fonts.title, fontSize: 32, color: Theme.colors.text }}>Tableau de bord</Text>
              <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
@@ -214,23 +248,21 @@ function DashboardTab() {
              </View>
           </View>
 
-          {/* STATS GRID */}
           <View style={styles.statsGrid}>
-            <StatCard label="Commandes en cours" value={String(active.length)} icon="time" color={Theme.colors.primary} />
-            <StatCard label="Chiffre d'Affaires" value={`${revenue.toFixed(0)} CHF`} icon="cash" color={Theme.colors.success} />
-            <StatCard label="Commandes totales" value={String(orders.length)} icon="receipt" color="#2196F3" />
+            <StatCard label="En cours" value={String(activeCount)} icon="time" color={Theme.colors.primary} />
+            <StatCard label="C.A. Aujourd'hui" value={`${dailyRevenue.toFixed(0)} CHF`} icon="cash" color={Theme.colors.success} />
+            <StatCard label="C.A. Total" value={`${totalRevenue.toFixed(0)} CHF`} icon="receipt" color="#2196F3" />
             <StatCard label="Panier Moyen" value={`${avgOrder.toFixed(0)} CHF`} icon="cart" color="#FF9800" />
           </View>
 
-          {/* PREMIUM CHART SECTION */}
           {isDesktop && (
             <View style={styles.chartCard}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 30 }}>
                 <View>
                   <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 16, color: Theme.colors.text }}>Aperçu des Ventes</Text>
-                  <Text style={{ fontFamily: Theme.fonts.body, fontSize: 12, color: Theme.colors.textSecondary, marginTop: 4 }}>Derniers 7 jours</Text>
+                  <Text style={{ fontFamily: Theme.fonts.body, fontSize: 12, color: Theme.colors.textSecondary, marginTop: 4 }}>Derniers 7 jours (Real-time)</Text>
                 </View>
-                <Text style={{ fontFamily: Theme.fonts.title, fontSize: 24, color: Theme.colors.success }}>420 CHF</Text>
+                <Text style={{ fontFamily: Theme.fonts.title, fontSize: 24, color: Theme.colors.success }}>{last7Days.reduce((a,b)=>a+b.value, 0).toFixed(0)} CHF</Text>
               </View>
 
               <View style={styles.fakeChart}>
@@ -239,10 +271,10 @@ function DashboardTab() {
                    <View style={styles.chartGridLine} />
                    <View style={styles.chartGridLine} />
                  </View>
-                 {[40, 60, 45, 80, 50, 90, 100].map((h, i) => (
+                 {last7Days.map((day, i) => (
                    <View key={i} style={styles.chartBarWrapper}>
-                     <View style={[styles.chartBar, { height: `${h}%` }]} />
-                     <Text style={styles.chartLabel}>J-{6-i}</Text>
+                     <View style={[styles.chartBar, { height: `${(day.value / maxDayRevenue) * 100}%` }]} />
+                     <Text style={styles.chartLabel}>{day.label}</Text>
                    </View>
                  ))}
               </View>
