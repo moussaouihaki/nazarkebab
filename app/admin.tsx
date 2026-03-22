@@ -12,7 +12,7 @@ import { useAuthStore } from '../store/useAuthStore';
 import { useCartStore } from '../store/useCartStore';
 import { useRestaurantStore, checkIsRestaurantOpen } from '../store/useRestaurantStore';
 import { useDeliveryZoneStore, DeliveryZone } from '../store/useDeliveryZoneStore';
-import { Product, PRODUCTS } from '../constants/data';
+import { Product, PRODUCTS, IMAGES_MAP, getImageSource } from '../constants/data';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { sendPushNotification } from '../lib/pushNotifications';
@@ -813,7 +813,7 @@ function MenuTab() {
         {filtered.map(product => (
           <View key={product.id} style={styles.menuItem}>
             <Image
-              source={typeof product.image === 'string' ? { uri: product.image } : product.image}
+              source={getImageSource(product.image)}
               style={styles.menuItemImage}
               contentFit="cover"
             />
@@ -978,21 +978,28 @@ function ProductModal({ visible, product, categories, defaultCategory, onClose, 
           </View>
 
           <ScrollView contentContainerStyle={{ padding: 20 }}>
-            {/* IMAGE PICKER */}
-            <TouchableOpacity style={styles.imagePicker} onPress={pickImage}>
-              {imageUri ? (
-                <Image source={{ uri: imageUri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
-              ) : (
-                <>
-                  {pickingImage ? <ActivityIndicator color={Theme.colors.success} /> : (
-                    <>
-                      <Ionicons name="camera-outline" size={36} color={Theme.colors.textSecondary} />
-                      <Text style={styles.imagePickerText}>Ajouter une photo</Text>
-                    </>
-                  )}
-                </>
-              )}
-            </TouchableOpacity>
+            {/* IMAGE TICKER (CHOOSE FROM LOCAL ASSETS) */}
+            <Text style={styles.fieldLabel}>CHOISIR UNE PHOTO CI-DESSOUS (BIBLIOTHÈQUE)</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 20 }}>
+              {Object.keys(IMAGES_MAP).map((key) => {
+                const isSelected = imageUri === key;
+                return (
+                  <TouchableOpacity 
+                    key={key} 
+                    style={[{ marginRight: 12, borderWidth: 2, borderColor: isSelected ? Theme.colors.success : 'transparent', borderRadius: 12, overflow: 'hidden' }]}
+                    onPress={() => setImageUri(key)}
+                  >
+                    <Image source={IMAGES_MAP[key as keyof typeof IMAGES_MAP]} style={{ width: 80, height: 80 }} contentFit="cover" />
+                    <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.6)', padding: 2 }}>
+                       <Text style={{ color: '#fff', fontSize: 8, textAlign: 'center', fontFamily: Theme.fonts.body }}>{key.toUpperCase()}</Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+
+            <Text style={{ fontFamily: Theme.fonts.body, fontSize: 13, color: Theme.colors.textSecondary, marginBottom: 8 }}>Ou mettre un lien internet (URL) :</Text>
+            <TextInput style={styles.input} value={imageUri} onChangeText={setImageUri} placeholder="https://..." placeholderTextColor={Theme.colors.textSecondary} />
 
 
 
