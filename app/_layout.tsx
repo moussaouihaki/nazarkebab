@@ -17,6 +17,9 @@ import { useAuthStore, User } from '../store/useAuthStore';
 import { useRestaurantStore } from '../store/useRestaurantStore';
 import { useCartStore } from '../store/useCartStore';
 import { registerForPushNotificationsAsync } from '../lib/pushNotifications';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useNotificationStore } from '../store/useNotificationStore';
+import { ThemeProvider, DarkTheme, DefaultTheme } from '@react-navigation/native';
 // Configuration handled in lib/pushNotifications.ts
 
 try {
@@ -74,9 +77,42 @@ export default function RootLayout() {
   }, []);
 
   const activeOrder = useCartStore(state => state.activeOrder);
+  const setActiveOrderById = useCartStore(state => state.setActiveOrderById);
+
+  // Manual Persistence Implementation
+  useEffect(() => {
+    const restoreOrder = async () => {
+      try {
+        let savedId = null;
+        if (Platform.OS === 'web') {
+          savedId = localStorage.getItem('last_active_order_id');
+        } else {
+          savedId = await AsyncStorage.getItem('last_active_order_id');
+        }
+        if (savedId && !activeOrder) {
+          await setActiveOrderById(savedId);
+        }
+      } catch (e) { console.warn('Manual restore failed', e); }
+    };
+    if (!currentUser) restoreOrder();
+  }, [currentUser, activeOrder, setActiveOrderById]); // Added activeOrder and setActiveOrderById to dependencies
 
   useEffect(() => {
-    // 3. Écouter les commandes en temps réel
+    const saveOrder = async () => {
+      try {
+        if (activeOrder?.id) {
+          if (Platform.OS === 'web') {
+            localStorage.setItem('last_active_order_id', activeOrder.id);
+          } else {
+            await AsyncStorage.setItem('last_active_order_id', activeOrder.id);
+          }
+        }
+      } catch (e) {}
+    };
+    saveOrder();
+  }, [activeOrder?.id]);
+
+  useEffect(() => {
     let unsubscribeOrders: (() => void) | undefined;
     
     if (currentUser) {
@@ -88,7 +124,7 @@ export default function RootLayout() {
     return () => {
       if (unsubscribeOrders) unsubscribeOrders();
     };
-  }, [currentUser, activeOrder?.id]); // NOW REACTIVE
+  }, [currentUser, activeOrder?.id, listenToOrders]); // NOW REACTIVE
 
   useEffect(() => {
     // Demande de permission initialisée via registerForPushNotificationsAsync au login

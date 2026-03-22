@@ -1,7 +1,6 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
+import * as Notifications from 'expo-notifications';
 import {
   collection,
   doc,
@@ -11,15 +10,24 @@ import {
   query,
   where,
   orderBy,
-  getDocs,
-  Timestamp
+  Timestamp,
+  getDoc
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuthStore } from './useAuthStore';
 import { sendPushNotification } from '../lib/pushNotifications';
 import { useNotificationStore } from './useNotificationStore';
 
-// Types
+if (Platform.OS !== 'web') {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+    }),
+  });
+}
+
 export type OrderStatus = 'pending' | 'confirmed' | 'preparing' | 'ready' | 'delivered' | 'cancelled';
 
 export interface Product {
@@ -82,10 +90,11 @@ interface CartState {
   updateOrderStatus: (orderId: string, status: OrderStatus) => Promise<void>;
   cancelOrder: (orderId: string) => Promise<void>;
   markAsPaid: (orderId: string, method: string) => Promise<void>;
+  setActiveOrderById: (orderId: string) => Promise<void>;
 }
 
-// Helpers
 const generateOrderId = () => `NZ-${Math.floor(Math.random() * 9000) + 1000}`;
+
 const hashNote = (note: string) => {
   let hash = 0;
   for (let i = 0; i < note.length; i++) {
@@ -108,159 +117,195 @@ const cleanForFirebase = (obj: any): any => {
   return clean;
 };
 
-// Store Implementation
-export const useCartStore = create<CartState>()(
-  persist(
-    (set, get) => ({
-      items: [],
-      total: 0,
-      deliveryFee: 0,
-      deliveryType: 'delivery',
-      customerName: '',
-      customerPhone: '',
-      customerAddress: '',
-      orderNote: '',
-      orders: [],
-      activeOrder: null,
-      isLoading: false,
+export const useCartStore = create<CartState>((set, get) => ({
+  items: [],
+  total: 0,
+  deliveryFee: 0,
+  deliveryType: 'delivery',
+  customerName: '',
+  customerPhone: '',
+  customerAddress: '',
+  orderNote: '',
+  orders: [],
+  activeOrder: null,
+  isLoading: false,
 
-      addItem: (product, note) => {
-        const currentItems = get().items;
-        const uniqueId = note ? `${product.id}-${hashNote(note)}` : product.id;
-        const existingItem = currentItems.find((item) => item.id === uniqueId);
-        let newItems = existingItem 
-          ? currentItems.map((item) => item.id === uniqueId ? { ...item, quantity: item.quantity + 1 } : item)
-          : [...currentItems, { ...product, id: uniqueId, quantity: 1, note }];
-        set({ items: newItems, total: newItems.reduce((acc, item) => acc + item.price * item.quantity, 0) });
-      },
+  addItem: (product, note) => {
+    const currentItems = get().items;
+    const uniqueId = note ? `${product.id}-${hashNote(note)}` : product.id;
+    const existingItem = currentItems.find((item) => item.id === uniqueId);
+    let newItems;
+    if (existingItem) {
+      newItems = currentItems.map((item) =>
+        item.id === uniqueId ? { ...item, quantity: item.quantity + 1 } : item
+      );
+    } else {
+      newItems = [...currentItems, { ...product, id: uniqueId, quantity: 1, note }];
+    }
+    set({ items: newItems, total: newItems.reduce((acc, item) => acc + item.price * item.quantity, 0) });
+  },
 
-      removeItem: (cartItemId) => {
-        const currentItems = get().items;
-        const existingItem = currentItems.find((item) => item.id === cartItemId);
-        let newItems = (existingItem && existingItem.quantity > 1)
-          ? currentItems.map((item) => item.id === cartItemId ? { ...item, quantity: item.quantity - 1 } : item)
-          : currentItems.filter((item) => item.id !== cartItemId);
-        set({ items: newItems, total: newItems.reduce((acc, item) => acc + item.price * item.quantity, 0) });
-      },
+  removeItem: (cartItemId) => {
+    const currentItems = get().items;
+    const existingItem = currentItems.find((item) => item.id === cartItemId);
+    let newItems;
+    if (existingItem && existingItem.quantity > 1) {
+      newItems = currentItems.map((item) =>
+        item.id === cartItemId ? { ...item, quantity: item.quantity - 1 } : item
+      );
+    } else {
+      newItems = currentItems.filter((item) => item.id !== cartItemId);
+    }
+    set({ items: newItems, total: newItems.reduce((acc, item) => acc + item.price * item.quantity, 0) });
+  },
 
-      removeAllOfItem: (cartItemId) => {
-        const newItems = get().items.filter((item) => item.id !== cartItemId);
-        set({ items: newItems, total: newItems.reduce((acc, item) => acc + item.price * item.quantity, 0) });
-      },
+  removeAllOfItem: (cartItemId) => {
+    const newItems = get().items.filter((item) => item.id !== cartItemId);
+    set({ items: newItems, total: newItems.reduce((acc, item) => acc + item.price * item.quantity, 0) });
+  },
 
-      clearCart: () => set({ items: [], total: 0, orderNote: '' }),
-      setDeliveryType: (type) => set({ deliveryType: type }),
-      setDeliveryFee: (fee) => set({ deliveryFee: fee }),
-      setCustomerInfo: (name, phone, address) => set({ customerName: name, customerPhone: phone, customerAddress: address }),
-      setOrderNote: (note) => set({ orderNote: note }),
+  clearCart: () => set({ items: [], total: 0, orderNote: '' }),
+  setDeliveryType: (type) => set({ deliveryType: type }),
+  setDeliveryFee: (fee) => set({ deliveryFee: fee }),
+  setCustomerInfo: (name, phone, address) => set({ customerName: name, customerPhone: phone, customerAddress: address }),
+  setOrderNote: (note) => set({ orderNote: note }),
 
-      listenToOrders: (userId, isAdmin, specificOrderId) => {
-        let q;
-        if (isAdmin) {
-          q = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
-        } else if (userId) {
-          q = query(collection(db, 'orders'), where('userId', '==', userId), orderBy('createdAt', 'desc'));
-        } else if (specificOrderId) {
-          // Listen directly to the document ID
-          q = query(collection(db, 'orders'), where('__name__', '==', specificOrderId));
-        } else { return () => {}; }
+  setActiveOrderById: async (orderId) => {
+    try {
+      const docSnap = await getDoc(doc(db, 'orders', orderId));
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        set({
+          activeOrder: {
+            ...data,
+            id: docSnap.id,
+            createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : data.createdAt,
+            updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : data.updatedAt,
+          } as Order
+        });
+      }
+    } catch (err) { console.error('Error loading active order:', err); }
+  },
 
-        return onSnapshot(q, (snapshot) => {
-          const orderList: Order[] = [];
-          snapshot.forEach(doc => {
-            const data = doc.data();
-            orderList.push({
-              ...data,
-              id: doc.id,
-              createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : data.createdAt,
-              updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : data.updatedAt,
-            } as Order);
-          });
-          set({ orders: orderList });
+  listenToOrders: (userId, isAdmin, specificOrderId) => {
+    let q;
+    if (isAdmin) {
+      q = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
+    } else if (userId) {
+      q = query(collection(db, 'orders'), where('userId', '==', userId), orderBy('createdAt', 'desc'));
+    } else if (specificOrderId) {
+      q = query(collection(db, 'orders'), where('__name__', '==', specificOrderId));
+    } else { return () => {}; }
 
-          const currentActiveId = get().activeOrder?.id || specificOrderId;
-          if (currentActiveId) {
-            const matching = orderList.find(o => o.id === currentActiveId);
-            if (matching) {
-              set({ activeOrder: matching });
+    return onSnapshot(q, (snapshot) => {
+      const orderList: Order[] = [];
+      snapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        orderList.push({
+          ...data,
+          id: docSnap.id,
+          createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : data.createdAt,
+          updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : data.updatedAt,
+        } as Order);
+      });
+      set({ orders: orderList });
+
+      const currentActiveId = get().activeOrder?.id || specificOrderId;
+      if (currentActiveId) {
+        const matching = orderList.find(o => o.id === currentActiveId);
+        if (matching) {
+          const currentActive = get().activeOrder;
+          if (currentActive && matching.status !== currentActive.status) {
+            const statusMessages: any = {
+              confirmed: "Le restaurant a validé votre commande !",
+              preparing: "Votre repas est en préparation 👨‍🍳",
+              ready: "Votre commande est prête / en route ! 🛵",
+              delivered: "Bon appétit ! Votre commande a été livrée.",
+              cancelled: "Désolé, votre commande a été annulée."
+            };
+            if (statusMessages[matching.status] && Platform.OS !== 'web') {
+              Notifications.scheduleNotificationAsync({
+                content: { title: "Nazar Kebab 🗞️", body: statusMessages[matching.status], sound: true },
+                trigger: null
+              });
             }
           }
-        });
-      },
-
-      placeOrder: async (userId) => {
-        const state = get();
-        const orderId = generateOrderId();
-        const grandTotal = state.total + state.deliveryFee;
-        const taxRate = 0.026;
-        const subTotal = grandTotal / (1 + taxRate);
-        const taxAmount = grandTotal - subTotal;
-
-        const orderData = {
-          items: state.items.map(item => ({ ...item, image: null })), // Don't store image objects
-          total: grandTotal,
-          status: 'pending',
-          createdAt: Timestamp.now(),
-          updatedAt: Timestamp.now(),
-          customerName: state.customerName,
-          customerPhone: state.customerPhone,
-          customerAddress: state.customerAddress,
-          deliveryType: state.deliveryType,
-          estimatedTime: state.deliveryType === 'delivery' ? 30 : 15,
-          note: state.orderNote || null,
-          isPaid: false,
-          paymentMethod: 'À la livraison',
-          subTotal,
-          taxAmount,
-          userId: userId || null,
-          pushToken: useAuthStore.getState().user?.pushToken || null
-        };
-
-        await setDoc(doc(db, 'orders', orderId), cleanForFirebase(orderData));
-        const order = { ...orderData, id: orderId, createdAt: new Date(), updatedAt: new Date() } as Order;
-        set({ activeOrder: order, items: [], total: 0, orderNote: '' });
-        return order;
-      },
-
-      updateOrderStatus: async (orderId, status) => {
-        const updateData: any = { status, updatedAt: Timestamp.now() };
-        if (status === 'delivered') updateData.isPaid = true;
-        await updateDoc(doc(db, 'orders', orderId), updateData);
-        
-        const messages: Record<string, string> = {
-          confirmed: "Commande Confirmée ✅",
-          preparing: "En Préparation 👨‍🍳",
-          ready: "Prête / En livraison 🛍️",
-          delivered: "Terminée 🎉",
-          cancelled: "Annulée ❌"
-        };
-        
-        if (messages[status]) {
-          useNotificationStore.getState().addNotification(messages[status], `Statut mis à jour pour #${orderId}`);
-          const order = get().orders.find(o => o.id === orderId);
-          if (order?.pushToken) sendPushNotification(order.pushToken, messages[status], `Votre commande #${orderId} est ${status}.`);
+          set({ activeOrder: matching });
         }
-      },
+      }
+    });
+  },
 
-      cancelOrder: async (orderId) => {
-        await updateDoc(doc(db, 'orders', orderId), { status: 'cancelled', updatedAt: Timestamp.now() });
-      },
+  placeOrder: async (userId) => {
+    const state = get();
+    const orderId = generateOrderId();
+    const grandTotal = state.total + state.deliveryFee;
+    const taxRate = 0.026;
+    const subTotal = grandTotal / (1 + taxRate);
+    const taxAmount = grandTotal - subTotal;
 
-      markAsPaid: async (orderId, method) => {
-        await updateDoc(doc(db, 'orders', orderId), { isPaid: true, paymentMethod: method });
-      },
-    }),
-    {
-      name: 'nazar-kebab-storage',
-      storage: createJSONStorage(() => (Platform.OS === 'web' ? localStorage : AsyncStorage)),
-      partialize: (state) => ({
-        activeOrder: state.activeOrder,
-        customerName: state.customerName,
-        customerPhone: state.customerPhone,
-        customerAddress: state.customerAddress,
-        items: state.items,
-        total: state.total
-      }),
-    }
-  )
-);
+    const orderData = {
+      items: state.items.map(item => ({ ...item, image: null })),
+      total: grandTotal,
+      status: 'pending',
+      createdAt: Timestamp.now(),
+      updatedAt: Timestamp.now(),
+      customerName: state.customerName,
+      customerPhone: state.customerPhone,
+      customerAddress: state.customerAddress,
+      deliveryType: state.deliveryType,
+      estimatedTime: state.deliveryType === 'delivery' ? 30 : 15,
+      note: state.orderNote || null,
+      isPaid: false,
+      paymentMethod: 'À la livraison',
+      subTotal,
+      taxAmount,
+      userId: userId || null,
+      pushToken: useAuthStore.getState().user?.pushToken || null
+    };
+
+    await setDoc(doc(db, 'orders', orderId), cleanForFirebase(orderData));
+    const order = { ...orderData, id: orderId, createdAt: new Date(), updatedAt: new Date() } as Order;
+    set({ activeOrder: order, items: [], total: 0, orderNote: '' });
+    return order;
+  },
+
+  updateOrderStatus: async (orderId, status) => {
+    try {
+      const updateData: any = { status, updatedAt: Timestamp.now() };
+      if (status === 'delivered') updateData.isPaid = true;
+      await updateDoc(doc(db, 'orders', orderId), updateData);
+      
+      const adminMessages: Record<string, string> = {
+        confirmed: "Commande Confirmée ✅",
+        preparing: "En Préparation 👨‍🍳",
+        ready: "Prête / En livraison 🛍️",
+        delivered: "Terminée 🎉",
+        cancelled: "Annulée ❌"
+      };
+      
+      if (adminMessages[status]) {
+        useNotificationStore.getState().addNotification(
+          adminMessages[status],
+          `Statut mis à jour pour #${orderId}`
+        );
+        const order = get().orders.find(o => o.id === orderId);
+        if (order?.pushToken) {
+          await sendPushNotification(
+            order.pushToken,
+            adminMessages[status],
+            `Votre commande #${orderId} est ${status}.`
+          );
+        }
+      }
+    } catch (err) { console.error('Error updating order:', err); }
+  },
+
+  cancelOrder: async (orderId) => {
+    await updateDoc(doc(db, 'orders', orderId), { status: 'cancelled', updatedAt: Timestamp.now() });
+  },
+
+  markAsPaid: async (orderId, method) => {
+    await updateDoc(doc(db, 'orders', orderId), { isPaid: true, paymentMethod: method });
+  },
+}));
