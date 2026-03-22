@@ -68,15 +68,12 @@ export async function registerForPushNotificationsAsync(): Promise<string | unde
 
 // Fonction utilitaire pour ENVOYER une notification (via l'API d'Expo)
 export async function sendPushNotification(expoPushToken: string, title: string, body: string, data = {}) {
-  // Sur le web, l'envoi direct à exp.host est souvent bloqué par la politique CORS
-  // Une solution propre nécessite un proxy backend (Vercel Function ou Cloud Function)
-  if (Platform.OS === 'web') {
-    console.log('[Push Notification] Envoi simulé (CORS restreint sur web):', { title, body, to: expoPushToken });
-    // Optionnel: On peut tenter le fetch mais il échouera probablement sur web sans proxy
-    if (process.env.NODE_ENV === 'development') {
-       console.log('Note: Sur le web (production), l\'envoi nécessite un backend pour contourner CORS.');
-    }
-  }
+  // Sur le web, l'envoi direct à exp.host est bloqué par la politique CORS
+  // On utilise notre proxy Vercel situé dans /api/push.js
+  const isWeb = Platform.OS === 'web';
+  const url = isWeb 
+    ? '/api/push' 
+    : 'https://exp.host/--/api/v2/push/send';
 
   const message = {
     to: expoPushToken,
@@ -87,7 +84,7 @@ export async function sendPushNotification(expoPushToken: string, title: string,
   };
 
   try {
-    const response = await fetch('https://exp.host/--/api/v2/push/send', {
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
         Accept: 'application/json',
@@ -97,16 +94,13 @@ export async function sendPushNotification(expoPushToken: string, title: string,
       body: JSON.stringify(message),
     });
     
-    if (!response.ok && Platform.OS !== 'web') {
-      const errorData = await response.json();
-      console.error('Erreur Expo Push API:', errorData);
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('Erreur API Push:', errorData);
+    } else if (isWeb) {
+      console.log('[Push Notification] Envoyée avec succès via le proxy API ✅');
     }
   } catch (err) {
-    // On ne log l'erreur que si ce n'est pas une erreur de fetch sur web (CORS)
-    if (Platform.OS !== 'web') {
-      console.error('Erreur lors de l\'envoi du Push Notification:', err);
-    } else {
-      console.log('Note: L\'envoi du Push a échoué (CORS). C\'est normal sur navigateur web.');
-    }
+    console.error('Erreur lors de l\'envoi du Push Notification:', err);
   }
 }
