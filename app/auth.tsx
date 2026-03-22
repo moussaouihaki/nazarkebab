@@ -15,6 +15,8 @@ WebBrowser.maybeCompleteAuthSession();
 // IDs de votre projet Firebase
 const IOS_CLIENT_ID = '1085281959109-qdk6fkhs2jfr8rplfmnnhj9v6hvtcgj8.apps.googleusercontent.com';
 const ANDROID_CLIENT_ID = '1085281959109-rouqkqbghg69fj8jgj78q7ef69bjdv75.apps.googleusercontent.com';
+// Web client ID is required for Google login on browsers/Vercel
+const WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '1085281959109-dummy.apps.googleusercontent.com';
 
 type Mode = 'login' | 'register';
 
@@ -24,6 +26,7 @@ export default function AuthScreen() {
   const [request, response, promptAsync] = Google.useAuthRequest({
     iosClientId: IOS_CLIENT_ID,
     androidClientId: ANDROID_CLIENT_ID,
+    webClientId: WEB_CLIENT_ID, // ADDED: Critical for web stability
   });
 
   useEffect(() => {
