@@ -43,6 +43,8 @@ export interface RestaurantSettings {
   openOverrideMessage: string;
   sauces: string[];
   drinks: Drink[];
+  deliveryTime: string; // e.g. "30-45"
+  takeAwayTime: string; // e.g. "15-20"
 }
 
 interface RestaurantState {
@@ -106,6 +108,8 @@ const DEFAULT_SETTINGS: RestaurantSettings = {
     { name: 'Eau Gazéifiée', price: 3.00, size: '50cl' },
     { name: 'Eau Plate', price: 3.00, size: '50cl' },
   ],
+  deliveryTime: '30-45',
+  takeAwayTime: '15-20',
 };
 
 export const useRestaurantStore = create<RestaurantState>((set, get) => ({

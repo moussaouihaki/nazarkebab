@@ -1175,6 +1175,31 @@ function SettingsTab() {
         </View>
       </View>
 
+      {/* TEMPS ESTIMÉS */}
+      <Text style={styles.sectionHeader}>TEMPS ESTIMÉS (MINUTES)</Text>
+      <View style={styles.settingsCard}>
+        <View style={styles.switchRow}>
+          <Text style={styles.switchLabel}>Livraison</Text>
+          <TextInput 
+            style={[styles.timeInput, { width: 100 }]} 
+            value={settings.deliveryTime} 
+            onChangeText={v => updateSettings({ deliveryTime: v })}
+            placeholder="30-45"
+            placeholderTextColor="#666"
+          />
+        </View>
+        <View style={[styles.switchRow, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Theme.colors.border, paddingTop: 14, marginTop: 4 }]}>
+          <Text style={styles.switchLabel}>À emporter</Text>
+          <TextInput 
+            style={[styles.timeInput, { width: 100 }]} 
+            value={settings.takeAwayTime} 
+            onChangeText={v => updateSettings({ takeAwayTime: v })}
+            placeholder="15-20"
+            placeholderTextColor="#666"
+          />
+        </View>
+      </View>
+
       {/* HORAIRES */}
       <Text style={styles.sectionHeader}>HORAIRES D'OUVERTURE</Text>
       <View style={styles.settingsCard}>

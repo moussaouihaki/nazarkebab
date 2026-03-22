@@ -98,6 +98,17 @@ export default function HomeScreen() {
               <TouchableOpacity style={styles.heroBtn} onPress={() => router.push('/menu')} activeOpacity={0.8}>
                  <Text style={styles.heroBtnText}>VOIR LA CARTE</Text>
               </TouchableOpacity>
+
+              <View style={styles.timeBanner}>
+                <View style={styles.timeItem}>
+                  <Ionicons name="bicycle" size={16} color={Theme.colors.success} />
+                  <Text style={styles.timeText}>{settings.deliveryTime} MIN</Text>
+                </View>
+                <View style={styles.timeItem}>
+                  <Ionicons name="bag-handle" size={16} color={Theme.colors.success} />
+                  <Text style={styles.timeText}>{settings.takeAwayTime} MIN</Text>
+                </View>
+              </View>
            </View>
         </View>
 
@@ -445,5 +456,27 @@ const styles = StyleSheet.create({
     color: Theme.colors.textSecondary,
     letterSpacing: 2,
     marginTop: 10,
+  },
+  timeBanner: {
+    flexDirection: 'row',
+    gap: 24,
+    marginTop: 24,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Theme.colors.border + '22',
+  },
+  timeItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  timeText: {
+    fontFamily: Theme.fonts.bodyBold,
+    fontSize: 11,
+    color: Theme.colors.success,
+    letterSpacing: 2,
   },
 });

@@ -7,6 +7,7 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Theme } from '../constants/theme';
 import { useCartStore, OrderStatus } from '../store/useCartStore';
+import { useRestaurantStore } from '../store/useRestaurantStore';
 import BottomBar from '../components/BottomBar';
 
 const STEPS: { status: OrderStatus; label: string; icon: any; description: string }[] = [
@@ -23,6 +24,7 @@ export default function TrackingScreen() {
   const { activeOrder, orders } = useCartStore();
   const { width } = useWindowDimensions();
   const isDesktop = Platform.OS === 'web' && width >= 768;
+  const { settings } = useRestaurantStore();
 
   // Use the most recent non-cancelled order if no active
   const latestOrder = activeOrder || orders.find(o => o.status !== 'cancelled');
@@ -159,7 +161,12 @@ export default function TrackingScreen() {
               {!isDelivered && (
                 <View style={styles.etaCard}>
                   <Ionicons name="time-outline" size={20} color={Theme.colors.success} />
-                  <Text style={styles.etaLabel}>Temps estimé restant</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.etaLabel}>Temps estimé restant</Text>
+                    <Text style={{ fontSize: 10, color: Theme.colors.textSecondary, fontFamily: Theme.fonts.body }}>
+                       Estimation {latestOrder.deliveryType === 'delivery' ? 'livraison' : 'préparation'} habituelle : {latestOrder.deliveryType === 'delivery' ? settings.deliveryTime : settings.takeAwayTime} min
+                    </Text>
+                  </View>
                   <Text style={styles.etaValue}>~{latestOrder.estimatedTime} min</Text>
                 </View>
               )}
