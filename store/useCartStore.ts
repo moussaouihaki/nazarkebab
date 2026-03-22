@@ -1,6 +1,4 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import {
@@ -128,36 +126,18 @@ const cleanForFirebase = (obj: any): any => {
   return clean;
 };
 
-// Logic for storage safety on Web/Mobile
-const storageProvider = {
-  getItem: async (name: string) => {
-    if (Platform.OS === 'web') return localStorage.getItem(name);
-    return AsyncStorage.getItem(name);
-  },
-  setItem: async (name: string, value: string) => {
-    if (Platform.OS === 'web') return localStorage.setItem(name, value);
-    return AsyncStorage.setItem(name, value);
-  },
-  removeItem: async (name: string) => {
-    if (Platform.OS === 'web') return localStorage.removeItem(name);
-    return AsyncStorage.removeItem(name);
-  },
-};
-
-export const useCartStore = create<CartState>()(
-  persist(
-    (set, get) => ({
-      items: [],
-      total: 0,
-      deliveryFee: 0,
-      deliveryType: 'delivery',
-      customerName: '',
-      customerPhone: '',
-      customerAddress: '',
-      orderNote: '',
-      orders: [],
-      activeOrder: null,
-      isLoading: false,
+export const useCartStore = create<CartState>((set, get) => ({
+  items: [],
+  total: 0,
+  deliveryFee: 0,
+  deliveryType: 'delivery',
+  customerName: '',
+  customerPhone: '',
+  customerAddress: '',
+  orderNote: '',
+  orders: [],
+  activeOrder: null,
+  isLoading: false,
 
   listenToOrders: (userId?: string, isAdmin?: boolean, specificOrderId?: string) => {
     let q;
@@ -184,7 +164,7 @@ export const useCartStore = create<CartState>()(
         } as Order);
       });
       set({ orders: orderList });
- 
+  
       // Update active order if it is in the list
       const currentActiveId = get().activeOrder?.id || specificOrderId;
       if (currentActiveId) {
@@ -200,7 +180,7 @@ export const useCartStore = create<CartState>()(
               delivered: "Bon appétit ! Votre commande a été livrée.",
               cancelled: "Désolé, votre commande a été annulée."
             };
-            if (statusMessages[matching.status]) {
+            if (statusMessages[matching.status] && Platform.OS !== 'web') {
               Notifications.scheduleNotificationAsync({
                 content: { title: "Nazar Kebab 🗞️", body: statusMessages[matching.status], sound: true },
                 trigger: null
@@ -300,7 +280,7 @@ export const useCartStore = create<CartState>()(
       subTotal: subTotal || grandTotal,
       taxAmount: taxAmount || 0,
       userId: userId || null,
-      pushToken: pushToken || null // Jamais undefined pour Firestore
+      pushToken: pushToken || null 
     };
 
     try {
@@ -309,22 +289,22 @@ export const useCartStore = create<CartState>()(
       const order = { ...orderData, id: orderId, createdAt: new Date(), updatedAt: new Date() };
       set(s => ({ activeOrder: order, items: [], total: 0, orderNote: '' }));
 
-      // Send local push
-      Notifications.scheduleNotificationAsync({
-        content: {
-          title: "🔔 Nouvelle Commande",
-          body: `🛒 Merci ! Votre commande #${orderId} a été envoyée au restaurant.`,
-          sound: true,
-        },
-        trigger: null,
-      });
+      if (Platform.OS !== 'web') {
+        Notifications.scheduleNotificationAsync({
+          content: {
+            title: "🔔 Nouvelle Commande",
+            body: `🛒 Merci ! Votre commande #${orderId} a été envoyée au restaurant.`,
+            sound: true,
+          },
+          trigger: null,
+        });
+      }
 
       useNotificationStore.getState().addNotification(
         "📦 Commande Envoyée",
         `Votre commande #${orderId} est en attente de confirmation.`
       );
 
-      // --- SERVERLESS REMOTE PUSH (to Admins) ---
       try {
         const adminQuery = query(collection(db, 'users'), where('role', '==', 'admin'));
         const adminDocs = await getDocs(adminQuery);
@@ -356,7 +336,6 @@ export const useCartStore = create<CartState>()(
         updatedAt: Timestamp.now()
       };
 
-      // Automatically mark as paid when delivered (Common for takeaway/delivery businesses)
       if (status === 'delivered') {
         updateData.isPaid = true;
       }
@@ -373,10 +352,7 @@ export const useCartStore = create<CartState>()(
 
       if (statusMessages[status]) {
         const { title, body } = statusMessages[status];
-        useNotificationStore.getState().addNotification(
-          title,
-          body
-        );
+        useNotificationStore.getState().addNotification(title, body);
 
         const orderInState = get().orders.find(o => o.id === orderId);
         if (orderInState?.pushToken) {
@@ -409,18 +385,4 @@ export const useCartStore = create<CartState>()(
       console.error('Erreur paiement commande:', err);
     }
   },
-}),
-{
-  name: 'nazar-cart-storage',
-  storage: storageProvider as any,
-  partialize: (state) => ({ 
-    items: state.items, 
-    total: state.total,
-    customerName: state.customerName,
-    customerPhone: state.customerPhone,
-    customerAddress: state.customerAddress,
-    activeOrder: state.activeOrder,
-  }),
-}
-)
-);
+}));
