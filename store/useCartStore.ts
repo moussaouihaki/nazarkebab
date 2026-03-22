@@ -1,4 +1,7 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import {
   collection,
@@ -125,10 +128,21 @@ const cleanForFirebase = (obj: any): any => {
   return clean;
 };
 
-import { persist, createJSONStorage } from 'zustand/middleware';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
-// ... (keep previous interfaces)
+// Logic for storage safety on Web/Mobile
+const storageProvider = {
+  getItem: async (name: string) => {
+    if (Platform.OS === 'web') return localStorage.getItem(name);
+    return AsyncStorage.getItem(name);
+  },
+  setItem: async (name: string, value: string) => {
+    if (Platform.OS === 'web') return localStorage.setItem(name, value);
+    return AsyncStorage.setItem(name, value);
+  },
+  removeItem: async (name: string) => {
+    if (Platform.OS === 'web') return localStorage.removeItem(name);
+    return AsyncStorage.removeItem(name);
+  },
+};
 
 export const useCartStore = create<CartState>()(
   persist(
@@ -398,7 +412,7 @@ export const useCartStore = create<CartState>()(
 }),
 {
   name: 'nazar-cart-storage',
-  storage: createJSONStorage(() => AsyncStorage),
+  storage: storageProvider as any,
   partialize: (state) => ({ 
     items: state.items, 
     total: state.total,
