@@ -224,6 +224,7 @@ export const useCartStore = create<CartState>((set, get) => ({
               cancelled: "Désolé, votre commande a été annulée."
             };
             if (statusMessages[matching.status] && Platform.OS !== 'web') {
+              console.log('[Local Notification] Envoi notification locale status :', matching.status);
               Notifications.scheduleNotificationAsync({
                 content: { title: "Nazar Kebab 🗞️", body: statusMessages[matching.status], sound: true },
                 trigger: null
@@ -291,10 +292,18 @@ export const useCartStore = create<CartState>((set, get) => ({
         );
         const order = get().orders.find(o => o.id === orderId);
         if (order?.pushToken) {
+          const statusLabels: Record<string, string> = {
+            confirmed: "Confirmée",
+            preparing: "En préparation",
+            ready: "Prête / En livraison",
+            delivered: "Livrée",
+            cancelled: "Annulée"
+          };
+          
           await sendPushNotification(
             order.pushToken,
             adminMessages[status],
-            `Votre commande #${orderId} est ${status}.`
+            `Votre commande #${orderId} est ${statusLabels[status] || status}.`
           );
         }
       }

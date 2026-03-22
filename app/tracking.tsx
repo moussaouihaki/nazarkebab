@@ -26,18 +26,17 @@ export default function TrackingScreen() {
   const isDesktop = Platform.OS === 'web' && width >= 768;
   const { settings } = useRestaurantStore();
 
+  // Use the most recent non-cancelled order if no active
+  const latestOrder = activeOrder || orders.find(o => o.status !== 'cancelled');
+
   useEffect(() => {
     // Listen to changes for the current active order to get real-time status updates
-    // If the user's order is active, we listen to it specifically
-    const orderIdToTrack = activeOrder?.id;
+    const orderIdToTrack = activeOrder?.id || latestOrder?.id;
     if (orderIdToTrack) {
       const unsubscribe = listenToOrders(undefined, false, orderIdToTrack);
       return () => unsubscribe();
     }
-  }, [activeOrder?.id]);
-
-  // Use the most recent non-cancelled order if no active
-  const latestOrder = activeOrder || orders.find(o => o.status !== 'cancelled');
+  }, [activeOrder?.id, latestOrder?.id]);
   
   const currentStepIndex = latestOrder
     ? STATUS_ORDER.indexOf(latestOrder.status)
