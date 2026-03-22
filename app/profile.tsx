@@ -42,30 +42,45 @@ export default function ProfileScreen() {
   };
 
   const handleLogout = () => {
-    Alert.alert('Déconnexion', 'Êtes-vous sûr de vouloir vous déconnecter ?', [
-      { text: 'Annuler', style: 'cancel' },
-      { text: 'Se déconnecter', style: 'destructive', onPress: () => {
+    if (Platform.OS === 'web') {
+      if (confirm('Êtes-vous sûr de vouloir vous déconnecter ?')) {
         logout();
         router.replace('/');
-      }},
-    ]);
+      }
+    } else {
+      Alert.alert('Déconnexion', 'Êtes-vous sûr de vouloir vous déconnecter ?', [
+        { text: 'Annuler', style: 'cancel' },
+        { text: 'Se déconnecter', style: 'destructive', onPress: () => {
+          logout();
+          router.replace('/');
+        }},
+      ]);
+    }
   };
 
   const handleDeleteAccount = () => {
-    Alert.alert(
-      'Supprimer votre compte', 
-      'Action irréversible. Toutes vos données, commandes et avantages de fidélité seront perdus.', 
-      [
-        { text: 'Annuler', style: 'cancel' },
-        { text: 'Supprimer définitivement', style: 'destructive', onPress: async () => {
-          const success = await deleteAccount();
-          if (success) {
-            clearCart();
-            router.replace('/');
-          }
-        }},
-      ]
-    );
+    const performDelete = async () => {
+      const success = await deleteAccount();
+      if (success) {
+        clearCart();
+        router.replace('/');
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      if (confirm('Supprimer votre compte ? Action irréversible. Toutes vos données seront perdues.')) {
+        performDelete();
+      }
+    } else {
+      Alert.alert(
+        'Supprimer votre compte', 
+        'Action irréversible. Toutes vos données, commandes et avantages de fidélité seront perdus.', 
+        [
+          { text: 'Annuler', style: 'cancel' },
+          { text: 'Supprimer définitivement', style: 'destructive', onPress: performDelete },
+        ]
+      );
+    }
   };
 
   // ─── NOT LOGGED IN ───────────────────────────────────
