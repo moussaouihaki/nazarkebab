@@ -45,12 +45,9 @@ export default function RootLayout() {
     // 1. Écouter les changements d'auth Firebase
     const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        // Récupérer les infos complètes dans Firestore
         const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
         if (userDoc.exists()) {
           const userData = userDoc.data() as User;
-          
-          // Request & Generate Push Token silently
           try {
             const pushToken = await registerForPushNotificationsAsync();
             if (pushToken && pushToken !== userData.pushToken) {
@@ -60,7 +57,6 @@ export default function RootLayout() {
           } catch(e) {
             console.log('Erreur silencieuse Push Token', e);
           }
-
           setUser(userData);
         }
       } else {
@@ -70,6 +66,9 @@ export default function RootLayout() {
 
     // 2. Charger les données du restaurant (menu, réglages)
     fetchInitialData();
+
+    // 3. Hydrater les notifications depuis le stockage local
+    useNotificationStore.getState().hydrate();
 
     return () => {
       unsubscribeAuth();
