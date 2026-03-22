@@ -306,6 +306,14 @@ export default function ProfileScreen() {
                         <Text style={styles.orderDate}>
                           {new Date(order.createdAt).toLocaleDateString('fr-CH', { day: '2-digit', month: '2-digit' })}
                         </Text>
+                        <TouchableOpacity 
+                          onPress={() => router.push({ pathname: '/receipt', params: { id: order.id } })}
+                          style={{ marginTop: 6 }}
+                        >
+                          <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 11, color: Theme.colors.success }}>
+                            {order.status === 'delivered' ? 'Voir ticket' : 'Bon de commande'}
+                          </Text>
+                        </TouchableOpacity>
                       </View>
                     </View>
                     {i < myOrders.slice(0, 6).length - 1 && <View style={styles.fieldDivider} />}

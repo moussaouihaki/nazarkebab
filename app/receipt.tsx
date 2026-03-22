@@ -10,9 +10,17 @@ import * as Sharing from 'expo-sharing';
 
 export default function ReceiptScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { orders } = useCartStore();
+  const { orders, listenToOrders } = useCartStore();
   const { settings } = useRestaurantStore();
   const order = orders.find(o => o.id === id);
+
+  React.useEffect(() => {
+    // If order is not in the store, listen specifically to this order ID
+    if (!order && id) {
+      const unsubscribe = listenToOrders(undefined, false, id);
+      return () => unsubscribe();
+    }
+  }, [id, !!order]);
 
   const handlePrint = async () => {
     if (!order) return;

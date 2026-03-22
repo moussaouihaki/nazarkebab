@@ -73,23 +73,22 @@ export default function RootLayout() {
     };
   }, []);
 
+  const activeOrder = useCartStore(state => state.activeOrder);
+
   useEffect(() => {
     // 3. Écouter les commandes en temps réel
     let unsubscribeOrders: (() => void) | undefined;
     
-    // On récupère l'activeOrder directement depuis le store via subscribe pour être réactif
-    const activeOrderId = useCartStore.getState().activeOrder?.id;
-
     if (currentUser) {
       unsubscribeOrders = listenToOrders(currentUser.id, currentUser.role === 'admin');
-    } else if (activeOrderId) {
-      unsubscribeOrders = listenToOrders(undefined, false, activeOrderId);
+    } else if (activeOrder?.id) {
+      unsubscribeOrders = listenToOrders(undefined, false, activeOrder.id);
     }
 
     return () => {
       if (unsubscribeOrders) unsubscribeOrders();
     };
-  }, [currentUser, useCartStore.getState().activeOrder?.id]); // Re-subscribe if user or active order changes
+  }, [currentUser, activeOrder?.id]); // NOW REACTIVE
 
   useEffect(() => {
     // Demande de permission initialisée via registerForPushNotificationsAsync au login

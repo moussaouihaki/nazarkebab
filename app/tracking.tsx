@@ -21,10 +21,20 @@ const STEPS: { status: OrderStatus; label: string; icon: any; description: strin
 const STATUS_ORDER = ['pending', 'confirmed', 'preparing', 'ready', 'delivered'];
 
 export default function TrackingScreen() {
-  const { activeOrder, orders } = useCartStore();
+  const { activeOrder, orders, listenToOrders } = useCartStore();
   const { width } = useWindowDimensions();
   const isDesktop = Platform.OS === 'web' && width >= 768;
   const { settings } = useRestaurantStore();
+
+  useEffect(() => {
+    // Listen to changes for the current active order to get real-time status updates
+    // If the user's order is active, we listen to it specifically
+    const orderIdToTrack = activeOrder?.id;
+    if (orderIdToTrack) {
+      const unsubscribe = listenToOrders(undefined, false, orderIdToTrack);
+      return () => unsubscribe();
+    }
+  }, [activeOrder?.id]);
 
   // Use the most recent non-cancelled order if no active
   const latestOrder = activeOrder || orders.find(o => o.status !== 'cancelled');
@@ -199,7 +209,7 @@ export default function TrackingScreen() {
                 <TouchableOpacity onPress={() => router.push({ pathname: '/receipt', params: { id: latestOrder.id } })} style={{ marginTop: 8, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                   <Ionicons name="receipt-outline" size={14} color={Theme.colors.textSecondary} />
                   <Text style={{ fontFamily: Theme.fonts.bodyMedium, fontSize: 12, color: Theme.colors.textSecondary }}>
-                    Voir {latestOrder.isPaid ? 'le ticket' : 'le détail TVA'}
+                    {latestOrder.status === 'delivered' ? 'Voir mon ticket de caisse' : 'Voir mon bon de commande'}
                   </Text>
                 </TouchableOpacity>
               </View>

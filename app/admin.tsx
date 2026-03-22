@@ -616,6 +616,8 @@ function KitchenTab() {
             title="EXPÉDITION" 
             data={ready} 
             color={Theme.colors.success} 
+            nextStatus="delivered"
+            nextLabel="LIVRÉ / REMIS"
           />
         )}
       </View>
