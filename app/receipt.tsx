@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, Platform, useWindowDimensions } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Theme } from '../constants/theme';
@@ -12,6 +12,8 @@ export default function ReceiptScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { orders, listenToOrders } = useCartStore();
   const { settings } = useRestaurantStore();
+  const { width } = useWindowDimensions();
+  const isDesktop = Platform.OS === 'web' && width >= 768;
   const order = orders.find(o => o.id === id);
 
   React.useEffect(() => {
@@ -25,54 +27,7 @@ export default function ReceiptScreen() {
   const handlePrint = async () => {
     if (!order) return;
     const isPaid = order.isPaid;
-    const html = `
-      <html>
-        <head>
-          <style>
-            body { font-family: 'Courier', monospace; padding: 20px; width: 300px; margin: auto; }
-            .center { text-align: center; }
-            .divider { border-bottom: 1px dashed #000; margin: 10px 0; }
-            table { width: 100%; }
-            .qty { width: 30px; }
-            .price { text-align: right; }
-            .total { font-weight: bold; font-size: 1.2em; }
-          </style>
-        </head>
-        <body>
-          <div class="center">
-            <h2 style="margin-bottom: 5px;">${settings.name.toUpperCase()}</h2>
-            <p style="font-size: 0.8em; margin-top: 0;">${settings.address}<br>Tél: ${settings.phone}</p>
-          </div>
-          <div class="divider"></div>
-          <div class="center">
-            <h3>${isPaid ? 'TICKET DE CAISSE' : 'BON DE COMMANDE'}</h3>
-            <p>N° ${order.id}</p>
-            <p>${new Date(order.createdAt).toLocaleString('fr-CH')}</p>
-          </div>
-          <div class="divider"></div>
-          <table>
-            ${order.items.map(item => `
-              <tr>
-                <td class="qty">${item.quantity}x</td>
-                <td>${item.name}</td>
-                <td class="price">${(item.price * item.quantity).toFixed(2)}</td>
-              </tr>
-            `).join('')}
-          </table>
-          <div class="divider"></div>
-          <table>
-            <tr><td>Total HT:</td><td class="price">${order.subTotal.toFixed(2)} CHF</td></tr>
-            <tr><td>TVA (2.6%):</td><td class="price">${order.taxAmount.toFixed(2)} CHF</td></tr>
-            <tr class="total"><td>TOTAL TTC:</td><td class="price">${order.total.toFixed(2)} CHF</td></tr>
-          </table>
-          <div class="divider"></div>
-          <div class="center">
-            <p>${isPaid ? `PAYÉ PAR ${order.paymentMethod.toUpperCase()}` : 'À PAYER'}</p>
-            <p>Merci de votre confiance !</p>
-          </div>
-        </body>
-      </html>
-    `;
+    const html = generateHTML(order, settings, isPaid);
 
     try {
       if (Platform.OS === 'web') {
@@ -85,6 +40,76 @@ export default function ReceiptScreen() {
       console.error(e);
     }
   };
+
+  const handleShare = async () => {
+    if (Platform.OS === 'web') {
+      handlePrint();
+      return;
+    }
+    if (!order) return;
+    try {
+      const isPaid = order.isPaid;
+      const html = generateHTML(order, settings, isPaid);
+      const { uri } = await Print.printToFileAsync({ html });
+      await Sharing.shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' });
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  function generateHTML(order: any, settings: any, isPaid: boolean) {
+    return `
+      <html>
+        <head>
+          <style>
+            body { font-family: 'Courier', monospace; padding: 20px; width: 320px; margin: auto; color: #333; }
+            .center { text-align: center; }
+            .divider { border-bottom: 2px dashed #000; margin: 15px 0; }
+            table { width: 100%; border-collapse: collapse; }
+            .qty { width: 40px; font-weight: bold; }
+            .price { text-align: right; }
+            .total { font-weight: bold; font-size: 1.3em; border-top: 1px solid #000; }
+            .status-box { border: 3px solid #000; padding: 10px; margin: 15px 0; font-weight: bold; font-size: 1.5em; text-align: center; }
+          </style>
+        </head>
+        <body>
+          <div class="center">
+            <h1 style="margin-bottom: 5px; font-size: 1.8em;">${settings.name.toUpperCase()}</h1>
+            <p style="font-size: 1em; margin-top: 0;">${settings.address}<br>Tél: ${settings.phone}</p>
+          </div>
+          <div class="divider"></div>
+          <div class="center">
+            <h3>${isPaid ? 'TICKET DE CAISSE' : 'BON DE COMMANDE'}</h3>
+            <p>N° ${order.id}</p>
+            <p>${new Date(order.createdAt).toLocaleString('fr-CH')}</p>
+          </div>
+          <div class="divider"></div>
+          <table>
+            ${order.items.map((item: any) => `
+              <tr>
+                <td class="qty">${item.quantity}x</td>
+                <td>${item.name}</td>
+                <td class="price">${(item.price * item.quantity).toFixed(2)}</td>
+              </tr>
+            `).join('')}
+          </table>
+          <div class="divider"></div>
+          <table style="margin-top: 10px;">
+            <tr><td>Total HT:</td><td class="price">${order.subTotal.toFixed(2)} CHF</td></tr>
+            <tr><td>TVA (2.6%):</td><td class="price">${order.taxAmount.toFixed(2)} CHF</td></tr>
+            <tr class="total"><td style="padding-top: 5px;">TOTAL TTC:</td><td class="price" style="padding-top: 5px;">${order.total.toFixed(2)} CHF</td></tr>
+          </table>
+          <div class="status-box">
+             ${isPaid ? 'PAYÉ' : 'À PAYER'}
+          </div>
+          <div class="center" style="margin-top: 20px;">
+            <p>Merci de votre confiance !</p>
+            <p style="font-size: 0.9em;">www.nazarkebab.ch</p>
+          </div>
+        </body>
+      </html>
+    `;
+  }
 
   if (!order) {
     return (
@@ -108,10 +133,18 @@ export default function ReceiptScreen() {
       <SafeAreaView style={styles.inner}>
         {/* HEADER */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={handlePrint} style={[styles.closeBtn, { marginRight: 'auto', marginLeft: 16, paddingHorizontal: 12, flexDirection: 'row', gap: 6 }]}>
-            <Ionicons name="print-outline" size={20} color={Theme.colors.success} />
-            <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 13, color: Theme.colors.success }}>IMPRIMER</Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', gap: 10, marginRight: 'auto', marginLeft: 16 }}>
+            <TouchableOpacity onPress={handlePrint} style={[styles.closeBtn, { paddingHorizontal: 12, flexDirection: 'row', gap: 6 }]}>
+              <Ionicons name="print-outline" size={20} color={Theme.colors.success} />
+              <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 13, color: Theme.colors.success }}>{isDesktop ? 'IMPRIMER' : ''}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={handleShare} style={[styles.closeBtn, { paddingHorizontal: 12, flexDirection: 'row', gap: 6, borderColor: Theme.colors.success, borderWidth: 1, backgroundColor: 'transparent' }]}>
+              <Ionicons name="share-outline" size={20} color={Theme.colors.success} />
+              <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 13, color: Theme.colors.success }}>PARTAGER / PDF</Text>
+            </TouchableOpacity>
+          </View>
+
           <TouchableOpacity onPress={() => router.back()} style={styles.closeBtn}>
             <Ionicons name="close" size={28} color={Theme.colors.text} />
           </TouchableOpacity>
@@ -184,7 +217,7 @@ export default function ReceiptScreen() {
             <View style={styles.paymentSection}>
               <View style={[styles.statusBadge, { borderColor: accentColor }]}>
                 <Text style={[styles.statusBadgeText, { color: accentColor }]}>
-                  {isPaid ? `PAYÉ PAR ${order.paymentMethod.toUpperCase()}` : 'EN ATTENTE DE PAIEMENT'}
+                  {isPaid ? 'PAYÉ' : 'À PAYER'}
                 </Text>
               </View>
               {!isPaid && (

@@ -15,8 +15,8 @@ export default function NotificationsScreen() {
     markAllAsRead();
   }, []);
 
-  const formatDate = (date: Date) => {
-    return new Date(date).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
   };
 
   return (

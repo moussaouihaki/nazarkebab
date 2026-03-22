@@ -287,7 +287,7 @@ export default function ProfileScreen() {
             <>
               <Text style={styles.sectionLabel}>MES COMMANDES</Text>
               <View style={styles.card}>
-                {myOrders.slice(0, 6).map((order, i) => (
+                {myOrders.map((order, i) => (
                   <View key={order.id}>
                     <View style={styles.orderRow}>
                       <View style={{ flex: 1 }}>
@@ -316,7 +316,7 @@ export default function ProfileScreen() {
                         </TouchableOpacity>
                       </View>
                     </View>
-                    {i < myOrders.slice(0, 6).length - 1 && <View style={styles.fieldDivider} />}
+                    {i < myOrders.length - 1 && <View style={styles.fieldDivider} />}
                   </View>
                 ))}
               </View>

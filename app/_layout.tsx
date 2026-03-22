@@ -127,7 +127,26 @@ export default function RootLayout() {
   }, [currentUser, activeOrder?.id, listenToOrders]); // NOW REACTIVE
 
   useEffect(() => {
-    // Demande de permission initialisée via registerForPushNotificationsAsync au login
+    // 1. Listen for notifications arriving while the app is open
+    const subscription = Notifications.addNotificationReceivedListener(notification => {
+      const { title, body } = notification.request.content;
+      if (title && body) {
+        useNotificationStore.getState().addNotification(title, body);
+      }
+    });
+
+    // 2. Listen for users interacting with notifications (tapping them)
+    const responseSubscription = Notifications.addNotificationResponseReceivedListener(response => {
+      const { title, body } = response.notification.request.content;
+      if (title && body) {
+        useNotificationStore.getState().addNotification(title, body);
+      }
+    });
+
+    return () => {
+      subscription.remove();
+      responseSubscription.remove();
+    };
   }, []);
 
   useEffect(() => {

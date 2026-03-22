@@ -26,20 +26,26 @@ export default function TrackingScreen() {
   const isDesktop = Platform.OS === 'web' && width >= 768;
   const { settings } = useRestaurantStore();
 
-  // Use the most recent non-cancelled order if no active
-  const latestOrder = activeOrder || orders.find(o => o.status !== 'cancelled');
+  // Filter all active orders (not delivered or cancelled)
+  const activeOrders = orders.filter(o => !['delivered', 'cancelled'].includes(o.status));
+  
+  // State to track which order is currently viewed if multiple exist
+  const [viewedOrderId, setViewedOrderId] = React.useState<string | null>(null);
+
+  // Determine which order to display
+  const orderToTrack = viewedOrderId 
+    ? activeOrders.find(o => o.id === viewedOrderId) || activeOrders[0]
+    : activeOrder || activeOrders[0];
 
   useEffect(() => {
-    // Listen to changes for the current active order to get real-time status updates
-    const orderIdToTrack = activeOrder?.id || latestOrder?.id;
-    if (orderIdToTrack) {
-      const unsubscribe = listenToOrders(undefined, false, orderIdToTrack);
-      return () => unsubscribe();
+    // If we have an active order but no viewedOrderId set, set it
+    if (orderToTrack && !viewedOrderId) {
+      setViewedOrderId(orderToTrack.id);
     }
-  }, [activeOrder?.id, latestOrder?.id]);
-  
-  const currentStepIndex = latestOrder
-    ? STATUS_ORDER.indexOf(latestOrder.status)
+  }, [orderToTrack?.id]);
+
+  const currentStepIndex = orderToTrack
+    ? STATUS_ORDER.indexOf(orderToTrack.status)
     : -1;
 
   const progressAnim = useRef(new Animated.Value(0)).current;
@@ -70,7 +76,7 @@ export default function TrackingScreen() {
     outputRange: ['0%', '100%'],
   });
 
-  if (!latestOrder) {
+  if (!orderToTrack) {
     return (
       <View style={styles.container}>
         <SafeAreaView style={{ flex: 1 }}>
@@ -90,19 +96,39 @@ export default function TrackingScreen() {
     );
   }
 
-  const isCancelled = latestOrder.status === 'cancelled';
-  const isDelivered = latestOrder.status === 'delivered';
+  const isCancelled = orderToTrack.status === 'cancelled';
+  const isDelivered = orderToTrack.status === 'delivered';
 
   return (
     <View style={styles.container}>
       <SafeAreaView style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={[{ paddingBottom: 100 }, isDesktop && { paddingTop: 100 }]} showsVerticalScrollIndicator={false}>
+        {/* MULTI-ORDER TABS */}
+        {activeOrders.length > 1 && (
+          <View style={styles.tabsContainer}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 10 }}>
+              {activeOrders.map((o) => (
+                <TouchableOpacity 
+                  key={o.id} 
+                  style={[styles.orderTab, viewedOrderId === o.id && styles.orderTabActive]}
+                  onPress={() => setViewedOrderId(o.id)}
+                >
+                  <Text style={[styles.orderTabText, viewedOrderId === o.id && styles.orderTabTextActive]}>
+                    N° {o.id}
+                  </Text>
+                  <View style={[styles.miniStatusDot, { backgroundColor: STATUS_ORDER.indexOf(o.status) >= 3 ? Theme.colors.success : Theme.colors.primary }]} />
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
+        <ScrollView contentContainerStyle={[{ paddingBottom: 100 }, (isDesktop || activeOrders.length > 1) && { paddingTop: 20 }]} showsVerticalScrollIndicator={false}>
 
           {/* HEADER */}
-          <View style={[styles.header, isDesktop && { display: 'none' }]}>
+          <View style={[styles.header, (isDesktop && activeOrders.length === 1) && { display: 'none' }]}>
             <View>
-              <Text style={styles.orderLabel}>COMMANDE</Text>
-              <Text style={styles.orderId}>#{latestOrder.id}</Text>
+              <Text style={styles.orderLabel}>SUIVI DE COMMANDE</Text>
+              <Text style={styles.orderId}>#{orderToTrack.id}</Text>
             </View>
             <View style={[styles.statusBadge, {
               backgroundColor: isCancelled ? Theme.colors.danger + '22' : isDelivered ? '#88888822' : Theme.colors.success + '22',
@@ -173,10 +199,10 @@ export default function TrackingScreen() {
                   <View style={{ flex: 1 }}>
                     <Text style={styles.etaLabel}>Temps estimé restant</Text>
                     <Text style={{ fontSize: 10, color: Theme.colors.textSecondary, fontFamily: Theme.fonts.body }}>
-                       Estimation {latestOrder.deliveryType === 'delivery' ? 'livraison' : 'préparation'} habituelle : {latestOrder.deliveryType === 'delivery' ? settings.deliveryTime : settings.takeAwayTime} min
+                       Estimation {orderToTrack.deliveryType === 'delivery' ? 'livraison' : 'préparation'} habituelle : {orderToTrack.deliveryType === 'delivery' ? settings.deliveryTime : settings.takeAwayTime} min
                     </Text>
                   </View>
-                  <Text style={styles.etaValue}>~{latestOrder.estimatedTime} min</Text>
+                  <Text style={styles.etaValue}>~{orderToTrack.estimatedTime} min</Text>
                 </View>
               )}
             </>
@@ -193,7 +219,7 @@ export default function TrackingScreen() {
           {/* ORDER DETAILS */}
           <Text style={styles.sectionLabel}>DÉTAILS DE LA COMMANDE</Text>
           <View style={styles.detailCard}>
-            {latestOrder.items.map((item, i) => (
+            {orderToTrack.items.map((item, i) => (
               <View key={`${item.id}-${i}`} style={[styles.itemRow, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Theme.colors.border, paddingTop: 12, marginTop: 12 }]}>
                 <Text style={styles.itemQty}>{item.quantity}×</Text>
                 <Text style={styles.itemName}>{item.name}</Text>
@@ -204,11 +230,11 @@ export default function TrackingScreen() {
             <View style={[styles.itemRow, { borderTopWidth: 1, borderTopColor: Theme.colors.border, marginTop: 16, paddingTop: 12, justifyContent: 'space-between' }]}>
               <Text style={[styles.itemName, { fontFamily: Theme.fonts.logo, fontSize: 18, flex: 1 }]}>TOTAL</Text>
               <View style={{ alignItems: 'flex-end' }}>
-                <Text style={[styles.itemPrice, { color: Theme.colors.success, fontSize: 20, fontFamily: Theme.fonts.logo }]}>{latestOrder.total.toFixed(2)} CHF</Text>
-                <TouchableOpacity onPress={() => router.push({ pathname: '/receipt', params: { id: latestOrder.id } })} style={{ marginTop: 8, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <Text style={[styles.itemPrice, { color: Theme.colors.success, fontSize: 20, fontFamily: Theme.fonts.logo }]}>{orderToTrack.total.toFixed(2)} CHF</Text>
+                <TouchableOpacity onPress={() => router.push({ pathname: '/receipt', params: { id: orderToTrack.id } })} style={{ marginTop: 8, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                   <Ionicons name="receipt-outline" size={14} color={Theme.colors.textSecondary} />
                   <Text style={{ fontFamily: Theme.fonts.bodyMedium, fontSize: 12, color: Theme.colors.textSecondary }}>
-                    {latestOrder.status === 'delivered' ? 'Voir mon ticket de caisse' : 'Voir mon bon de commande'}
+                    {orderToTrack.status === 'delivered' ? 'Voir mon ticket de caisse' : 'Voir mon bon de commande'}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -220,28 +246,28 @@ export default function TrackingScreen() {
           <View style={styles.detailCard}>
             <View style={styles.infoRow}>
               <Ionicons name="person-outline" size={16} color={Theme.colors.textSecondary} />
-              <Text style={styles.infoValue}>{latestOrder.customerName}</Text>
+              <Text style={styles.infoValue}>{orderToTrack.customerName}</Text>
             </View>
             <View style={styles.infoRow}>
               <Ionicons name="call-outline" size={16} color={Theme.colors.textSecondary} />
-              <Text style={styles.infoValue}>{latestOrder.customerPhone}</Text>
+              <Text style={styles.infoValue}>{orderToTrack.customerPhone}</Text>
             </View>
-            {latestOrder.deliveryType === 'delivery' && (
+            {orderToTrack.deliveryType === 'delivery' && (
               <View style={styles.infoRow}>
                 <Ionicons name="location-outline" size={16} color={Theme.colors.textSecondary} />
-                <Text style={styles.infoValue}>{latestOrder.customerAddress}</Text>
+                <Text style={styles.infoValue}>{orderToTrack.customerAddress}</Text>
               </View>
             )}
-            {latestOrder.deliveryType === 'pickup' && (
+            {orderToTrack.deliveryType === 'pickup' && (
               <View style={styles.infoRow}>
                 <Ionicons name="storefront-outline" size={16} color={Theme.colors.textSecondary} />
                 <Text style={styles.infoValue}>À emporter — Grand-Rue 9, 2900 Porrentruy</Text>
               </View>
             )}
-            {latestOrder.note && (
+            {orderToTrack.note && (
               <View style={styles.infoRow}>
                 <Ionicons name="chatbubble-outline" size={16} color={Theme.colors.textSecondary} />
-                <Text style={styles.infoValue}>{latestOrder.note}</Text>
+                <Text style={styles.infoValue}>{orderToTrack.note}</Text>
               </View>
             )}
           </View>
@@ -309,10 +335,19 @@ const styles = StyleSheet.create({
   callBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, margin: 20, backgroundColor: Theme.colors.success, padding: 16, borderRadius: 100, justifyContent: 'center', shadowColor: Theme.colors.success, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 6 },
   callBtnText: { fontFamily: Theme.fonts.bodyBold, fontSize: 14, color: '#000' },
 
+  goldBtnText: { fontFamily: Theme.fonts.bodyBold, fontSize: 15, color: '#000', letterSpacing: 0.5 },
+
   // Empty
   emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 40, gap: 16 },
   emptyTitle: { fontFamily: Theme.fonts.title, fontSize: 28, color: Theme.colors.text, letterSpacing: 2, textAlign: 'center' },
   emptySubtitle: { fontFamily: Theme.fonts.body, fontSize: 14, color: Theme.colors.textSecondary, textAlign: 'center', lineHeight: 22 },
   goldBtn: { backgroundColor: Theme.colors.success, paddingVertical: 16, paddingHorizontal: 32, borderRadius: 100, shadowColor: Theme.colors.success, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35, shadowRadius: 14, elevation: 8 },
-  goldBtnText: { fontFamily: Theme.fonts.bodyBold, fontSize: 15, color: '#000', letterSpacing: 0.5 },
+
+  // Tabs for multi-order
+  tabsContainer: { backgroundColor: Theme.colors.background, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: Theme.colors.border },
+  orderTab: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 8, backgroundColor: Theme.colors.surface, borderRadius: 100, borderWidth: 1, borderColor: Theme.colors.border },
+  orderTabActive: { borderColor: Theme.colors.success, backgroundColor: Theme.colors.success + '11' },
+  orderTabText: { fontFamily: Theme.fonts.bodyMedium, fontSize: 12, color: Theme.colors.textSecondary },
+  orderTabTextActive: { color: Theme.colors.success, fontFamily: Theme.fonts.bodyBold },
+  miniStatusDot: { width: 6, height: 6, borderRadius: 3 },
 });

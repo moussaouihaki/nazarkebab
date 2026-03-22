@@ -24,6 +24,8 @@ if (Platform.OS !== 'web') {
       shouldShowAlert: true,
       shouldPlaySound: true,
       shouldSetBadge: false,
+      shouldShowBanner: true,
+      shouldShowList: true,
     }),
   });
 }
@@ -197,7 +199,35 @@ export const useCartStore = create<CartState>((set, get) => ({
       q = query(collection(db, 'orders'), where('__name__', '==', specificOrderId));
     } else { return () => {}; }
 
+    let isFirstLoad = true;
+
     return onSnapshot(q, (snapshot) => {
+      if (isAdmin && !isFirstLoad) {
+        snapshot.docChanges().forEach((change) => {
+          if (change.type === 'added') {
+            const data = change.doc.data();
+            const orderId = change.doc.id;
+            
+            // ALERT ADMIN
+            useNotificationStore.getState().addNotification(
+              "🔔 Nouvelle Commande !",
+              `N° ${orderId} de ${data.customerName || 'Client'} (${data.total?.toFixed(2)} CHF)`
+            );
+
+            // BROWSER NOTIFICATION (WEB)
+            if (Platform.OS === 'web' && typeof window !== 'undefined' && 'Notification' in window) {
+              if (Notification.permission === 'granted') {
+                new Notification("NAZAR KEBAB 🗞️", {
+                  body: `Nouvelle commande #${orderId} - ${data.total} CHF`,
+                  icon: '/favicon.ico'
+                });
+              }
+            }
+          }
+        });
+      }
+      isFirstLoad = false;
+
       const orderList: Order[] = [];
       snapshot.forEach(docSnap => {
         const data = docSnap.data();
@@ -214,7 +244,6 @@ export const useCartStore = create<CartState>((set, get) => ({
       if (currentActiveId) {
         const matching = orderList.find(o => o.id === currentActiveId);
         if (matching) {
-          const currentActive = get().activeOrder;
           set({ activeOrder: matching });
         }
       }

@@ -56,6 +56,14 @@ export default function AdminScreen() {
   const isDesktop = Platform.OS === 'web' && width >= 768;
 
   // Auth guard
+  React.useEffect(() => {
+    if (Platform.OS === 'web' && typeof window !== 'undefined' && 'Notification' in window) {
+      if (Notification.permission === 'default') {
+        Notification.requestPermission();
+      }
+    }
+  }, []);
+
   if (!user || user.role !== 'admin') {
     return (
       <View style={styles.container}>
