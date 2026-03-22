@@ -138,20 +138,22 @@ export default function RootLayout() {
   }, [currentUser, activeOrder?.id, listenToOrders]); // NOW REACTIVE
 
   useEffect(() => {
-    // 1. Listen for notifications arriving while the app is open
+    const seenIds = new Set<string>();
+
+    const addIfNew = (notifId: string, title: string | null | undefined, body: string | null | undefined) => {
+      if (!title || !body || seenIds.has(notifId)) return;
+      seenIds.add(notifId);
+      useNotificationStore.getState().addNotification(title, body);
+    };
+
+    // 1. Notification reçue quand app est ouverte (foreground)
     const subscription = Notifications.addNotificationReceivedListener(notification => {
-      const { title, body } = notification.request.content;
-      if (title && body) {
-        useNotificationStore.getState().addNotification(title, body);
-      }
+      addIfNew(notification.request.identifier, notification.request.content.title, notification.request.content.body);
     });
 
-    // 2. Listen for users interacting with notifications (tapping them)
+    // 2. Utilisateur tape sur la notification (depuis background)
     const responseSubscription = Notifications.addNotificationResponseReceivedListener(response => {
-      const { title, body } = response.notification.request.content;
-      if (title && body) {
-        useNotificationStore.getState().addNotification(title, body);
-      }
+      addIfNew(response.notification.request.identifier, response.notification.request.content.title, response.notification.request.content.body);
     });
 
     return () => {
