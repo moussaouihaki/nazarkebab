@@ -1,0 +1,56 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // -- Fonctions de Sécurité --
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // -- Règles par Collection --
+
+    // Paramètres restaurant, Produits & Catégories (Lecture publique, Edition Admin)
+    match /settings/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /products/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /categories/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /deliveryZones/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Profils Utilisateurs (Soi-même ou Admin)
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+    }
+
+    // Commandes
+    match /orders/{orderId} {
+      // Autoriser la création même en invité pour tester
+      allow create: if true;
+      // Autoriser la lecture par ID (pour que le suivi fonctionne sans compte)
+      allow read: if true;
+      // Seul l'admin ou le propriétaire peut mettre à jour
+      allow update: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+    }
+  }
+}

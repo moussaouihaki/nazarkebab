@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "1085281959109",
+    "project_id": "nazarkebab-d7b25",
+    "storage_bucket": "nazarkebab-d7b25.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1085281959109:android:d54e8e601edb48be2904ac",
+        "android_client_info": {
+          "package_name": "com.nazar.kebab"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1085281959109-rouqkqbghg69fj8jgj78q7ef69bjdv75.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAlby0kABaxPaW0A2px1m6AgqE1940YDjI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1085281959109-rouqkqbghg69fj8jgj78q7ef69bjdv75.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1085281959109-qdk6fkhs2jfr8rplfmnnhj9v6hvtcgj8.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.nazar.kebab"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
