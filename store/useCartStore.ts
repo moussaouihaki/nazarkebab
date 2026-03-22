@@ -317,6 +317,11 @@ export const useCartStore = create<CartState>((set, get) => ({
 
   updateOrderStatus: async (orderId, status) => {
     try {
+      const orderDoc = await getDoc(doc(db, 'orders', orderId));
+      if (!orderDoc.exists()) return;
+      const orderData = orderDoc.data();
+      const clientPushToken = orderData.pushToken;
+
       const updateData: any = { status, updatedAt: Timestamp.now() };
       if (status === 'delivered') updateData.isPaid = true;
       await updateDoc(doc(db, 'orders', orderId), updateData);
@@ -328,12 +333,34 @@ export const useCartStore = create<CartState>((set, get) => ({
         delivered: "Terminée 🎉",
         cancelled: "Annulée ❌"
       };
+
+      const clientMessages: Record<string, string> = {
+        confirmed: "Le restaurant a validé votre commande !",
+        preparing: "Votre repas est en préparation 👨‍🍳",
+        ready: "Votre commande est prête / en route ! 🛍️",
+        delivered: "Bon appétit ! Votre commande a été livrée. 🎉",
+        cancelled: "Désolé, votre commande a été annulée. ❌"
+      };
       
+      // Notification visuelle pour l'admin
       if (adminMessages[status]) {
         useNotificationStore.getState().addNotification(
           adminMessages[status],
           `Statut mis à jour pour #${orderId}`
         );
+      }
+
+      //Notification push pour le client (envoyée directement par le client admin vers Expo)
+      if (clientPushToken && clientMessages[status]) {
+        try {
+          await sendPushNotification(
+            clientPushToken,
+            adminMessages[status] || "Nazar Kebab 🗞️",
+            clientMessages[status]
+          );
+        } catch (e) {
+          console.error('Erreur lors de l\'envoi push manuel:', e);
+        }
       }
     } catch (err) { console.error('Error updating order:', err); }
   },
