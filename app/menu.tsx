@@ -7,6 +7,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useCartStore } from '../store/useCartStore';
 import { useRestaurantStore } from '../store/useRestaurantStore';
 import BottomBar from '../components/BottomBar';
+import { getImageSource } from '../constants/data';
 
 const { width } = Dimensions.get('window');
 
@@ -133,7 +134,7 @@ export default function MenuScreen() {
                 
                 <View style={styles.listImgWrapper}>
                   <Image 
-                    source={typeof product.image === 'string' ? { uri: product.image } : product.image} 
+                    source={getImageSource(product.image)} 
                     style={styles.listImage} 
                     contentFit="cover" 
                   />

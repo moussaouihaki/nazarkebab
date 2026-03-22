@@ -7,6 +7,7 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useCartStore } from '../../store/useCartStore';
 import { useRestaurantStore } from '../../store/useRestaurantStore';
+import { getImageSource } from '../../constants/data';
 
 const { height } = Dimensions.get('window');
 
@@ -19,10 +20,10 @@ const SUPPLEMENTS = [
 
 export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams();
-  const product = PRODUCTS.find((p) => p.id === id);
+  const { products, settings } = useRestaurantStore();
+  const product = products.find((p) => p.id === id) || PRODUCTS.find((p) => p.id === id);
   const addItem = useCartStore((state) => state.addItem);
   const cartItems = useCartStore((state) => state.items);
-  const { settings } = useRestaurantStore();
   const SAUCES = settings?.sauces || [];
   const DRINKS = settings?.drinks || [];
 
@@ -86,12 +87,14 @@ export default function ProductDetailScreen() {
     router.back();
   };
 
+  if (!product) return null;
+
   return (
     <View style={styles.container}>
       {/* FULL-WIDTH IMAGE */}
       <View style={styles.imageStage}>
         <Image 
-          source={typeof product.image === 'string' ? { uri: product.image } : product.image} 
+          source={getImageSource(product.image)} 
           style={styles.image} 
           contentFit="cover" 
         />

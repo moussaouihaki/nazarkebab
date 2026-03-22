@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Dimensions, ScrollView, TouchableOpacity, SafeAreaView, Platform, useWindowDimensions } from 'react-native';
 import { Theme } from '../constants/theme';
-import { PRODUCTS, CATEGORIES } from '../constants/data';
+import { PRODUCTS, CATEGORIES, IMAGES_MAP, getImageSource } from '../constants/data';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -16,8 +16,13 @@ const { width } = Dimensions.get('window');
 
 const getCategoryImage = (cat: string) => {
   const prod = PRODUCTS.find(p => p.category === cat);
-  if (prod) return prod.image;
-  return 'https://images.unsplash.com/photo-1544025162-83b3e64ca658?w=800&q=80';
+  if (prod) return getImageSource(prod.image);
+  
+  // Fallback based on category name
+  const key = cat.toLowerCase().includes('kebab') ? 'kebab' : 
+              cat.toLowerCase().includes('tacos') ? 'tacos' :
+              cat.toLowerCase().includes('pizza') ? 'pizza' : 'kebab';
+  return IMAGES_MAP[key];
 };
 
 export default function HomeScreen() {
@@ -106,7 +111,7 @@ export default function HomeScreen() {
           {CATEGORIES.map((cat, index) => (
              <TouchableOpacity key={cat} style={styles.categoryCard} onPress={() => router.push({ pathname: '/menu', params: { category: cat } })}>
                 <Image 
-                  source={typeof getCategoryImage(cat) === 'string' ? { uri: getCategoryImage(cat) } : getCategoryImage(cat)} 
+                  source={getImageSource(getCategoryImage(cat))} 
                   style={StyleSheet.absoluteFillObject} 
                   contentFit="cover" 
                 />
@@ -135,7 +140,7 @@ export default function HomeScreen() {
             >
               <View style={styles.feedImageWrapper}>
                 <Image 
-                  source={typeof product.image === 'string' ? { uri: product.image } : product.image} 
+                  source={getImageSource(product.image)} 
                   style={styles.feedImage} 
                   contentFit="cover" 
                 />
