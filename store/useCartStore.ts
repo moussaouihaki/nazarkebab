@@ -330,10 +330,17 @@ export const useCartStore = create<CartState>((set, get) => ({
 
   updateOrderStatus: async (orderId, status) => {
     try {
-      await updateDoc(doc(db, 'orders', orderId), {
+      const updateData: any = {
         status,
         updatedAt: Timestamp.now()
-      });
+      };
+
+      // Automatically mark as paid when delivered (Common for takeaway/delivery businesses)
+      if (status === 'delivered') {
+        updateData.isPaid = true;
+      }
+
+      await updateDoc(doc(db, 'orders', orderId), updateData);
 
       const statusMessages: Record<string, { title: string, body: string }> = {
         confirmed: { title: "✅ Commande Confirmée", body: `Votre commande #${orderId} a été confirmée.` },
@@ -350,16 +357,9 @@ export const useCartStore = create<CartState>((set, get) => ({
           body
         );
 
-        // Send remote notification to the client if they have a pushToken
-        // We need to get the order from the state or re-fetch it to get the pushToken
         const orderInState = get().orders.find(o => o.id === orderId);
-
         if (orderInState?.pushToken) {
-          sendPushNotification(
-            orderInState.pushToken,
-            title,
-            body
-          );
+          sendPushNotification(orderInState.pushToken, title, body);
         }
       }
     } catch (err) {

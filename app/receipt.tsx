@@ -5,12 +5,78 @@ import { Ionicons } from '@expo/vector-icons';
 import { Theme } from '../constants/theme';
 import { useCartStore } from '../store/useCartStore';
 import { useRestaurantStore } from '../store/useRestaurantStore';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 
 export default function ReceiptScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { orders } = useCartStore();
   const { settings } = useRestaurantStore();
   const order = orders.find(o => o.id === id);
+
+  const handlePrint = async () => {
+    if (!order) return;
+    const isPaid = order.isPaid;
+    const html = `
+      <html>
+        <head>
+          <style>
+            body { font-family: 'Courier', monospace; padding: 20px; width: 300px; margin: auto; }
+            .center { text-align: center; }
+            .divider { border-bottom: 1px dashed #000; margin: 10px 0; }
+            table { width: 100%; }
+            .qty { width: 30px; }
+            .price { text-align: right; }
+            .total { font-weight: bold; font-size: 1.2em; }
+          </style>
+        </head>
+        <body>
+          <div class="center">
+            <h2 style="margin-bottom: 5px;">${settings.name.toUpperCase()}</h2>
+            <p style="font-size: 0.8em; margin-top: 0;">${settings.address}<br>Tél: ${settings.phone}</p>
+          </div>
+          <div class="divider"></div>
+          <div class="center">
+            <h3>${isPaid ? 'TICKET DE CAISSE' : 'BON DE COMMANDE'}</h3>
+            <p>N° ${order.id}</p>
+            <p>${new Date(order.createdAt).toLocaleString('fr-CH')}</p>
+          </div>
+          <div class="divider"></div>
+          <table>
+            ${order.items.map(item => `
+              <tr>
+                <td class="qty">${item.quantity}x</td>
+                <td>${item.name}</td>
+                <td class="price">${(item.price * item.quantity).toFixed(2)}</td>
+              </tr>
+            `).join('')}
+          </table>
+          <div class="divider"></div>
+          <table>
+            <tr><td>Total HT:</td><td class="price">${order.subTotal.toFixed(2)} CHF</td></tr>
+            <tr><td>TVA (2.6%):</td><td class="price">${order.taxAmount.toFixed(2)} CHF</td></tr>
+            <tr class="total"><td>TOTAL TTC:</td><td class="price">${order.total.toFixed(2)} CHF</td></tr>
+          </table>
+          <div class="divider"></div>
+          <div class="center">
+            <p>${isPaid ? `PAYÉ PAR ${order.paymentMethod.toUpperCase()}` : 'À PAYER'}</p>
+            <p>Merci de votre confiance !</p>
+          </div>
+        </body>
+      </html>
+    `;
+
+    try {
+      if (Platform.OS === 'web') {
+        const { uri } = await Print.printToFileAsync({ html });
+        window.open(uri, '_blank');
+      } else {
+        await Print.printAsync({ html });
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   if (!order) {
     return (
@@ -34,6 +100,10 @@ export default function ReceiptScreen() {
       <SafeAreaView style={styles.inner}>
         {/* HEADER */}
         <View style={styles.header}>
+          <TouchableOpacity onPress={handlePrint} style={[styles.closeBtn, { marginRight: 'auto', marginLeft: 16, paddingHorizontal: 12, flexDirection: 'row', gap: 6 }]}>
+            <Ionicons name="print-outline" size={20} color={Theme.colors.success} />
+            <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 13, color: Theme.colors.success }}>IMPRIMER</Text>
+          </TouchableOpacity>
           <TouchableOpacity onPress={() => router.back()} style={styles.closeBtn}>
             <Ionicons name="close" size={28} color={Theme.colors.text} />
           </TouchableOpacity>

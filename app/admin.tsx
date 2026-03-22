@@ -16,8 +16,10 @@ import { Product, PRODUCTS, IMAGES_MAP, getImageSource } from '../constants/data
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { sendPushNotification } from '../lib/pushNotifications';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 
-type Tab = 'dashboard' | 'orders' | 'kitchen' | 'crm' | 'menu' | 'settings';
+type Tab = 'dashboard' | 'orders' | 'kitchen' | 'crm' | 'menu' | 'settings' | 'accounting';
 
 // ──────────────────────────────────
 // ORDER STATUS CONFIG
@@ -69,12 +71,13 @@ export default function AdminScreen() {
   }
 
   const TABS = [
-    { key: 'dashboard', icon: 'stats-chart-outline', label: 'Dashboard' },
-    { key: 'orders',    icon: 'receipt-outline',     label: 'Commandes' },
-    { key: 'kitchen',   icon: 'flame-outline',       label: 'Cuisine' },
-    { key: 'crm',       icon: 'people-outline',      label: 'Clients CRM' },
-    { key: 'menu',      icon: 'restaurant-outline',  label: 'Menu & Stock' },
-    { key: 'settings',  icon: 'settings-outline',    label: 'Réglages' },
+    { key: 'dashboard',  icon: 'stats-chart-outline', label: 'Dashboard' },
+    { key: 'orders',     icon: 'receipt-outline',     label: 'Commandes' },
+    { key: 'kitchen',    icon: 'flame-outline',       label: 'Cuisine' },
+    { key: 'crm',        icon: 'people-outline',      label: 'Clients CRM' },
+    { key: 'menu',       icon: 'restaurant-outline',  label: 'Menu & Stock' },
+    { key: 'accounting', icon: 'bar-chart-outline',   label: 'Comptabilité' }, // NEW
+    { key: 'settings',   icon: 'settings-outline',    label: 'Réglages' },
   ] as { key: Tab; icon: any; label: string }[];
 
   const renderContent = () => {
@@ -83,6 +86,7 @@ export default function AdminScreen() {
     if (tab === 'kitchen') return <KitchenTab />;
     if (tab === 'crm') return <CrmTab />;
     if (tab === 'menu') return <MenuTab />;
+    if (tab === 'accounting') return <AccountingTab />; // NEW
     if (tab === 'settings') return <SettingsTab />;
     return null;
   };
@@ -750,7 +754,165 @@ function CrmTab() {
   );
 }
 
+// ──────────────────────────────────
+// TAB: ACCOUNTING (Comptabilité)
+// ──────────────────────────────────
+function AccountingTab() {
+  const { orders } = useCartStore();
+  const { settings } = useRestaurantStore();
+  const [reportRange, setReportRange] = useState<'today' | 'month' | 'year' | 'all'>('month');
 
+  const filteredOrders = orders.filter(o => {
+    if (o.status === 'cancelled') return false;
+    const date = new Date(o.createdAt);
+    const now = new Date();
+    
+    if (reportRange === 'today') return date.toDateString() === now.toDateString();
+    if (reportRange === 'month') return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+    if (reportRange === 'year') return date.getFullYear() === now.getFullYear();
+    return true;
+  });
+
+  const totalRevenue = filteredOrders.reduce((sum, o) => sum + o.total, 0);
+  const totalVAT = filteredOrders.reduce((sum, o) => sum + (o.taxAmount || 0), 0);
+  const totalHT = totalRevenue - totalVAT;
+
+  const exportPDF = async () => {
+    const html = `
+      <html>
+        <head>
+          <style>
+            body { font-family: 'Helvetica', sans-serif; padding: 40px; }
+            h1 { text-align: center; color: #333; }
+            .header { margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 10px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th, td { border: 1px solid #ddd; padding: 12px; text-align: left; font-size: 12px; }
+            th { backgroundColor: #f2f2f2; font-weight: bold; }
+            .totals { margin-top: 30px; border-top: 2px solid #333; padding-top: 10px; text-align: right; }
+            .total-row { font-size: 16px; font-weight: bold; margin-bottom: 5px; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>RAPPORT FINANCIER - ${settings.name.toUpperCase()}</h1>
+            <p>Période: ${reportRange.toUpperCase()} (${new Date().toLocaleDateString('fr-CH')})</p>
+            <p>${settings.address}</p>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>ID</th>
+                <th>Client</th>
+                <th>HT (CHF)</th>
+                <th>TVA (2.6%)</th>
+                <th>TTC (CHF)</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filteredOrders.map(o => `
+                <tr>
+                  <td>${new Date(o.createdAt).toLocaleDateString('fr-CH')}</td>
+                  <td>#${o.id}</td>
+                  <td>${o.customerName}</td>
+                  <td>${(o.total - (o.taxAmount || 0)).toFixed(2)}</td>
+                  <td>${(o.taxAmount || 0).toFixed(2)}</td>
+                  <td>${o.total.toFixed(2)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+
+          <div class="totals">
+            <div class="total-row">Total HT: ${totalHT.toFixed(2)} CHF</div>
+            <div class="total-row">Total TVA (2.6%): ${totalVAT.toFixed(2)} CHF</div>
+            <div class="total-row" style="color: green; font-size: 20px;">TOTAL TTC: ${totalRevenue.toFixed(2)} CHF</div>
+          </div>
+          
+          <p style="margin-top: 40px; font-size: 10px; text-align: center; color: #888;">
+            Document généré par l'application Nazar Kebab Workspace
+          </p>
+        </body>
+      </html>
+    `;
+
+    try {
+      const { uri } = await Print.printToFileAsync({ html });
+      if (Platform.OS === 'ios' || Platform.OS === 'android') {
+        await Sharing.shareAsync(uri);
+      } else {
+        // Fallback for web if standard print fails, though Print.printAsync also works
+        await Print.printAsync({ html });
+      }
+    } catch (e) {
+      console.warn(e);
+      Alert.alert('Erreur', 'Impossible de générer le rapport.');
+    }
+  };
+
+  return (
+    <ScrollView contentContainerStyle={styles.scrollContent}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+        <Text style={styles.sectionTitle}>Chiffre d'Affaires</Text>
+        <TouchableOpacity style={styles.goldBtn} onPress={exportPDF}>
+          <Ionicons name="download-outline" size={20} color="#000" />
+          <Text style={[styles.goldBtnText, { marginLeft: 8 }]}>Exporter PDF / Imprimer</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* FILTER BUTTONS */}
+      <View style={{ flexDirection: 'row', gap: 10, marginBottom: 32 }}>
+        {['today', 'month', 'year', 'all'].map(r => (
+          <TouchableOpacity 
+            key={r} 
+            style={[styles.filterBtn, reportRange === r && styles.filterBtnActive]} 
+            onPress={() => setReportRange(r as any)}
+          >
+            <Text style={[styles.filterText, reportRange === r && styles.filterTextActive]}>
+              {r === 'today' ? "Aujourd'hui" : r === 'month' ? "Ce mois" : r === 'year' ? "Cette année" : "Tout"}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* STATS HIGHLIGHT */}
+      <View style={styles.statsGrid}>
+        <StatCard label="Total HT" value={`${totalHT.toFixed(2)}`} icon="calculator" color="#2196F3" />
+        <StatCard label="TVA (2.6%)" value={`${totalVAT.toFixed(2)}`} icon="receipt" color="#FF9800" />
+        <StatCard label="Revenu TTC" value={`${totalRevenue.toFixed(2)}`} icon="cash" color={Theme.colors.success} />
+        <StatCard label="Ventes" value={String(filteredOrders.length)} icon="cart" color="#888" />
+      </View>
+
+      {/* TABLE DATA */}
+      <Text style={styles.sectionHeader}>DÉTAILS DES TRANSACTIONS</Text>
+      <View style={styles.dataTableWrapper}>
+        <View style={styles.tableHeaderRow}>
+          <Text style={[styles.th, { flex: 1 }]}>DATE</Text>
+          <Text style={[styles.th, { flex: 1 }]}>RÉF</Text>
+          <Text style={[styles.th, { flex: 2 }]}>CLIENT</Text>
+          <Text style={[styles.th, { flex: 1, textAlign: 'right' }]}>TTC (CHF)</Text>
+        </View>
+        {filteredOrders.map(o => (
+          <TouchableOpacity key={o.id} style={styles.tableRow} onPress={() => router.push({ pathname: '/receipt', params: { id: o.id } })}>
+            <Text style={[styles.tdSub, { flex: 1 }]}>{new Date(o.createdAt).toLocaleDateString('fr-CH')}</Text>
+            <Text style={[styles.tdId, { flex: 1 }]}>#{o.id}</Text>
+            <View style={{ flex: 2 }}>
+              <Text style={styles.tdTitle}>{o.customerName}</Text>
+              <Text style={styles.tdSub}>{o.paymentMethod || '---'}</Text>
+            </View>
+            <Text style={[styles.tdTitle, { flex: 1, textAlign: 'right', color: Theme.colors.success }]}>{o.total.toFixed(2)}</Text>
+          </TouchableOpacity>
+        ))}
+        {filteredOrders.length === 0 && (
+          <View style={{ padding: 40, alignItems: 'center' }}>
+            <Text style={{ color: Theme.colors.textSecondary }}>Aucune donnée pour cette période.</Text>
+          </View>
+        )}
+      </View>
+    </ScrollView>
+  );
+}
 
 // ──────────────────────────────────
 // TAB: MENU MANAGEMENT
