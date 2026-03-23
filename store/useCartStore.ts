@@ -320,7 +320,15 @@ export const useCartStore = create<CartState>((set, get) => ({
       const orderDoc = await getDoc(doc(db, 'orders', orderId));
       if (!orderDoc.exists()) return;
       const orderData = orderDoc.data();
-      const clientPushToken = orderData.pushToken;
+      let clientPushToken = orderData.pushToken;
+
+      // Backup: si pas de token dans l'ordre, on va voir chez l'utilisateur
+      if (!clientPushToken && orderData.userId) {
+        const userDoc = await getDoc(doc(db, 'users', orderData.userId));
+        if (userDoc.exists()) {
+          clientPushToken = userDoc.data().pushToken;
+        }
+      }
 
       const updateData: any = { status, updatedAt: Timestamp.now() };
       if (status === 'delivered') updateData.isPaid = true;
