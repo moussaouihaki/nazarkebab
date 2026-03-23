@@ -314,8 +314,14 @@ export default function CartScreen() {
                     <Image 
                       source={getImageSource(item.image)} 
                       style={styles.itemImage} 
-                      contentFit="cover" 
+                      contentFit="cover"
+                      transition={200}
                     />
+                    {!item.image && (
+                      <View style={{ ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' }}>
+                         <Ionicons name="restaurant-outline" size={24} color={Theme.colors.textSecondary} />
+                      </View>
+                    )}
                   </View>
                   
                   <View style={styles.itemInfo}>
@@ -443,7 +449,7 @@ const styles = StyleSheet.create({
   scrollContent: { padding: 16, paddingBottom: 40 },
   sectionLabel: { fontFamily: Theme.fonts.bodyMedium, fontSize: 11, color: Theme.colors.textSecondary, letterSpacing: 2, marginBottom: 16 },
   cartItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, gap: 12, backgroundColor: Theme.colors.surface, borderRadius: 16, padding: 12, marginBottom: 10 },
-  itemImageBox: { width: 66, height: 66, backgroundColor: Theme.colors.background, overflow: 'hidden', borderRadius: 12 },
+  itemImageBox: { width: 66, height: 66, backgroundColor: '#222', overflow: 'hidden', borderRadius: 12 },
   itemImage: { width: '100%', height: '100%' },
   itemInfo: { flex: 1 },
   itemName: { fontFamily: Theme.fonts.title, fontSize: 18, color: Theme.colors.text, marginBottom: 4 },

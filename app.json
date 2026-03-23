@@ -19,7 +19,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.nazar.kebab",
-      "buildNumber": "3",
+      "buildNumber": "4",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "UIBackgroundModes": [
@@ -39,7 +39,8 @@
     },
     "plugins": [
       "expo-router",
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-font"
     ],
     "scheme": "nazar-kebab",
     "extra": {
@@ -53,7 +54,9 @@
       "policy": "appVersion"
     },
     "updates": {
-      "url": "https://u.expo.dev/db083957-66af-4c0e-beb9-9cb50d8e0a5d"
+      "url": "https://u.expo.dev/db083957-66af-4c0e-beb9-9cb50d8e0a5d",
+      "enabled": true,
+      "fallbackToCacheTimeout": 0
     }
   }
 }

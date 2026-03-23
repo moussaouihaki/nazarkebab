@@ -81,9 +81,7 @@ export default function ProductDetailScreen() {
     const note = parts.length > 0 ? parts.join(' | ') : undefined;
     const customProduct = { ...product, price: basePrice };
 
-    for (let i = 0; i < quantity; i++) {
-      addItem(customProduct, note);
-    }
+    addItem(customProduct, note, quantity);
     router.back();
   };
 

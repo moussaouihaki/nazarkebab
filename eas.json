@@ -5,20 +5,24 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "channel": "development"
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "channel": "preview"
     },
-    "production": {}
-    },
-    "submit": {
-      "production": {
-        "ios": {
-          "appleId": "hakimoussaoui@outlook.com",
-          "ascAppId": "6760980464",
-          "appleTeamId": "U2N7XDCQHG"
-        }
+    "production": {
+      "channel": "production"
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "appleId": "hakimoussaoui@outlook.com",
+        "ascAppId": "6760980464",
+        "appleTeamId": "U2N7XDCQHG"
       }
     }
+  }
 }

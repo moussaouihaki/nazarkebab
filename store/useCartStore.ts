@@ -69,7 +69,7 @@ interface CartState {
   orders: Order[];
   activeOrder: Order | null;
   isLoading: boolean;
-  addItem: (product: Product, note?: string) => void;
+  addItem: (product: Product, note?: string, quantity?: number) => void;
   updateQuantity: (cartItemId: string, delta: number) => void;
   removeItem: (cartItemId: string) => void;
   removeAllOfItem: (cartItemId: string) => void;
@@ -123,17 +123,17 @@ export const useCartStore = create<CartState>((set, get) => ({
   activeOrder: null,
   isLoading: false,
 
-  addItem: (product, note) => {
+  addItem: (product, note, quantity = 1) => {
     const currentItems = get().items;
     const uniqueId = note ? `${product.id}-${hashNote(note)}` : product.id;
     const existingItem = currentItems.find((item) => item.id === uniqueId);
     let newItems;
     if (existingItem) {
       newItems = currentItems.map((item) =>
-        item.id === uniqueId ? { ...item, quantity: item.quantity + 1 } : item
+        item.id === uniqueId ? { ...item, quantity: item.quantity + quantity } : item
       );
     } else {
-      newItems = [...currentItems, { ...product, id: uniqueId, quantity: 1, note }];
+      newItems = [...currentItems, { ...product, id: uniqueId, quantity, note }];
     }
     set({ items: newItems, total: newItems.reduce((acc, item) => acc + item.price * item.quantity, 0) });
   },

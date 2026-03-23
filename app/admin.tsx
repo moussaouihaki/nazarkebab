@@ -1446,6 +1446,36 @@ function SettingsTab() {
 
 
 
+      
+      {/* SYSTÈME DE FIDÉLITÉ (TAMPONS) */}
+      <Text style={styles.sectionHeader}>PROGRAMME DE FIDÉLITÉ (TAMPONS)</Text>
+      <View style={styles.settingsCard}>
+        <View style={styles.switchRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.switchLabel}>Activer la Carte de Fidélité</Text>
+            <Text style={styles.switchSubtitle}>Les clients gagnent 1 tampon par commande livrée.</Text>
+          </View>
+          <Switch 
+            value={settings.loyaltyEnabled} 
+            onValueChange={v => updateSettings({ loyaltyEnabled: v })}
+            trackColor={{ false: Theme.colors.surface, true: Theme.colors.success + '88' }}
+            thumbColor={settings.loyaltyEnabled ? Theme.colors.success : Theme.colors.textSecondary} 
+          />
+        </View>
+        <View style={[styles.switchRow, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Theme.colors.border, paddingTop: 14, marginTop: 4 }]}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.switchLabel}>Nombre de tampons requis</Text>
+            <Text style={styles.switchSubtitle}>Généralement 10 pour un cadeau.</Text>
+          </View>
+          <TextInput 
+            style={[styles.timeInput, { width: 60, backgroundColor: Theme.colors.surface }]} 
+            value={String(settings.loyaltyMinPoints || 10)} 
+            onChangeText={v => updateSettings({ loyaltyMinPoints: parseInt(v) || 10 })}
+            keyboardType="numeric"
+          />
+        </View>
+      </View>
+
       {/* HORAIRES */}
       <Text style={styles.sectionHeader}>HORAIRES D'OUVERTURE</Text>
       <View style={styles.settingsCard}>

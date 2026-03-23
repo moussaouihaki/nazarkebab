@@ -183,36 +183,41 @@ export default function ProfileScreen() {
           </View>
 
           {/* FIDELITY CARD */}
-          <View style={styles.loyaltyCard}>
-            <View style={styles.loyaltyHeader}>
-               <Ionicons name="star" size={20} color={Theme.colors.success} />
-               <Text style={styles.loyaltyTitle}>CARTE DE FIDÉLITÉ</Text>
-            </View>
-            <Text style={styles.loyaltyDesc}>10 commandes = 1 Menu Kebab Offert !</Text>
-            
-            <View style={styles.punchGrid}>
-               {[1,2,3,4,5,6,7,8,9,10].map(step => {
-                 const isPunched = step <= (myOrders.length % 10);
-                 const isGift = step === 10;
-                 return (
-                   <View key={step} style={[styles.punchHole, isPunched && styles.punchHoleActive, isGift && !isPunched && styles.punchHoleGift]}>
-                     {isGift ? (
-                       <Ionicons name="gift" size={22} color={isPunched ? '#000' : Theme.colors.success} />
-                     ) : (
-                       isPunched ? <Ionicons name="checkmark-sharp" size={18} color="#000" /> : <Text style={styles.punchText}>{step}</Text>
-                     )}
-                   </View>
-                 );
-               })}
-            </View>
-            <View style={styles.loyaltyFooter}>
-              <Text style={styles.loyaltyBottom}>
-                {(myOrders.length % 10) === 0 && myOrders.length > 0
-                  ? "Félicitations ! Vous avez droit à un menu gratuit."
-                  : `Plus que ${10 - (myOrders.length % 10)} commande(s) avant votre cadeau !`}
+          {settings.loyaltyEnabled && (
+            <View style={styles.loyaltyCard}>
+              <View style={styles.loyaltyHeader}>
+                <Ionicons name="star" size={20} color={Theme.colors.success} />
+                <Text style={styles.loyaltyTitle}>CARTE DE FIDÉLITÉ</Text>
+              </View>
+              <Text style={styles.loyaltyDesc}>
+                {settings.loyaltyMinPoints} commandes = 1 Cadeau Offert !
               </Text>
+              
+              <View style={styles.punchGrid}>
+                {Array.from({ length: settings.loyaltyMinPoints }).map((_, i) => {
+                  const step = i + 1;
+                  const isPunched = step <= (user.loyaltyPoints % settings.loyaltyMinPoints);
+                  const isGift = step === settings.loyaltyMinPoints;
+                  return (
+                    <View key={step} style={[styles.punchHole, isPunched && styles.punchHoleActive, isGift && !isPunched && styles.punchHoleGift]}>
+                      {isGift ? (
+                        <Ionicons name="gift" size={22} color={isPunched ? '#000' : Theme.colors.success} />
+                      ) : (
+                        isPunched ? <Ionicons name="checkmark-sharp" size={18} color="#000" /> : <Text style={styles.punchText}>{step}</Text>
+                      )}
+                    </View>
+                  );
+                })}
+              </View>
+              <View style={styles.loyaltyFooter}>
+                <Text style={styles.loyaltyBottom}>
+                  {(user.loyaltyPoints % settings.loyaltyMinPoints) === 0 && user.loyaltyPoints > 0
+                    ? "Félicitations ! Vous avez droit à votre cadeau."
+                    : `Plus que ${settings.loyaltyMinPoints - (user.loyaltyPoints % settings.loyaltyMinPoints)} commande(s) avant votre cadeau !`}
+                </Text>
+              </View>
             </View>
-          </View>
+          )}
 
           {/* PERSONAL INFO */}
           <Text style={styles.sectionLabel}>INFORMATIONS PERSONNELLES</Text>
