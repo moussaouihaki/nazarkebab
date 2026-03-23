@@ -13,7 +13,7 @@ type Step = 'cart' | 'info' | 'confirmation';
 export default function CartScreen() {
   const { 
     items, total, deliveryFee, deliveryType,
-    removeItem, addItem, removeAllOfItem, clearCart,
+    removeItem, addItem, updateQuantity, removeAllOfItem, clearCart,
     setDeliveryType, setDeliveryFee, setCustomerInfo, setOrderNote, placeOrder,
     customerName, customerPhone, customerAddress, orderNote,
   } = useCartStore();
@@ -315,11 +315,11 @@ export default function CartScreen() {
                   </View>
 
                   <View style={styles.qtyControl}>
-                    <TouchableOpacity style={styles.qtyBtn} onPress={() => removeItem(item.id)}>
+                    <TouchableOpacity style={styles.qtyBtn} onPress={() => updateQuantity(item.id, -1)}>
                       <Ionicons name={item.quantity === 1 ? 'trash-outline' : 'remove'} size={16} color={item.quantity === 1 ? Theme.colors.danger : Theme.colors.text} />
                     </TouchableOpacity>
                     <Text style={styles.qtyText}>{item.quantity}</Text>
-                    <TouchableOpacity style={styles.qtyBtn} onPress={() => addItem(item, item.note)}>
+                    <TouchableOpacity style={styles.qtyBtn} onPress={() => updateQuantity(item.id, 1)}>
                       <Ionicons name="add" size={16} color={Theme.colors.text} />
                     </TouchableOpacity>
                   </View>

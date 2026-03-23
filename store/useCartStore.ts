@@ -70,6 +70,7 @@ interface CartState {
   activeOrder: Order | null;
   isLoading: boolean;
   addItem: (product: Product, note?: string) => void;
+  updateQuantity: (cartItemId: string, delta: number) => void;
   removeItem: (cartItemId: string) => void;
   removeAllOfItem: (cartItemId: string) => void;
   clearCart: () => void;
@@ -134,6 +135,19 @@ export const useCartStore = create<CartState>((set, get) => ({
     } else {
       newItems = [...currentItems, { ...product, id: uniqueId, quantity: 1, note }];
     }
+    set({ items: newItems, total: newItems.reduce((acc, item) => acc + item.price * item.quantity, 0) });
+  },
+
+  updateQuantity: (cartItemId: string, delta: number) => {
+    const currentItems = get().items;
+    const newItems = currentItems.map((item) => {
+      if (item.id === cartItemId) {
+        const newQty = Math.max(0, item.quantity + delta);
+        return { ...item, quantity: newQty };
+      }
+      return item;
+    }).filter(item => item.quantity > 0);
+    
     set({ items: newItems, total: newItems.reduce((acc, item) => acc + item.price * item.quantity, 0) });
   },
 
