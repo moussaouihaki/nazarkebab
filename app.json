@@ -24,6 +24,13 @@
         "ITSAppUsesNonExemptEncryption": false,
         "UIBackgroundModes": [
           "remote-notification"
+        ],
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLSchemes": [
+              "com.googleusercontent.apps.1085281959109-qdk6fkhs2jfr8rplfmnnhj9v6hvtcgj8"
+            ]
+          }
         ]
       }
     },
@@ -40,7 +47,8 @@
     "plugins": [
       "expo-router",
       "expo-web-browser",
-      "expo-font"
+      "expo-font",
+      "expo-apple-authentication"
     ],
     "scheme": "nazar-kebab",
     "extra": {

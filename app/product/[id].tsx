@@ -113,8 +113,11 @@ export default function ProductDetailScreen() {
 
         {/* TITLE & PRICE */}
         <View style={styles.titleRow}>
-          <Text style={styles.name}>{product.name}</Text>
-          <Text style={styles.price}>{product.price.toFixed(2)} CHF</Text>
+          <Text style={styles.name} numberOfLines={2}>{product.name}</Text>
+          <View style={styles.priceContainer}>
+             <Text style={styles.price}>{product.price.toFixed(2)}</Text>
+             <Text style={styles.currency}>CHF</Text>
+          </View>
         </View>
 
         {/* DESCRIPTION */}
@@ -246,8 +249,11 @@ export default function ProductDetailScreen() {
           </Text>
         )}
         <TouchableOpacity style={styles.addBtn} onPress={handleAddToCart} activeOpacity={0.85}>
-          <Text style={styles.addBtnText}>AJOUTER AU PANIER</Text>
-          <Text style={styles.addBtnPrice}>{lineTotal} CHF</Text>
+          <Text style={styles.addBtnText} numberOfLines={1}>AJOUTER AU PANIER</Text>
+          <View style={styles.addBtnPriceBox}>
+             <Text style={styles.addBtnPrice}>{lineTotal}</Text>
+             <Text style={styles.addBtnCurrency}>CHF</Text>
+          </View>
         </TouchableOpacity>
       </View>
     </View>
@@ -322,17 +328,31 @@ const styles = StyleSheet.create({
   },
   name: {
     fontFamily: Theme.fonts.title,
-    fontSize: 32,
+    fontSize: 30, // Slightly reduced
     color: Theme.colors.text,
     letterSpacing: 1,
     flex: 1,
-    marginRight: 12,
+    marginRight: 8,
+  },
+  priceContainer: {
+    alignItems: 'flex-end',
+    backgroundColor: Theme.colors.surface,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Theme.colors.border,
   },
   price: {
     fontFamily: Theme.fonts.title,
-    fontSize: 24,
+    fontSize: 22,
     color: Theme.colors.success,
-    marginTop: 6,
+  },
+  currency: {
+    fontFamily: Theme.fonts.bodyBold,
+    fontSize: 10,
+    color: Theme.colors.textSecondary,
+    marginTop: -4,
   },
   description: {
     fontFamily: Theme.fonts.body,
@@ -444,14 +464,31 @@ const styles = StyleSheet.create({
   },
   addBtnText: {
     fontFamily: Theme.fonts.bodyBold,
-    fontSize: 16,
+    fontSize: 15, // Slightly smaller
     color: '#000',
-    letterSpacing: 1,
+    letterSpacing: 0.5,
+    flex: 1,
+    marginRight: 10,
+  },
+  addBtnPriceBox: {
+    backgroundColor: 'rgba(0,0,0,0.1)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 2,
   },
   addBtnPrice: {
     fontFamily: Theme.fonts.bodyBold,
     fontSize: 16,
     color: '#000',
+  },
+  addBtnCurrency: {
+    fontFamily: Theme.fonts.bodyBold,
+    fontSize: 10,
+    color: '#000',
+    opacity: 0.6,
   },
   errorContainer: {
     flex: 1,

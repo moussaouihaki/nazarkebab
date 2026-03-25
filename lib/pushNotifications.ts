@@ -2,6 +2,7 @@ import { Platform } from 'react-native';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
+import { Theme } from '../constants/theme';
 
 
 
@@ -14,11 +15,22 @@ export async function registerForPushNotificationsAsync(): Promise<string | unde
   let token;
 
   if (Platform.OS === 'android') {
+    // Canal par défaut
     await Notifications.setNotificationChannelAsync('default', {
-      name: 'default',
-      importance: Notifications.AndroidImportance.MAX,
+      name: 'Notifications générales',
+      importance: Notifications.AndroidImportance.DEFAULT,
       vibrationPattern: [0, 250, 250, 250],
       lightColor: '#FFD700',
+    });
+
+    // Canal Prioritaire pour les Commandes
+    await Notifications.setNotificationChannelAsync('orders', {
+      name: 'Suivi de commande',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: Theme.colors.success,
+      showBadge: true,
+      lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
     });
   }
 
@@ -70,6 +82,10 @@ export async function sendPushNotification(expoPushToken: string, title: string,
     title: title,
     body: body,
     data: data,
+    android: {
+      channelId: (data as any)?.type === 'promo' ? 'default' : 'orders',
+      priority: 'high',
+    }
   };
 
   try {

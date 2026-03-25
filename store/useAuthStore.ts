@@ -6,7 +6,8 @@ import {
   deleteUser,
   updateProfile as updateFirebaseAuthProfile,
   GoogleAuthProvider,
-  signInWithCredential
+  signInWithCredential,
+  OAuthProvider
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
@@ -36,6 +37,7 @@ interface AuthState {
 
   login: (email: string, password: string) => Promise<boolean>;
   loginWithGoogle: (idToken: string) => Promise<boolean>;
+  loginWithApple: (token: string, nonce?: string) => Promise<boolean>;
   register: (data: { firstName: string; lastName: string; email: string; password: string; phone?: string; address?: string }) => Promise<boolean>;
   logout: () => Promise<void>;
   deleteAccount: () => Promise<boolean>;
@@ -116,6 +118,51 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       return true;
     } catch (err: any) {
       set({ error: 'Erreur lors de la connexion Google.', isLoading: false });
+      return false;
+    }
+  },
+
+  loginWithApple: async (token: string, nonce?: string) => {
+    set({ isLoading: true, error: null });
+    try {
+      const provider = new OAuthProvider('apple.com');
+      const credential = provider.credential({
+        idToken: token,
+        rawNonce: nonce,
+      });
+      
+      const userCredential = await signInWithCredential(auth, credential);
+      const uid = userCredential.user.uid;
+      const firebaseUser = userCredential.user;
+
+      const userDoc = await getDoc(doc(db, 'users', uid));
+
+      if (userDoc.exists()) {
+        set({ user: userDoc.data() as User, isLoggedIn: true, isLoading: false });
+      } else {
+        // Première connexion via Apple : créer le profil
+        const fullName = firebaseUser.displayName || '';
+        const parts = fullName.split(' ');
+        const newUser: User = {
+          id: uid,
+          firstName: parts[0] || 'Client',
+          lastName: parts.slice(1).join(' ') || '',
+          email: firebaseUser.email || '',
+          phone: '',
+          address: '',
+          role: 'client',
+          notifOrders: true,
+          notifPromos: true,
+          createdAt: new Date(),
+          loyaltyPoints: 0,
+        };
+        await setDoc(doc(db, 'users', uid), newUser);
+        set({ user: newUser, isLoggedIn: true, isLoading: false });
+      }
+      return true;
+    } catch (err: any) {
+      console.error('Apple Login Error:', err);
+      set({ error: 'Erreur lors de la connexion Apple.', isLoading: false });
       return false;
     }
   },

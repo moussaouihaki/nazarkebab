@@ -71,7 +71,7 @@ export default function BottomBar() {
 const styles = StyleSheet.create({
   floatingWrapper: {
     position: 'absolute',
-    bottom: Platform.OS === 'ios' ? 34 : 20,
+    bottom: Platform.OS === 'ios' ? 34 : 32,
     left: 20,
     right: 20,
     borderRadius: 30, // fully rounded like a pill

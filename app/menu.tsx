@@ -283,22 +283,24 @@ const styles = StyleSheet.create({
   listItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 24,
+    paddingVertical: 20, // Slightly reduced to fit more
     paddingHorizontal: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Theme.colors.border,
+    alignItems: 'center', // Align items vertically center
   },
   listInfo: {
     flex: 1,
-    paddingRight: 24,
-    justifyContent: 'center', // Center vertically next to image
+    paddingRight: 16, // Reduced padding
+    minWidth: 0, // CRITICAL for Android text wrap
+    justifyContent: 'center',
   },
   listTitle: {
     fontFamily: Theme.fonts.title,
-    fontSize: 22,
+    fontSize: 20, // Slightly smaller
     color: Theme.colors.text,
-    letterSpacing: 1,
-    marginBottom: 8,
+    letterSpacing: 0.5,
+    marginBottom: 4,
   },
   listDesc: {
     fontFamily: Theme.fonts.body,
@@ -317,14 +319,15 @@ const styles = StyleSheet.create({
     color: Theme.colors.textSecondary,
   },
   listImgWrapper: {
-    width: 110,
-    height: 110,
+    width: 100, // Slightly smaller
+    height: 100,
     borderRadius: 16,
     backgroundColor: Theme.colors.surface,
     position: 'relative',
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: Theme.colors.border, // Very subtle stroke
+    borderColor: Theme.colors.border,
+    flexShrink: 0, // Prevent image from being crushed
   },
   listImage: {
     width: '100%',

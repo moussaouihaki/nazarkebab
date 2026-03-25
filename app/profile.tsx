@@ -50,10 +50,12 @@ export default function ProfileScreen() {
     } else {
       Alert.alert('Déconnexion', 'Êtes-vous sûr de vouloir vous déconnecter ?', [
         { text: 'Annuler', style: 'cancel' },
-        { text: 'Se déconnecter', style: 'destructive', onPress: () => {
-          logout();
-          router.replace('/');
-        }},
+        {
+          text: 'Se déconnecter', style: 'destructive', onPress: () => {
+            logout();
+            router.replace('/');
+          }
+        },
       ]);
     }
   };
@@ -73,8 +75,8 @@ export default function ProfileScreen() {
       }
     } else {
       Alert.alert(
-        'Supprimer votre compte', 
-        'Action irréversible. Toutes vos données, commandes et avantages de fidélité seront perdus.', 
+        'Supprimer votre compte',
+        'Action irréversible. Toutes vos données, commandes et avantages de fidélité seront perdus.',
         [
           { text: 'Annuler', style: 'cancel' },
           { text: 'Supprimer définitivement', style: 'destructive', onPress: performDelete },
@@ -192,7 +194,7 @@ export default function ProfileScreen() {
               <Text style={styles.loyaltyDesc}>
                 {settings.loyaltyMinPoints} commandes = 1 Cadeau Offert !
               </Text>
-              
+
               <View style={styles.punchGrid}>
                 {Array.from({ length: settings.loyaltyMinPoints }).map((_, i) => {
                   const step = i + 1;
@@ -311,7 +313,7 @@ export default function ProfileScreen() {
                         <Text style={styles.orderDate}>
                           {new Date(order.createdAt).toLocaleDateString('fr-CH', { day: '2-digit', month: '2-digit' })}
                         </Text>
-                        <TouchableOpacity 
+                        <TouchableOpacity
                           onPress={() => router.push({ pathname: '/receipt', params: { id: order.id } })}
                           style={{ marginTop: 6 }}
                         >

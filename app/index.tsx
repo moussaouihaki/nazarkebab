@@ -290,8 +290,8 @@ const styles = StyleSheet.create({
   heroTitle: {
     fontFamily: Theme.fonts.title,
     color: Theme.colors.text,
-    fontSize: 54,
-    letterSpacing: 6,
+    fontSize: width < 380 ? 42 : 54, // Dynamic font size to avoid wrapping
+    letterSpacing: width < 380 ? 4 : 6,
     textAlign: 'center',
     textShadowColor: 'rgba(0,0,0,0.8)',
     textShadowOffset: { width: 0, height: 4 },

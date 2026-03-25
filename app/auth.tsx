@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, TouchableOpacity, TextInput, SafeAreaView, Scro
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
+import * as AppleAuthentication from 'expo-apple-authentication';
+import * as Crypto from 'expo-crypto';
 import { makeRedirectUri } from 'expo-auth-session';
 import { router } from 'expo-router';
 import { Theme } from '../constants/theme';
@@ -21,7 +23,7 @@ const WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '108528195
 type Mode = 'login' | 'register';
 
 export default function AuthScreen() {
-  const { login, loginWithGoogle, register, isLoading, error, clearError } = useAuthStore();
+  const { login, loginWithGoogle, loginWithApple, register, isLoading, error, clearError } = useAuthStore();
   
   const [request, response, promptAsync] = Google.useAuthRequest({
     iosClientId: IOS_CLIENT_ID,
@@ -48,6 +50,36 @@ export default function AuthScreen() {
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
   const [localError, setLocalError] = useState('');
+
+  const handleAppleSignIn = async () => {
+    try {
+      const nonce = Math.random().toString(36).substring(2, 10);
+      const hashedNonce = await Crypto.digestStringAsync(
+        Crypto.CryptoDigestAlgorithm.SHA256,
+        nonce
+      );
+
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+        nonce: hashedNonce,
+      });
+
+      if (credential.identityToken) {
+        const ok = await loginWithApple(credential.identityToken, nonce);
+        if (ok) router.replace('/');
+      }
+    } catch (e: any) {
+      if (e.code === 'ERR_REQUEST_CANCELED') {
+        // user cancelled the login flow
+      } else {
+        setLocalError('Erreur lors de la connexion Apple.');
+        console.error(e);
+      }
+    }
+  };
 
   const handleSubmit = async () => {
     clearError();
@@ -112,25 +144,39 @@ export default function AuthScreen() {
               </TouchableOpacity>
             </View>
 
-            {/* GOOGLE SIGN IN — en haut pour login ET register */}
-            <TouchableOpacity
-              style={styles.googleBtn}
-              onPress={() => promptAsync()}
-              disabled={!request || isLoading}
-              activeOpacity={0.85}
-            >
-              <View style={styles.googleLogoBox}>
-                <Text style={styles.googleIcon}>G</Text>
-              </View>
-              <Text style={styles.googleText}>
-                {mode === 'login' ? 'Se connecter avec Google' : "S'inscrire avec Google"}
-              </Text>
-            </TouchableOpacity>
+            {/* SOCIAL BUTTONS */}
+            <View style={styles.socialButtons}>
+              {/* GOOGLE SIGN IN */}
+              <TouchableOpacity
+                style={styles.googleBtn}
+                onPress={() => promptAsync()}
+                disabled={!request || isLoading}
+                activeOpacity={0.85}
+              >
+                <View style={styles.googleLogoBox}>
+                  <Text style={styles.googleIcon}>G</Text>
+                </View>
+                <Text style={styles.googleText}>Google</Text>
+              </TouchableOpacity>
+
+              {/* APPLE SIGN IN — Uniquement sur iOS */}
+              {Platform.OS === 'ios' && (
+                <TouchableOpacity
+                  style={styles.appleBtn}
+                  onPress={handleAppleSignIn}
+                  disabled={isLoading}
+                  activeOpacity={0.85}
+                >
+                  <Ionicons name="logo-apple" size={20} color={Theme.colors.text} />
+                  <Text style={styles.appleText}>Apple</Text>
+                </TouchableOpacity>
+              )}
+            </View>
 
             {/* DIVIDER */}
             <View style={styles.divider}>
               <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>ou continuer par email</Text>
+              <Text style={styles.dividerText}>ou par email</Text>
               <View style={styles.dividerLine} />
             </View>
 
@@ -269,11 +315,14 @@ const styles = StyleSheet.create({
   demoText: { fontFamily: Theme.fonts.body, fontSize: 12, color: Theme.colors.textSecondary },
   biometricBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, paddingVertical: 16, borderRadius: 8, borderWidth: 1, borderColor: Theme.colors.success + '40', backgroundColor: Theme.colors.success + '10', marginBottom: 16 },
   biometricText: { fontFamily: Theme.fonts.bodyMedium, fontSize: 15, color: Theme.colors.success },
-  googleBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, paddingVertical: 15, borderRadius: 12, borderWidth: 1, borderColor: Theme.colors.border, backgroundColor: Theme.colors.surface, marginBottom: 8 },
-  googleLogoBox: { width: 24, height: 24, borderRadius: 4, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
-  googleIcon: { fontFamily: Theme.fonts.bodyBold, fontSize: 16, color: '#4285F4' },
+  googleBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingVertical: 14, borderRadius: 12, borderWidth: 1, borderColor: Theme.colors.border, backgroundColor: Theme.colors.surface },
+  googleLogoBox: { width: 22, height: 22, borderRadius: 4, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
+  googleIcon: { fontFamily: Theme.fonts.bodyBold, fontSize: 14, color: '#4285F4' },
   googleText: { fontFamily: Theme.fonts.bodyMedium, fontSize: 15, color: Theme.colors.text },
-  divider: { flexDirection: 'row', alignItems: 'center', gap: 12, marginVertical: 16 },
+  appleBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingVertical: 14, borderRadius: 12, borderWidth: 1, borderColor: Theme.colors.border, backgroundColor: Theme.colors.surface },
+  appleText: { fontFamily: Theme.fonts.bodyMedium, fontSize: 15, color: Theme.colors.text },
+  socialButtons: { flexDirection: 'row', gap: 12, marginBottom: 8 },
+  divider: { flexDirection: 'row', alignItems: 'center', gap: 12, marginVertical: 12 },
   dividerLine: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: Theme.colors.border },
-  dividerText: { fontFamily: Theme.fonts.body, fontSize: 13, color: Theme.colors.textSecondary },
+  dividerText: { fontFamily: Theme.fonts.body, fontSize: 12, color: Theme.colors.textSecondary },
 });

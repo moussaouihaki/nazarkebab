@@ -325,22 +325,23 @@ export default function CartScreen() {
                   </View>
                   
                   <View style={styles.itemInfo}>
-                    <Text style={styles.itemName}>{item.name}</Text>
-                    {item.note && <Text style={{ fontFamily: Theme.fonts.body, fontSize: 10, color: Theme.colors.success, marginTop: 4, fontStyle: 'italic' }}>{item.note}</Text>}
-                    <Text style={styles.itemPrice}>{item.price.toFixed(2)} CHF / unité</Text>
-                  </View>
-
-                  <View style={styles.qtyControl}>
-                    <TouchableOpacity style={styles.qtyBtn} onPress={() => updateQuantity(item.id, -1)}>
-                      <Ionicons name={item.quantity === 1 ? 'trash-outline' : 'remove'} size={16} color={item.quantity === 1 ? Theme.colors.danger : Theme.colors.text} />
-                    </TouchableOpacity>
-                    <Text style={styles.qtyText}>{item.quantity}</Text>
-                    <TouchableOpacity style={styles.qtyBtn} onPress={() => updateQuantity(item.id, 1)}>
-                      <Ionicons name="add" size={16} color={Theme.colors.text} />
-                    </TouchableOpacity>
+                    <Text style={styles.itemName} numberOfLines={2}>{item.name}</Text>
+                    {item.note && <Text style={styles.itemNote}>{item.note}</Text>}
+                    <Text style={styles.itemPrice}>{item.price.toFixed(2)} CHF / u</Text>
                   </View>
                   
-                  <Text style={styles.itemTotal}>{(item.price * item.quantity).toFixed(2)}</Text>
+                  <View style={styles.itemRight}>
+                    <View style={styles.qtyControl}>
+                      <TouchableOpacity style={styles.qtyBtn} onPress={() => updateQuantity(item.id, -1)}>
+                        <Ionicons name={item.quantity === 1 ? 'trash-outline' : 'remove'} size={16} color={item.quantity === 1 ? Theme.colors.danger : Theme.colors.text} />
+                      </TouchableOpacity>
+                      <Text style={styles.qtyText}>{item.quantity}</Text>
+                      <TouchableOpacity style={styles.qtyBtn} onPress={() => updateQuantity(item.id, 1)}>
+                        <Ionicons name="add" size={16} color={Theme.colors.text} />
+                      </TouchableOpacity>
+                    </View>
+                    <Text style={styles.itemTotal}>{(item.price * item.quantity).toFixed(2)}</Text>
+                  </View>
                 </View>
               ))}
 
@@ -449,15 +450,17 @@ const styles = StyleSheet.create({
   scrollContent: { padding: 16, paddingBottom: 40 },
   sectionLabel: { fontFamily: Theme.fonts.bodyMedium, fontSize: 11, color: Theme.colors.textSecondary, letterSpacing: 2, marginBottom: 16 },
   cartItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, gap: 12, backgroundColor: Theme.colors.surface, borderRadius: 16, padding: 12, marginBottom: 10 },
-  itemImageBox: { width: 66, height: 66, backgroundColor: '#222', overflow: 'hidden', borderRadius: 12 },
+  itemImageBox: { width: 66, height: 66, backgroundColor: '#222', overflow: 'hidden', borderRadius: 12, flexShrink: 0 },
   itemImage: { width: '100%', height: '100%' },
-  itemInfo: { flex: 1 },
-  itemName: { fontFamily: Theme.fonts.title, fontSize: 18, color: Theme.colors.text, marginBottom: 4 },
-  itemPrice: { fontFamily: Theme.fonts.body, fontSize: 12, color: Theme.colors.textSecondary },
+  itemInfo: { flex: 1, minWidth: 0, justifyContent: 'center' },
+  itemName: { fontFamily: Theme.fonts.title, fontSize: 18, color: Theme.colors.text, marginBottom: 2, letterSpacing: 0.5 },
+  itemNote: { fontFamily: Theme.fonts.body, fontSize: 10, color: Theme.colors.success, marginTop: 2, fontStyle: 'italic' },
+  itemPrice: { fontFamily: Theme.fonts.body, fontSize: 11, color: Theme.colors.textSecondary },
+  itemRight: { alignItems: 'flex-end', gap: 6, flexShrink: 0 },
   qtyControl: { flexDirection: 'row', alignItems: 'center', backgroundColor: Theme.colors.background, gap: 4, paddingHorizontal: 6, paddingVertical: 4, borderRadius: 100 },
-  qtyBtn: { width: 30, height: 30, alignItems: 'center', justifyContent: 'center' },
-  qtyText: { fontFamily: Theme.fonts.bodyBold, fontSize: 14, color: Theme.colors.text, minWidth: 20, textAlign: 'center' },
-  itemTotal: { fontFamily: Theme.fonts.title, fontSize: 16, color: Theme.colors.primary, minWidth: 50, textAlign: 'right' },
+  qtyBtn: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
+  qtyText: { fontFamily: Theme.fonts.bodyBold, fontSize: 13, color: Theme.colors.text, minWidth: 20, textAlign: 'center' },
+  itemTotal: { fontFamily: Theme.fonts.title, fontSize: 15, color: Theme.colors.primary, textAlign: 'right' },
   summaryBox: { marginTop: 30, paddingTop: 20, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Theme.colors.border },
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
   summaryLabel: { fontFamily: Theme.fonts.body, fontSize: 14, color: Theme.colors.textSecondary },
