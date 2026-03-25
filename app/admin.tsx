@@ -830,67 +830,195 @@ function AccountingTab() {
     const html = `
       <html>
         <head>
+          <meta charset="utf-8">
           <style>
-            body { font-family: 'Helvetica', sans-serif; padding: 40px; color: #333; }
-            .header { text-align: center; margin-bottom: 40px; border-bottom: 2px solid #D4AF37; padding-bottom: 20px; }
-            h1 { margin: 0; color: #000; letter-spacing: 2px; }
-            .period { font-size: 14px; color: #666; margin-top: 10px; }
-            table { width: 100%; border-collapse: collapse; margin-top: 30px; }
-            th { background-color: #f8f8f8; font-weight: bold; border: 1px solid #ddd; padding: 12px; text-align: left; font-size: 11px; text-transform: uppercase; }
-            td { border: 1px solid #ddd; padding: 10px; text-align: left; font-size: 11px; }
-            .totals-box { margin-top: 40px; margin-left: auto; width: 300px; background: #fafafa; border: 1px solid #ddd; padding: 20px; border-radius: 8px; }
-            .total-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; }
-            .grand-total { border-top: 1px solid #ddd; margin-top: 10px; padding-top: 10px; font-size: 18px; font-weight: bold; color: #27ae60; }
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+            
+            body { 
+              font-family: 'Inter', 'Helvetica', sans-serif; 
+              padding: 0; 
+              margin: 0;
+              color: #1a1a1a; 
+              background: #fff;
+            }
+            .page {
+              padding: 50px;
+              max-width: 800px;
+              margin: auto;
+            }
+            .header-container {
+              display: flex;
+              justify-content: space-between;
+              align-items: flex-start;
+              border-bottom: 2px solid #000;
+              padding-bottom: 30px;
+              margin-bottom: 40px;
+            }
+            .logo-section h1 {
+              font-size: 28px;
+              letter-spacing: 5px;
+              margin: 0;
+              font-weight: 800;
+            }
+            .logo-section span {
+              color: #D4AF37;
+              font-size: 12px;
+              letter-spacing: 10px;
+              display: block;
+              margin-top: -5px;
+            }
+            .establishment-info {
+              text-align: right;
+              font-size: 11px;
+              line-height: 1.6;
+              color: #4b5563;
+            }
+            .report-title {
+              margin-bottom: 30px;
+            }
+            .report-title h2 {
+              font-size: 22px;
+              margin: 0;
+              text-transform: uppercase;
+              letter-spacing: 1px;
+            }
+            .report-title .date-range {
+              font-size: 14px;
+              color: #6b7280;
+              margin-top: 5px;
+            }
+            
+            .summary-cards {
+              display: flex;
+              gap: 20px;
+              margin-bottom: 40px;
+            }
+            .summary-card {
+              flex: 1;
+              background: #f9fafb;
+              border: 1px solid #e5e7eb;
+              padding: 15px;
+              border-radius: 8px;
+            }
+            .summary-card .label {
+              font-size: 10px;
+              text-transform: uppercase;
+              color: #6b7280;
+              margin-bottom: 5px;
+              font-weight: 600;
+            }
+            .summary-card .value {
+              font-size: 18px;
+              font-weight: 700;
+              color: #111827;
+            }
+            .summary-card.highlight {
+              background: #111827;
+              border-color: #111827;
+            }
+            .summary-card.highlight .label { color: #9ca3af; }
+            .summary-card.highlight .value { color: #fff; }
+
+            table { 
+              width: 100%; 
+              border-collapse: collapse; 
+              margin-top: 10px; 
+            }
+            th { 
+              background-color: #f3f4f6; 
+              color: #374151;
+              font-weight: 700; 
+              border-bottom: 2px solid #e5e7eb; 
+              padding: 12px 10px; 
+              text-align: left; 
+              font-size: 10px; 
+              text-transform: uppercase; 
+            }
+            td { 
+              border-bottom: 1px solid #f3f4f6; 
+              padding: 12px 10px; 
+              text-align: left; 
+              font-size: 11px; 
+            }
+            .amount { text-align: right; font-family: monospace; }
+            
+            .footer {
+              margin-top: 60px;
+              text-align: center;
+              font-size: 9px;
+              color: #9ca3af;
+              border-top: 1px solid #e5e7eb;
+              padding-top: 20px;
+            }
           </style>
         </head>
         <body>
-          <div class="header">
-            <h1>RAPPORT FINANCIER NAZAR KEBAB</h1>
-            <div class="period">Du ${new Date(startDate).toLocaleDateString('fr-CH')} au ${new Date(endDate).toLocaleDateString('fr-CH')}</div>
-            <p style="font-size: 12px;">Généré le ${new Date().toLocaleString('fr-CH')}</p>
-          </div>
+          <div class="page">
+            <div class="header-container">
+              <div class="logo-section">
+                <h1>NAZAR</h1>
+                <span>KEBAB</span>
+              </div>
+              <div class="establishment-info">
+                <strong>${settings.name}</strong><br>
+                ${settings.address}<br>
+                Suisse<br>
+                ${settings.phone}<br>
+                ${settings.email || ''}
+              </div>
+            </div>
 
-          <div style="margin-bottom: 20px;">
-            <strong>Établissement :</strong><br>
-            ${settings.name}<br>
-            ${settings.address}<br>
-            Tél: ${settings.phone}
-          </div>
+            <div class="report-title">
+              <h2>Rapport de Comptabilité</h2>
+              <div class="date-range">Période : ${new Date(startDate).toLocaleDateString('fr-CH')} — ${new Date(endDate).toLocaleDateString('fr-CH')}</div>
+            </div>
 
-          <table>
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Référence</th>
-                <th>Client</th>
-                <th>Paiement</th>
-                <th>TVA (2.6%)</th>
-                <th>TTC (CHF)</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${filteredOrders.map(o => `
+            <div class="summary-cards">
+              <div class="summary-card">
+                <div class="label">Total HT</div>
+                <div class="value">${totalHT.toFixed(2)} CHF</div>
+              </div>
+              <div class="summary-card">
+                <div class="label">Total TVA (2.6%)</div>
+                <div class="value">${totalVAT.toFixed(2)} CHF</div>
+              </div>
+              <div class="summary-card highlight">
+                <div class="label">Chiffre d'Affaires TTC</div>
+                <div class="value">${totalRevenue.toFixed(2)} CHF</div>
+              </div>
+            </div>
+
+            <h3 style="font-size: 14px; text-transform: uppercase; margin-bottom: 10px;">Détail des transactions (${filteredOrders.length})</h3>
+            <table>
+              <thead>
                 <tr>
-                  <td>${new Date(o.createdAt).toLocaleDateString('fr-CH')}</td>
-                  <td>#${o.id}</td>
-                  <td>${o.customerName}</td>
-                  <td>${o.paymentMethod || 'Espèces'}</td>
-                  <td>${(o.taxAmount || 0).toFixed(2)}</td>
-                  <td>${o.total.toFixed(2)}</td>
+                  <th style="width: 80px;">Date</th>
+                  <th style="width: 80px;">Réf.</th>
+                  <th>Client</th>
+                  <th style="width: 100px;">Paiement</th>
+                  <th class="amount" style="width: 80px;">TVA</th>
+                  <th class="amount" style="width: 100px;">Total TTC</th>
                 </tr>
-              `).join('')}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                ${filteredOrders.map(o => `
+                  <tr>
+                    <td>${new Date(o.createdAt).toLocaleDateString('fr-CH')}</td>
+                    <td><strong>#${o.id}</strong></td>
+                    <td>${o.customerName}</td>
+                    <td style="font-size: 9px;">${o.paymentMethod || 'Espèces'}</td>
+                    <td class="amount">${(o.taxAmount || 0).toFixed(2)}</td>
+                    <td class="amount" style="font-weight: bold;">${o.total.toFixed(2)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
 
-          <div class="totals-box">
-            <div class="total-row"><span>Total Net HT:</span> <span>${totalHT.toFixed(2)} CHF</span></div>
-            <div class="total-row"><span>Total TVA (2.6%):</span> <span>${totalVAT.toFixed(2)} CHF</span></div>
-            <div class="total-row grand-total"><span>TOTAL TTC:</span> <span>${totalRevenue.toFixed(2)} CHF</span></div>
+            <div class="footer">
+              Ce rapport a été généré automatiquement par le système NAZAR Workspace le ${new Date().toLocaleString('fr-CH')}.<br>
+              Document à valeur comptable interne - Nazar Kebab Application.
+            </div>
           </div>
-
-          <p style="margin-top: 60px; font-size: 9px; text-align: center; color: #aaa;">
-            NAZAR KEBAB Workspace - Logiciel de gestion certifié
-          </p>
         </body>
       </html>
     `;
@@ -898,7 +1026,7 @@ function AccountingTab() {
     try {
       const { uri } = await Print.printToFileAsync({ html });
       if (Platform.OS === 'ios' || Platform.OS === 'android') {
-        await Sharing.shareAsync(uri);
+        await Sharing.shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' });
       } else {
         await Print.printAsync({ html });
       }
