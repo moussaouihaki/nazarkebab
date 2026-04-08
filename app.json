@@ -19,7 +19,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.nazar.kebab",
-      "buildNumber": "6",
+      "buildNumber": "7",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "UIBackgroundModes": [
@@ -35,6 +35,7 @@
       }
     },
     "android": {
+      "versionCode": 7,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/logo.png",
         "backgroundColor": "#040404"
@@ -53,7 +54,8 @@
       ],
       "expo-web-browser",
       "expo-font",
-      "expo-apple-authentication"
+      "expo-apple-authentication",
+      "expo-notifications"
     ],
     "scheme": "nazar-kebab",
     "extra": {

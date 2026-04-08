@@ -16,6 +16,9 @@ export default async function handler(req, res) {
     title,
     body,
     data: data || {},
+    priority: 'high',
+    mutableContent: true,
+    channelId: data?.type === 'promo' ? 'default' : 'orders',
   };
 
   try {

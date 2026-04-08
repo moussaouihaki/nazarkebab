@@ -82,6 +82,8 @@ export async function sendPushNotification(expoPushToken: string, title: string,
     title: title,
     body: body,
     data: data,
+    priority: 'high',
+    mutableContent: true,
     android: {
       channelId: (data as any)?.type === 'promo' ? 'default' : 'orders',
       priority: 'high',

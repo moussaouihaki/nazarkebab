@@ -53,6 +53,10 @@ exports.onOrderStatusUpdate = functions
       title: messageTitle,
       body: messageBody,
       data: { orderId: orderId, status: after.status },
+      priority: 'high',
+      mutableContent: true,
+      channelId: 'orders',
+      _displayInForeground: true,
     };
 
     try {

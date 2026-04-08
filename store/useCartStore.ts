@@ -372,19 +372,6 @@ export const useCartStore = create<CartState>((set, get) => ({
         );
       }
 
-      //Notification push pour le client (envoyée directement par le client admin vers Expo)
-      if (clientPushToken && clientMessages[status]) {
-        try {
-          await sendPushNotification(
-            clientPushToken,
-            adminMessages[status] || "Nazar Kebab 🗞️",
-            clientMessages[status]
-          );
-        } catch (e) {
-          console.error('Erreur lors de l\'envoi push manuel:', e);
-        }
-      }
-
       // NOUVEAU : Points de fidélité lors de la livraison
       if (status === 'delivered' && orderData.userId) {
         const userDoc = await getDoc(doc(db, 'users', orderData.userId));

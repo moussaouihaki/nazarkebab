@@ -740,7 +740,7 @@ function CrmTab() {
               snap.forEach(d => {
                 const userData = d.data();
                 if (userData.pushToken && userData.notifPromos) {
-                  sendPushNotification(userData.pushToken, "🎁 Nouvelle Offre !", promoText);
+                  sendPushNotification(userData.pushToken, "🎁 Nouvelle Offre !", promoText, { type: 'promo' });
                   sentCount++;
                 }
               });
