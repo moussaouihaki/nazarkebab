@@ -44,7 +44,7 @@ export const getImageSource = (image: any): any => {
 
 export const CATEGORIES = ['POKÉ BOWL', 'DESSERTS', 'BOISSONS'];
 
-export const INITIAL_PRODUCTS: Product[] = [
+export const PRODUCTS: Product[] = [
   // --- NOS SIGNATURES ---
   {
     id: 'poke-falafel',
