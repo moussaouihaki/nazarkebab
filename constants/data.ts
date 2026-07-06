@@ -178,6 +178,7 @@ export const PRODUCTS: Product[] = [
           { name: 'Ciboulette', priceOffset: 1.00 },
           { name: 'Noix Écrasées', priceOffset: 1.00 }
         ]
+      },
       {
         title: 'Choisis ta sauce (1 au choix)',
         required: true,
