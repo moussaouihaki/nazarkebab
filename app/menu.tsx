@@ -46,7 +46,7 @@ export default function MenuScreen() {
 
   return (
     <View style={styles.container}>
-      {/* HEADER */}
+      {/* MOBILE HEADER (Top Bar) */}
       <SafeAreaView style={[styles.header, isDesktop && { display: 'none' }]}>
         <View style={styles.headerTop}>
            <TouchableOpacity style={styles.iconButton} onPress={() => router.push('/')}>
@@ -62,7 +62,10 @@ export default function MenuScreen() {
              )}
            </TouchableOpacity>
         </View>
+      </SafeAreaView>
 
+      {/* SEARCH & TABS (Visible on both Mobile and Desktop) */}
+      <View style={[isDesktop && styles.desktopTabsContainer]}>
         {/* SEARCH BAR */}
         <View style={styles.searchBar}>
           <Ionicons name="search-outline" size={18} color={Theme.colors.textSecondary} />
@@ -82,7 +85,7 @@ export default function MenuScreen() {
 
         {/* CATEGORY TABS */}
         <View style={styles.tabsWrapper}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabsScroll}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.tabsScroll, isDesktop && { justifyContent: 'center' }]}>
             {categories.map(cat => {
                const isActive = activeCategory === cat;
                return (
@@ -93,7 +96,7 @@ export default function MenuScreen() {
             })}
           </ScrollView>
         </View>
-      </SafeAreaView>
+      </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         
@@ -186,6 +189,14 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: Theme.colors.background,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: Theme.colors.border,
+  },
+  desktopTabsContainer: {
+    backgroundColor: Theme.colors.background,
+    paddingTop: 20,
+    paddingHorizontal: 16,
+    alignItems: 'center',
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderColor: Theme.colors.border,
   },
