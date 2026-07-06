@@ -11,12 +11,7 @@ import { getImageSource } from '../../constants/data';
 
 const { height } = Dimensions.get('window');
 
-const WITH_OUT = ['Sans Oignons', 'Sans Tomates', 'Sans Salade', 'Sans Choux'];
-const SUPPLEMENTS = [
-  { name: 'Frites', price: 2.00 },
-  { name: 'Fromage Feta', price: 1.50 },
-  { name: 'Viande Supplémentaire', price: 3.50 }
-];
+
 
 export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams();
@@ -30,8 +25,7 @@ export default function ProductDetailScreen() {
   const [quantity, setQuantity] = useState(1);
   const [selectedSauces, setSelectedSauces] = useState<string[]>([]);
   const [selectedDrink, setSelectedDrink] = useState<string | null>(null);
-  const [without, setWithout] = useState<string[]>([]);
-  const [selectedSupps, setSelectedSupps] = useState<string[]>([]);
+
   const [selectedCustomOptions, setSelectedCustomOptions] = useState<Record<string, string[]>>({});
 
   const inCart = cartItems.find(i => i.id.startsWith(id as string));
@@ -49,8 +43,7 @@ export default function ProductDetailScreen() {
 
   const isCustomizable = !['BOISSONS', 'DESSERTS'].includes(product.category);
 
-  const toggleWithout = (item: string) => setWithout(prev => prev.includes(item) ? prev.filter(i => i !== item) : [...prev, item]);
-  const toggleSupp = (item: string) => setSelectedSupps(prev => prev.includes(item) ? prev.filter(i => i !== item) : [...prev, item]);
+
   
   const toggleSauce = (sauce: string) => {
     if (selectedSauces.includes(sauce)) {
@@ -78,10 +71,7 @@ export default function ProductDetailScreen() {
     });
   };
 
-  const supplementTotal = selectedSupps.reduce((acc, curr) => {
-    const supp = SUPPLEMENTS.find(s => s.name === curr);
-    return acc + (supp ? supp.price : 0);
-  }, 0);
+  const supplementTotal = 0;
 
   let customTotal = 0;
   if (product.customizationSections) {
@@ -107,8 +97,7 @@ export default function ProductDetailScreen() {
     const parts = [];
     if (selectedSauces.length > 0) parts.push(`Sauce(s): ${selectedSauces.join(' & ')}`);
     if (selectedDrink) parts.push(`Boisson: ${selectedDrink}`);
-    if (without.length > 0) parts.push(`Sans: ${without.join(', ')}`);
-    if (selectedSupps.length > 0) parts.push(...selectedSupps.map(s => `+${s}`));
+
     
     const note = parts.length > 0 ? parts.join(' | ') : undefined;
     const customProduct = { ...product, price: basePrice };
@@ -279,31 +268,7 @@ export default function ProductDetailScreen() {
           </>
         )}
 
-        {isCustomizable && !product.customizationSections && (
-          <>
-            <View style={styles.divider} />
-            <Text style={styles.optionsLabel}>INGRÉDIENTS À RETIRER</Text>
-            {WITH_OUT.map((item) => (
-              <TouchableOpacity key={item} style={styles.optionRow} onPress={() => toggleWithout(item)}>
-                <Text style={styles.optionLabel}>{item}</Text>
-                <View style={[styles.checkbox, without.includes(item) && styles.checkboxSelected]}>
-                  {without.includes(item) && <Ionicons name="checkmark" size={14} color="#FFF" />}
-                </View>
-              </TouchableOpacity>
-            ))}
 
-            <View style={styles.divider} />
-            <Text style={styles.optionsLabel}>SUPPLÉMENTS</Text>
-            {SUPPLEMENTS.map((supp) => (
-              <TouchableOpacity key={supp.name} style={styles.optionRow} onPress={() => toggleSupp(supp.name)}>
-                <Text style={styles.optionLabel}>{supp.name} (+{supp.price.toFixed(2)} CHF)</Text>
-                <View style={[styles.checkbox, selectedSupps.includes(supp.name) && styles.checkboxSelected]}>
-                  {selectedSupps.includes(supp.name) && <Ionicons name="checkmark" size={14} color="#FFF" />}
-                </View>
-              </TouchableOpacity>
-            ))}
-          </>
-        )}
 
         <View style={styles.divider} />
 
