@@ -44,26 +44,80 @@ export const getImageSource = (image: any): any => {
 
 export const CATEGORIES = ['POKÉ BOWL', 'DESSERTS', 'BOISSONS'];
 
-export const PRODUCTS: Product[] = [
-  // --- POKÉ BOWL ---
+export const INITIAL_PRODUCTS: Product[] = [
+  // --- NOS SIGNATURES ---
+  {
+    id: 'poke-falafel',
+    category: 'POKÉ BOWL',
+    name: 'POKÉMOONS FALAFEL',
+    description: 'Boulgour, falafel, pois chiches, chou rouge, tomates cerises, poivrons, concombre, oignons frits et sauce au choix.',
+    price: 18.00,
+    image: 'poke',
+    highlighted: true,
+    hasSauces: true,
+  },
+  {
+    id: 'poke-chicken',
+    category: 'POKÉ BOWL',
+    name: 'POKÉMOONS CHICKEN',
+    description: 'Boulgour, escalope de poulet, avocat, oignon rouge, carottes, graines de grenade et cacahuètes écrasées.',
+    price: 19.50,
+    image: 'poke',
+    highlighted: true,
+    hasSauces: true,
+  },
+  {
+    id: 'poke-salmon',
+    category: 'POKÉ BOWL',
+    name: 'POKÉMOONS SALMON',
+    description: 'Riz blanc, dés de saumon cru, concombre, chou rouge, radis, edamame, citron vert, ciboulette.',
+    price: 21.00,
+    image: 'poke',
+    highlighted: true,
+    hasSauces: true,
+  },
+  {
+    id: 'poke-beef',
+    category: 'POKÉ BOWL',
+    name: 'POKÉMOONS BEEF',
+    description: 'Quinoa, bœuf, champignons frais, poivron, pois chiches, noix écrasées, mangue.',
+    price: 22.00,
+    image: 'poke',
+    highlighted: true,
+    hasSauces: true,
+  },
+  {
+    id: 'poke-shrimp',
+    category: 'POKÉ BOWL',
+    name: 'POKÉMOONS SHRIMP',
+    description: 'Riz blanc, crevettes, citron vert, radis, avocat, oignon rouge, tomates cerises, graines de sésame.',
+    price: 20.00,
+    image: 'poke',
+    highlighted: false,
+    hasSauces: true,
+  },
+
+  // --- LE SUR-MESURE ---
   {
     id: 'poke-custom',
     category: 'POKÉ BOWL',
     name: 'COMPOSE TON POKÉ',
-    description: 'Créez votre propre Poké Bowl de A à Z avec vos ingrédients favoris.',
-    price: 18.00,
-    image: 'https://images.unsplash.com/photo-1564834724105-918b73d1b9e0?w=800&q=80',
+    description: 'Crée ton propre Poké Bowl de A à Z avec tes ingrédients préférés.',
+    price: 19.00,
+    image: 'poke',
     highlighted: true,
+    hasSauces: true,
     customizationSections: [
       {
         title: 'Choisis ta base (1 au choix)',
         required: true,
         maxChoices: 1,
         choices: [
-          { name: 'Riz Sushi', priceOffset: 0 },
-          { name: 'Quinoa', priceOffset: 1 },
-          { name: 'Salade Mixte', priceOffset: 0 },
-          { name: 'Moitié Riz / Moitié Salade', priceOffset: 0 },
+          { name: 'Riz Blanc', priceOffset: 0 },
+          { name: 'Riz Brun', priceOffset: 0 },
+          { name: 'Quinoa', priceOffset: 1.50 },
+          { name: 'Boulgour', priceOffset: 0 },
+          { name: 'Salade Mixte', priceOffset: 0 }
         ]
       },
       {
@@ -71,12 +125,11 @@ export const PRODUCTS: Product[] = [
         required: true,
         maxChoices: 1,
         choices: [
-          { name: 'Saumon Frais', priceOffset: 0 },
-          { name: 'Saumon Mariné', priceOffset: 0 },
-          { name: 'Thon Frais', priceOffset: 1.5 },
-          { name: 'Thon Mariné Spicy', priceOffset: 1.5 },
-          { name: 'Poulet Teriyaki', priceOffset: -1 },
-          { name: 'Tofu Mariné', priceOffset: -2 },
+          { name: 'Saumon Frais', priceOffset: 3.00 },
+          { name: 'Poulet Mariné', priceOffset: 0 },
+          { name: 'Falafels', priceOffset: 0 },
+          { name: 'Bœuf', priceOffset: 2.00 },
+          { name: 'Crevettes', priceOffset: 2.00 }
         ]
       },
       {
@@ -85,13 +138,15 @@ export const PRODUCTS: Product[] = [
         maxChoices: 4,
         choices: [
           { name: 'Avocat', priceOffset: 0 },
-          { name: 'Mangue', priceOffset: 0 },
           { name: 'Edamame', priceOffset: 0 },
+          { name: 'Mangue', priceOffset: 0 },
           { name: 'Concombre', priceOffset: 0 },
-          { name: 'Radis', priceOffset: 0 },
           { name: 'Chou Rouge', priceOffset: 0 },
           { name: 'Carottes', priceOffset: 0 },
-          { name: 'Algues Wakame', priceOffset: 1 },
+          { name: 'Radis', priceOffset: 0 },
+          { name: 'Tomates Cerises', priceOffset: 0 },
+          { name: 'Poivrons', priceOffset: 0 },
+          { name: 'Champignons', priceOffset: 0 }
         ]
       },
       {
@@ -101,69 +156,46 @@ export const PRODUCTS: Product[] = [
         choices: [
           { name: 'Oignons Frits', priceOffset: 0 },
           { name: 'Graines de Sésame', priceOffset: 0 },
-          { name: 'Cacahuètes Pilées', priceOffset: 0 },
+          { name: 'Cacahuètes Écrasées', priceOffset: 0 },
+          { name: 'Graines de Grenade', priceOffset: 0 },
           { name: 'Ciboulette', priceOffset: 0 },
-        ]
-      },
-      {
-        title: 'Choisis ta sauce (1 au choix)',
-        required: true,
-        maxChoices: 1,
-        choices: [
-          { name: 'Sauce Soja Sucrée', priceOffset: 0 },
-          { name: 'Sauce Soja Salée', priceOffset: 0 },
-          { name: 'Spicy Mayo', priceOffset: 0 },
-          { name: 'Vinaigrette Sésame', priceOffset: 0 },
-          { name: 'Sans Sauce', priceOffset: 0 },
+          { name: 'Noix Écrasées', priceOffset: 0 }
         ]
       }
     ]
   },
-  {
-    id: 'poke-1',
-    category: 'POKÉ BOWL',
-    name: 'POKÉ SAUMON SIGNATURE',
-    description: 'Riz vinaigré, saumon frais, avocat, mangue, edamame, concombre, graines de sésame.',
-    price: 18.00,
-    image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&q=80',
-    hasSauces: true,
-    highlighted: true,
-  },
-  {
-    id: 'poke-2',
-    category: 'POKÉ BOWL',
-    name: 'POKÉ THON SPICY',
-    description: 'Riz vinaigré, thon mariné épicé, avocat, radis, chou rouge, oignons frits.',
-    price: 19.50,
-    image: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=800&q=80',
-    hasSauces: true,
-    highlighted: true,
-  },
-  {
-    id: 'poke-3',
-    category: 'POKÉ BOWL',
-    name: 'POKÉ POULET TERIYAKI',
-    description: 'Riz, poulet teriyaki, ananas, avocat, carottes, graines de sésame.',
-    price: 17.00,
-    image: 'https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?w=800&q=80',
-    hasSauces: true,
-    highlighted: true,
-  },
-  {
-    id: 'poke-4',
-    category: 'POKÉ BOWL',
-    name: 'POKÉ VEGGIE TOFU',
-    description: 'Quinoa, tofu mariné, avocat, edamame, chou rouge, mangue.',
-    price: 16.00,
-    image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800&q=80',
-    hasSauces: true,
-  },
 
   // --- DESSERTS ---
-  { id: 'dessert-1', category: 'DESSERTS', name: 'MOCHIS GLACÉS (3 PIÈCES)', description: 'Parfums assortis.', price: 6.50, image: 'https://images.unsplash.com/photo-1551024506-0bccd828d307?w=800&q=80' },
-  { id: 'dessert-2', category: 'DESSERTS', name: 'CHEESECAKE MATCHA', description: 'Cheesecake au thé vert matcha.', price: 7.00, image: 'https://images.unsplash.com/photo-1508737804141-4c3b688e2546?w=800&q=80' },
+  {
+    id: 'dessert-1',
+    category: 'DESSERTS',
+    name: 'TIRAMISU MAISON',
+    description: 'Notre fameux Tiramisu préparé sur place.',
+    price: 6.50,
+    image: 'dessert',
+  },
+  {
+    id: 'dessert-2',
+    category: 'DESSERTS',
+    name: 'SALADE DE FRUITS DU MOMENT',
+    description: 'Des fruits frais coupés du jour.',
+    price: 5.50,
+    image: 'dessert',
+  },
+  {
+    id: 'dessert-3',
+    category: 'DESSERTS',
+    name: "SALADE D'ANANAS",
+    description: 'Ananas frais et juteux.',
+    price: 5.00,
+    image: 'dessert',
+  },
 
   // --- BOISSONS ---
-  { id: 'boisson-3', category: 'BOISSONS', name: 'COCA-COLA 33CL', description: '', price: 3.50, image: 'drink_33cl' },
-  { id: 'boisson-4', category: 'BOISSONS', name: 'EAU MINÉRALE 50CL', description: 'Plate ou gazeuse.', price: 3.00, image: 'drink_50cl', hasDrinkSelection: true },
+  { id: 'boisson-1', category: 'BOISSONS', name: 'COCA-COLA', description: 'Canette 33cl', price: 3.50, image: 'drink_coca' },
+  { id: 'boisson-2', category: 'BOISSONS', name: 'COCA-COLA ZERO', description: 'Canette 33cl', price: 3.50, image: 'drink_zero' },
+  { id: 'boisson-3', category: 'BOISSONS', name: 'EVIAN', description: 'Bouteille 50cl', price: 3.50, image: 'drink_33cl' },
+  { id: 'boisson-4', category: 'BOISSONS', name: 'LEAFWELL CITRON', description: 'Gingembre et thé vert (33cl)', price: 4.50, image: 'drink_33cl' },
+  { id: 'boisson-5', category: 'BOISSONS', name: 'SAN PELLEGRINO', description: 'Eau gazeuse 50cl', price: 3.50, image: 'drink_33cl' },
+  { id: 'boisson-6', category: 'BOISSONS', name: 'ICE TEA PÊCHE', description: 'Canette 33cl', price: 3.50, image: 'drink_33cl' },
 ];
