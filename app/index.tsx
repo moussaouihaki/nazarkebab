@@ -375,8 +375,11 @@ const styles = StyleSheet.create({
   categoryText: {
     fontFamily: Theme.fonts.title,
     fontSize: 24,
-    color: Theme.colors.text,
+    color: '#FFFFFF',
     letterSpacing: 1,
+    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   feedWrapper: {
     paddingHorizontal: 16,
