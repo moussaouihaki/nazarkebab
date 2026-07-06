@@ -204,6 +204,18 @@ export default function HomeScreen() {
           <Text style={styles.logoNazar}>POKÉMOONS</Text>
           <Text style={styles.footerMeta}>LA CHAUX-DE-FONDS</Text>
           <Text style={styles.footerMeta}>RESERVATIONS: 032 757 44 44</Text>
+          
+          {Platform.OS === 'web' && (
+            <View style={styles.webFooter}>
+               <View style={styles.webFooterRow}>
+                 <TouchableOpacity><Text style={styles.webFooterLink}>Conditions Générales de Vente</Text></TouchableOpacity>
+                 <TouchableOpacity><Text style={styles.webFooterLink}>Mentions Légales</Text></TouchableOpacity>
+                 <TouchableOpacity><Text style={styles.webFooterLink}>Politique de Confidentialité</Text></TouchableOpacity>
+                 <TouchableOpacity><Text style={styles.webFooterLink}>Contact</Text></TouchableOpacity>
+               </View>
+               <Text style={styles.webFooterCopyright}>© {new Date().getFullYear()} Pokémoons. Tous droits réservés.</Text>
+            </View>
+          )}
         </View>
 
         <View style={{ height: 100 }} />
@@ -528,6 +540,32 @@ const styles = StyleSheet.create({
     color: Theme.colors.textSecondary,
     letterSpacing: 2,
     marginTop: 10,
+  },
+  webFooter: {
+    marginTop: 40,
+    alignItems: 'center',
+    width: '100%',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderColor: Theme.colors.border,
+    paddingTop: 20,
+  },
+  webFooterRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 20,
+    marginBottom: 20,
+  },
+  webFooterLink: {
+    fontFamily: Theme.fonts.body,
+    fontSize: 12,
+    color: Theme.colors.textSecondary,
+    textDecorationLine: 'underline',
+  },
+  webFooterCopyright: {
+    fontFamily: Theme.fonts.body,
+    fontSize: 11,
+    color: Theme.colors.textSecondary,
   },
   timeBanner: {
     flexDirection: 'row',
