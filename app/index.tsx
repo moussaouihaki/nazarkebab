@@ -21,7 +21,7 @@ const getCategoryImage = (cat: string) => {
   // Fallback based on category name
   const key = cat.toLowerCase().includes('poké') ? 'poke' : 
               cat.toLowerCase().includes('dessert') ? 'dessert' : 
-              cat.toLowerCase().includes('boisson') ? 'boisson' : 'poke';
+              cat.toLowerCase().includes('boisson') ? 'drink_33cl' : 'poke';
   return IMAGES_MAP[key];
 };
 
@@ -41,7 +41,7 @@ export default function HomeScreen() {
     // Fallback based on category name
     const key = cat.toLowerCase().includes('poké') ? 'poke' : 
                 cat.toLowerCase().includes('dessert') ? 'dessert' : 
-                cat.toLowerCase().includes('boisson') ? 'boisson' : 'poke';
+                cat.toLowerCase().includes('boisson') ? 'drink_33cl' : 'poke';
     return IMAGES_MAP[key];
   };
 
@@ -90,7 +90,7 @@ export default function HomeScreen() {
         {/* EDITORIAL HERO BANNER (Bleed Edge) */}
         <View style={styles.heroContainer}>
            <Image 
-             source={{ uri: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=1200&q=80' }} 
+             source={{ uri: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=1200&q=80' }} 
              style={StyleSheet.absoluteFillObject} 
              contentFit="cover" 
            />
@@ -288,7 +288,7 @@ const styles = StyleSheet.create({
   },
   heroTitle: {
     fontFamily: Theme.fonts.title,
-    color: Theme.colors.text,
+    color: '#FFF',
     fontSize: width < 380 ? 42 : 54, // Dynamic font size to avoid wrapping
     letterSpacing: width < 380 ? 4 : 6,
     textAlign: 'center',

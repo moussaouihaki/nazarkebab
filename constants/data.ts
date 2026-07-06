@@ -28,7 +28,7 @@ export interface Product {
 
 export const IMAGES_MAP: Record<string, any> = {
   poke: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&q=80',
-  dessert: 'https://images.unsplash.com/photo-1558402431-7bfa00d3b664?w=800&q=80',
+  dessert: 'https://images.unsplash.com/photo-1551024506-0bccd828d307?w=800&q=80',
   drink_33cl: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=800&q=80',
   drink_50cl: require('../assets/images/bottle_50cl.png'),
   drink_15l: 'https://images.unsplash.com/photo-1581006852262-e4307cf6283a?w=800&q=80',
@@ -127,6 +127,7 @@ export const PRODUCTS: Product[] = [
     price: 18.00,
     image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&q=80',
     hasSauces: true,
+    highlighted: true,
   },
   {
     id: 'poke-2',
@@ -136,6 +137,7 @@ export const PRODUCTS: Product[] = [
     price: 19.50,
     image: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=800&q=80',
     hasSauces: true,
+    highlighted: true,
   },
   {
     id: 'poke-3',
@@ -145,6 +147,7 @@ export const PRODUCTS: Product[] = [
     price: 17.00,
     image: 'https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?w=800&q=80',
     hasSauces: true,
+    highlighted: true,
   },
   {
     id: 'poke-4',
@@ -157,7 +160,7 @@ export const PRODUCTS: Product[] = [
   },
 
   // --- DESSERTS ---
-  { id: 'dessert-1', category: 'DESSERTS', name: 'MOCHIS GLACÉS (3 PIÈCES)', description: 'Parfums assortis.', price: 6.50, image: 'https://images.unsplash.com/photo-1558402431-7bfa00d3b664?w=800&q=80' },
+  { id: 'dessert-1', category: 'DESSERTS', name: 'MOCHIS GLACÉS (3 PIÈCES)', description: 'Parfums assortis.', price: 6.50, image: 'https://images.unsplash.com/photo-1551024506-0bccd828d307?w=800&q=80' },
   { id: 'dessert-2', category: 'DESSERTS', name: 'CHEESECAKE MATCHA', description: 'Cheesecake au thé vert matcha.', price: 7.00, image: 'https://images.unsplash.com/photo-1508737804141-4c3b688e2546?w=800&q=80' },
 
   // --- BOISSONS ---
