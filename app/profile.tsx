@@ -32,8 +32,8 @@ export default function ProfileScreen() {
   const [phone, setPhone] = useState(user?.phone || '');
   const [address, setAddress] = useState(user?.address || '');
 
-  const myOrders = orders;
-  const deliveredOrders = orders.filter(o => o.status === 'delivered');
+  const myOrders = user?.uid ? orders.filter(o => o.userId === user.uid) : orders;
+  const deliveredOrders = myOrders.filter(o => o.status === 'delivered');
   const totalSpent = deliveredOrders.reduce((acc, o) => acc + o.total, 0);
 
   const handleSave = () => {
