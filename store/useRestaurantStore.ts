@@ -163,15 +163,24 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
         if (prodList.length === 0 && INITIAL_PRODUCTS.length > 0) {
           INITIAL_PRODUCTS.forEach(async (p) => {
             const { id, ...rest } = p;
-            await setDoc(doc(db, 'pokemoons_products', id), rest);
+            try { await setDoc(doc(db, 'pokemoons_products', id), rest); } catch(e) {}
           });
+          set({ products: INITIAL_PRODUCTS });
         } else {
           // FORCE UPDATE: push hardcoded PRODUCTS to firebase so the new Compose Ton Poké is available
           INITIAL_PRODUCTS.forEach(async (p) => {
             const { id, ...rest } = p;
-            await setDoc(doc(db, 'pokemoons_products', id), rest, { merge: true });
+            try { await setDoc(doc(db, 'pokemoons_products', id), rest, { merge: true }); } catch(e) {}
           });
-          set({ products: prodList });
+          
+          // Merge local missing products in case Firebase write fails
+          const mergedProducts = [...prodList];
+          INITIAL_PRODUCTS.forEach(initialP => {
+             if (!mergedProducts.find(p => p.id === initialP.id)) {
+                mergedProducts.push(initialP);
+             }
+          });
+          set({ products: mergedProducts });
         }
       });
 

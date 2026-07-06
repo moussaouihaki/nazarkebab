@@ -25,7 +25,7 @@ export default function MenuScreen() {
   }, [params.category]);
 
   const filteredProducts = useMemo(() => {
-    const byCategory = products.filter(p => p.category === activeCategory);
+    const byCategory = products.filter(p => p.category?.toUpperCase() === activeCategory?.toUpperCase());
     if (!search.trim()) return byCategory;
     const q = search.toLowerCase();
     return byCategory.filter(p =>
