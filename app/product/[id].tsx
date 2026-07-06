@@ -32,6 +32,7 @@ export default function ProductDetailScreen() {
   const [selectedDrink, setSelectedDrink] = useState<string | null>(null);
   const [without, setWithout] = useState<string[]>([]);
   const [selectedSupps, setSelectedSupps] = useState<string[]>([]);
+  const [selectedCustomOptions, setSelectedCustomOptions] = useState<Record<string, string[]>>({});
 
   const inCart = cartItems.find(i => i.id.startsWith(id as string));
 
@@ -57,10 +58,24 @@ export default function ProductDetailScreen() {
     } else {
       if (selectedSauces.length < 2) {
         setSelectedSauces(prev => [...prev, sauce]);
-      } else {
-        // Optionnel: remplacer la première ou ne rien faire. Ici on ne fait rien pour respecter la limite.
       }
     }
+  };
+
+  const toggleCustomOption = (sectionTitle: string, choiceName: string, maxChoices: number) => {
+    setSelectedCustomOptions(prev => {
+      const currentSelected = prev[sectionTitle] || [];
+      if (currentSelected.includes(choiceName)) {
+        return { ...prev, [sectionTitle]: currentSelected.filter(c => c !== choiceName) };
+      }
+      if (maxChoices === 1) {
+        return { ...prev, [sectionTitle]: [choiceName] }; // Replace
+      }
+      if (currentSelected.length < maxChoices) {
+        return { ...prev, [sectionTitle]: [...currentSelected, choiceName] };
+      }
+      return prev; // Max reached
+    });
   };
 
   const supplementTotal = selectedSupps.reduce((acc, curr) => {
@@ -68,10 +83,27 @@ export default function ProductDetailScreen() {
     return acc + (supp ? supp.price : 0);
   }, 0);
 
-  const basePrice = product.price + supplementTotal;
+  let customTotal = 0;
+  if (product.customizationSections) {
+    product.customizationSections.forEach(sec => {
+      const selected = selectedCustomOptions[sec.title] || [];
+      selected.forEach(choiceName => {
+        const choice = sec.choices.find(c => c.name === choiceName);
+        if (choice) customTotal += choice.priceOffset;
+      });
+    });
+  }
+
+  const basePrice = product.price + supplementTotal + customTotal;
   const lineTotal = (basePrice * quantity).toFixed(2);
 
+  const missingRequiredSections = product.customizationSections?.filter(sec => 
+    sec.required && (!selectedCustomOptions[sec.title] || selectedCustomOptions[sec.title].length === 0)
+  ) || [];
+  const isAddDisabled = missingRequiredSections.length > 0;
+
   const handleAddToCart = () => {
+    if (isAddDisabled) return;
     const parts = [];
     if (selectedSauces.length > 0) parts.push(`Sauce(s): ${selectedSauces.join(' & ')}`);
     if (selectedDrink) parts.push(`Boisson: ${selectedDrink}`);
@@ -81,7 +113,15 @@ export default function ProductDetailScreen() {
     const note = parts.length > 0 ? parts.join(' | ') : undefined;
     const customProduct = { ...product, price: basePrice };
 
-    addItem(customProduct, note, quantity);
+    // Clean up selectedOptions to only include non-empty ones
+    const finalOptions: Record<string, string[]> = {};
+    Object.keys(selectedCustomOptions).forEach(k => {
+      if (selectedCustomOptions[k] && selectedCustomOptions[k].length > 0) {
+        finalOptions[k] = selectedCustomOptions[k];
+      }
+    });
+
+    addItem(customProduct, note, quantity, Object.keys(finalOptions).length > 0 ? finalOptions : undefined);
     router.back();
   };
 
@@ -125,8 +165,51 @@ export default function ProductDetailScreen() {
           {product.description || `Un délicieux ${product.name} préparé avec des ingrédients frais sélectionnés chaque matin. Servi chaud, à déguster sur place ou à emporter.`}
         </Text>
 
-        {/* CUSTOMIZATION OPTIONS */}
-        {product.hasSauces && (
+        {/* DYNAMIC CUSTOMIZATION SECTIONS */}
+        {product.customizationSections?.map((section) => {
+          const selected = selectedCustomOptions[section.title] || [];
+          return (
+            <React.Fragment key={section.title}>
+              <View style={styles.divider} />
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <Text style={[styles.optionsLabel, { marginBottom: 0 }]}>{section.title.toUpperCase()}</Text>
+                {section.required && selected.length === 0 && (
+                  <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 10, color: Theme.colors.danger }}>OBLIGATOIRE</Text>
+                )}
+              </View>
+              {section.choices.map(choice => {
+                const isActive = selected.includes(choice.name);
+                const isMaxedOut = !isActive && selected.length >= section.maxChoices;
+                return (
+                  <TouchableOpacity 
+                    key={choice.name} 
+                    style={[styles.optionRow, isMaxedOut && { opacity: 0.5 }]} 
+                    onPress={() => !isMaxedOut && toggleCustomOption(section.title, choice.name, section.maxChoices)}
+                    activeOpacity={isMaxedOut ? 1 : 0.7}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.optionLabel}>{choice.name}</Text>
+                      {choice.priceOffset > 0 && <Text style={{ fontSize: 11, color: Theme.colors.success }}>+{choice.priceOffset.toFixed(2)} CHF</Text>}
+                      {choice.priceOffset < 0 && <Text style={{ fontSize: 11, color: Theme.colors.textSecondary }}>{choice.priceOffset.toFixed(2)} CHF</Text>}
+                    </View>
+                    {section.maxChoices === 1 ? (
+                      <View style={[styles.radio, isActive && styles.radioSelected]}>
+                        {isActive && <View style={styles.radioDot} />}
+                      </View>
+                    ) : (
+                      <View style={[styles.checkbox, isActive && styles.checkboxSelected]}>
+                        {isActive && <Ionicons name="checkmark" size={14} color="#FFF" />}
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </React.Fragment>
+          );
+        })}
+
+        {/* CUSTOMIZATION OPTIONS (LEGACY) */}
+        {product.hasSauces && !product.customizationSections && (
           <>
             <View style={styles.divider} />
             <Text style={styles.optionsLabel}>CHOISISSEZ VOS SAUCES (MAX 2)</Text>
@@ -139,7 +222,7 @@ export default function ProductDetailScreen() {
                 <TouchableOpacity key={sauce} style={styles.optionRow} onPress={() => toggleSauce(sauce)}>
                   <Text style={styles.optionLabel}>{sauce}</Text>
                   <View style={[styles.checkbox, isActive && styles.checkboxSelected]}>
-                    {isActive && <Ionicons name="checkmark" size={14} color="#000" />}
+                    {isActive && <Ionicons name="checkmark" size={14} color="#FFF" />}
                   </View>
                 </TouchableOpacity>
               )
@@ -147,7 +230,7 @@ export default function ProductDetailScreen() {
           </>
         )}
 
-        {product.hasDrinkSelection && (
+        {product.hasDrinkSelection && !product.customizationSections && (
           <>
             <View style={styles.divider} />
             <Text style={styles.optionsLabel}>CHOISISSEZ VOTRE BOISSON (33CL)</Text>
@@ -159,12 +242,10 @@ export default function ProductDetailScreen() {
               const isMenu = productName.includes('menu') || productName.includes('etudiant') || (product.category && product.category.toLowerCase().includes('menu'));
               
               if (isMenu) {
-                 // For menus, only 33cl or similar
                  const sizeNum = parseInt(d.size) || 0;
                  return sizeNum <= 33 || d.size.toLowerCase().includes('33');
               }
               
-              // Filter by specific size if mentioned in product name
               if (productName.includes('33cl') || productName.includes('canne')) {
                 return d.size.toLowerCase().includes('33') || d.size.toLowerCase().includes('25');
               }
@@ -198,7 +279,7 @@ export default function ProductDetailScreen() {
           </>
         )}
 
-        {isCustomizable && (
+        {isCustomizable && !product.customizationSections && (
           <>
             <View style={styles.divider} />
             <Text style={styles.optionsLabel}>INGRÉDIENTS À RETIRER</Text>
@@ -206,7 +287,7 @@ export default function ProductDetailScreen() {
               <TouchableOpacity key={item} style={styles.optionRow} onPress={() => toggleWithout(item)}>
                 <Text style={styles.optionLabel}>{item}</Text>
                 <View style={[styles.checkbox, without.includes(item) && styles.checkboxSelected]}>
-                  {without.includes(item) && <Ionicons name="checkmark" size={14} color="#000" />}
+                  {without.includes(item) && <Ionicons name="checkmark" size={14} color="#FFF" />}
                 </View>
               </TouchableOpacity>
             ))}
@@ -217,7 +298,7 @@ export default function ProductDetailScreen() {
               <TouchableOpacity key={supp.name} style={styles.optionRow} onPress={() => toggleSupp(supp.name)}>
                 <Text style={styles.optionLabel}>{supp.name} (+{supp.price.toFixed(2)} CHF)</Text>
                 <View style={[styles.checkbox, selectedSupps.includes(supp.name) && styles.checkboxSelected]}>
-                  {selectedSupps.includes(supp.name) && <Ionicons name="checkmark" size={14} color="#000" />}
+                  {selectedSupps.includes(supp.name) && <Ionicons name="checkmark" size={14} color="#FFF" />}
                 </View>
               </TouchableOpacity>
             ))}
@@ -248,8 +329,8 @@ export default function ProductDetailScreen() {
             <Ionicons name="checkmark-circle" size={14} color={Theme.colors.success} /> Déjà dans votre commande ({inCart.quantity}x)
           </Text>
         )}
-        <TouchableOpacity style={styles.addBtn} onPress={handleAddToCart} activeOpacity={0.85}>
-          <Text style={styles.addBtnText} numberOfLines={1}>AJOUTER AU PANIER</Text>
+        <TouchableOpacity style={[styles.addBtn, isAddDisabled && { opacity: 0.5 }]} onPress={handleAddToCart} activeOpacity={0.85} disabled={isAddDisabled}>
+          <Text style={styles.addBtnText} numberOfLines={1}>{isAddDisabled ? 'REMPLISSEZ LES OPTIONS' : 'AJOUTER AU PANIER'}</Text>
           <View style={styles.addBtnPriceBox}>
              <Text style={styles.addBtnPrice}>{lineTotal}</Text>
              <Text style={styles.addBtnCurrency}>CHF</Text>
@@ -306,7 +387,7 @@ const styles = StyleSheet.create({
   maisonText: {
     fontFamily: Theme.fonts.bodyMedium,
     fontSize: 10,
-    color: '#000',
+    color: '#FFF',
     letterSpacing: 2,
   },
   scrollContent: {
@@ -465,7 +546,7 @@ const styles = StyleSheet.create({
   addBtnText: {
     fontFamily: Theme.fonts.bodyBold,
     fontSize: 15, // Slightly smaller
-    color: '#000',
+    color: '#FFF',
     letterSpacing: 0.5,
     flex: 1,
     marginRight: 10,
@@ -482,12 +563,12 @@ const styles = StyleSheet.create({
   addBtnPrice: {
     fontFamily: Theme.fonts.bodyBold,
     fontSize: 16,
-    color: '#000',
+    color: '#FFF',
   },
   addBtnCurrency: {
     fontFamily: Theme.fonts.bodyBold,
     fontSize: 10,
-    color: '#000',
+    color: '#FFF',
     opacity: 0.6,
   },
   errorContainer: {

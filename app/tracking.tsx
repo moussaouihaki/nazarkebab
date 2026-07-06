@@ -131,11 +131,11 @@ export default function TrackingScreen() {
               <Text style={styles.orderId}>#{orderToTrack.id}</Text>
             </View>
             <View style={[styles.statusBadge, {
-              backgroundColor: isCancelled ? Theme.colors.danger + '22' : isDelivered ? '#88888822' : Theme.colors.success + '22',
-              borderColor: isCancelled ? Theme.colors.danger : isDelivered ? '#888' : Theme.colors.success,
+              backgroundColor: isCancelled ? Theme.colors.danger + '22' : isDelivered ? Theme.colors.textSecondary + '22' : Theme.colors.success + '22',
+              borderColor: isCancelled ? Theme.colors.danger : isDelivered ? Theme.colors.textSecondary : Theme.colors.success,
             }]}>
               <Text style={[styles.statusBadgeText, {
-                color: isCancelled ? Theme.colors.danger : isDelivered ? '#888' : Theme.colors.success,
+                color: isCancelled ? Theme.colors.danger : isDelivered ? Theme.colors.textSecondary : Theme.colors.success,
               }]}>
                 {isCancelled ? 'Annulée' : isDelivered ? '✓ Livrée' : '● Live'}
               </Text>
@@ -333,9 +333,9 @@ const styles = StyleSheet.create({
 
   // Contact
   callBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, margin: 20, backgroundColor: Theme.colors.success, padding: 16, borderRadius: 100, justifyContent: 'center', shadowColor: Theme.colors.success, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 6 },
-  callBtnText: { fontFamily: Theme.fonts.bodyBold, fontSize: 14, color: '#000' },
+  callBtnText: { fontFamily: Theme.fonts.bodyBold, fontSize: 14, color: '#FFF' },
 
-  goldBtnText: { fontFamily: Theme.fonts.bodyBold, fontSize: 15, color: '#000', letterSpacing: 0.5 },
+  goldBtnText: { fontFamily: Theme.fonts.bodyBold, fontSize: 15, color: '#FFF', letterSpacing: 0.5 },
 
   // Empty
   emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 40, gap: 16 },

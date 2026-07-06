@@ -22,8 +22,8 @@ export default function DesktopHeader() {
     <View style={styles.header}>
       <View style={styles.logoWrapper}>
         <TouchableOpacity onPress={() => router.push('/')} style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <Text style={styles.logoNazar}>NAZAR</Text>
-          <Text style={styles.logoKebab}>KEBAB</Text>
+          <Text style={styles.logoNazar}>POKÉMOONS</Text>
+          <Text style={styles.logoKebab}></Text>
         </TouchableOpacity>
       </View>
 

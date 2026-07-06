@@ -18,7 +18,7 @@ interface NotificationState {
   hydrate: () => void;
 }
 
-const STORAGE_KEY = 'nazar_notifications';
+const STORAGE_KEY = 'pokemoons_notifications';
 
 // Safe read/write without any dynamic imports or import.meta
 function safeRead(): AppNotification[] {

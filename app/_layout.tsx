@@ -198,7 +198,7 @@ export default function RootLayout() {
             letterSpacing: 8,
             textAlign: 'center'
           }}>
-            NAZAR{"\n"}KEBAB
+            POKÉ{"\n"}MOONS
           </Text>
           <ActivityIndicator color={Theme.colors.success} size="small" style={{ marginTop: 30 }} />
         </View>
@@ -209,16 +209,16 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <Head>
-        <title>Nazar Kebab - Porrentruy</title>
-        <meta name="description" content="Nazar Kebab Porrentruy - Spécialités turques, kebabs, pizzas et plus encore." />
-        <link rel="icon" href="/favicon.png" />
-        <link rel="shortcut icon" href="/favicon.ico" />
+        <title>Pokémoons - La Chaux-de-Fonds</title>
+        <meta name="description" content="Pokémoons - Poké Bowls sains et savoureux." />
+        <link rel="icon" href="/favicon.png?v=2" />
+        <link rel="shortcut icon" href="/favicon.ico?v=2" />
       </Head>
-      <ThemeProvider value={DarkTheme}>
+      <ThemeProvider value={DefaultTheme}>
         <View style={styles.webWrapper}>
           {!hideHeader && <DesktopHeader />}
           <SafeAreaProvider style={styles.container}>
-            <StatusBar style="light" />
+            <StatusBar style="dark" />
             <Stack screenOptions={{ 
               headerShown: false, 
               contentStyle: { backgroundColor: Theme.colors.background } 
@@ -260,7 +260,7 @@ const styles = StyleSheet.create({
   },
   loading: {
     flex: 1,
-    backgroundColor: '#121212',
+    backgroundColor: Theme.colors.background,
     alignItems: 'center',
     justifyContent: 'center',
   },

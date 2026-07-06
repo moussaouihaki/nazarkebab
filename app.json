@@ -1,16 +1,16 @@
 {
   "expo": {
-    "name": "Nazar Kebab",
-    "slug": "nazar-kebab",
-    "version": "1.0.0",
+    "name": "Pokémoons",
+    "slug": "pokemoons",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/logo.png",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#040404"
+      "backgroundColor": "#FFFFFF"
     },
     "notification": {
       "icon": "./assets/images/logo.png",
@@ -18,8 +18,8 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.nazar.kebab",
-      "buildNumber": "7",
+      "bundleIdentifier": "com.pokemoons.app",
+      "buildNumber": "10",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "UIBackgroundModes": [
@@ -35,12 +35,12 @@
       }
     },
     "android": {
-      "versionCode": 7,
+      "versionCode": 10,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/logo.png",
-        "backgroundColor": "#040404"
+        "backgroundColor": "#FFFFFF"
       },
-      "package": "com.nazar.kebab"
+      "package": "com.pokemoons.app"
     },
     "web": {
       "favicon": "./assets/images/favicon.png"
@@ -49,7 +49,7 @@
       [
         "expo-router",
         {
-          "origin": "https://nazarkebab.vercel.app/"
+          "origin": "https://pokemoons.vercel.app/"
         }
       ],
       "expo-web-browser",
@@ -57,7 +57,7 @@
       "expo-apple-authentication",
       "expo-notifications"
     ],
-    "scheme": "nazar-kebab",
+    "scheme": "pokemoons",
     "extra": {
       "router": {},
       "eas": {

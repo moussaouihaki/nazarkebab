@@ -23,7 +23,7 @@ export default function PrivacyScreen() {
 
         <Text style={styles.sectionTitle}>1. Qui sommes-nous ?</Text>
         <Text style={styles.body}>
-          Nazar Kebab est un restaurant localisé à Porrentruy, Suisse. Notre application mobile et web
+          Pokémoons est un restaurant localisé à La Chaux-de-Fonds, Suisse. Notre application mobile et web
           permet aux clients de consulter notre menu, de passer des commandes en ligne et de suivre
           leur livraison en temps réel.
         </Text>
@@ -58,7 +58,7 @@ export default function PrivacyScreen() {
 
         <Text style={styles.sectionTitle}>5. Conservation des données</Text>
         <Text style={styles.body}>
-          Vos données sont conservées pendant la durée de votre relation avec Nazar Kebab.
+          Vos données sont conservées pendant la durée de votre relation avec Pokémoons.
           Vous pouvez demander la suppression de votre compte et de vos données à tout moment
           en nous contactant.
         </Text>
@@ -72,8 +72,8 @@ export default function PrivacyScreen() {
           • Droit à l'effacement{'\n'}
           • Droit à la portabilité{'\n\n'}
           Pour exercer ces droits, contactez-nous à :{'\n'}
-          📧 contact@nazarkebab.ch{'\n'}
-          📍 Grand-Rue 9, 2900 Porrentruy, Suisse
+          📧 contact@pokemoons.ch{'\n'}
+          📍 La Chaux-de-Fonds, Suisse
         </Text>
 
         <Text style={styles.sectionTitle}>7. Sécurité</Text>

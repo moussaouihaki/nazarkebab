@@ -104,7 +104,7 @@ export default function ReceiptScreen() {
           </div>
           <div class="center" style="margin-top: 20px;">
             <p>Merci de votre confiance !</p>
-            <p style="font-size: 0.9em;">www.nazarkebab.ch</p>
+            <p style="font-size: 0.9em;">www.pokemoons.ch</p>
           </div>
         </body>
       </html>
@@ -158,7 +158,7 @@ export default function ReceiptScreen() {
               <Text style={styles.receiptText}>{settings.address}</Text>
               <Text style={styles.receiptText}>Tél: {settings.phone}</Text>
               <Text style={styles.receiptText}>CHE-123.456.789 TVA</Text>
-              <Text style={styles.receiptText}>www.nazarkebab.ch</Text>
+              <Text style={styles.receiptText}>www.pokemoons.ch</Text>
             </View>
 
             <View style={styles.divider} />
@@ -229,7 +229,7 @@ export default function ReceiptScreen() {
 
             <View style={styles.footerSection}>
               <Text style={styles.receiptText}>Merci de votre visite !</Text>
-              <Text style={styles.receiptText}>À bientôt chez Nazar Kebab</Text>
+              <Text style={styles.receiptText}>À bientôt chez Pokémoons</Text>
             </View>
 
           </View>

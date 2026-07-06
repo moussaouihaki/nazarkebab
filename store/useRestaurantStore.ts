@@ -85,20 +85,20 @@ const DEFAULT_HOURS: OpeningHours[] = [
 ];
 
 const DEFAULT_SETTINGS: RestaurantSettings = {
-  name: 'Nazar Kebab',
-  slogan: 'Kebab | Pizza | Tacos',
-  address: 'Grand-Rue 9, 2900 Porrentruy',
-  phone: '032 757 44 44',
-  email: 'contact@nazarkebab.ch',
-  website: 'www.nazarkebab.ch',
-  instagram: '@nazarkebab.ch',
-  facebook: '@nazarkebab.ch',
+  name: 'Pokémoons',
+  slogan: 'Poké Bowls | Desserts | Boissons',
+  address: 'La Chaux-de-Fonds',
+  phone: '000 000 00 00',
+  email: 'contact@pokemoons.ch',
+  website: 'www.pokemoons.ch',
+  instagram: '@pokemoons.ch',
+  facebook: '@pokemoons.ch',
   hours: DEFAULT_HOURS,
   acceptsDelivery: true,
   acceptsPickup: true,
   isOpen: true,
   openOverrideMessage: '',
-  sauces: ['Sauce Blanche', 'Harissa', 'Andalouse', 'Ketchup', 'Mayonnaise', 'Samouraï', 'Algérienne', 'Sans Sauce'],
+  sauces: ['Sauce Soja Sucrée', 'Sauce Soja Salée', 'Spicy Mayo', 'Vinaigrette Sésame', 'Sans Sauce'],
   drinks: [
     { name: 'Coca-Cola', price: 3.50, size: '33cl' },
     { name: 'Coca-Cola Zero', price: 3.50, size: '33cl' },
@@ -106,7 +106,6 @@ const DEFAULT_SETTINGS: RestaurantSettings = {
     { name: 'Sprite', price: 3.50, size: '33cl' },
     { name: 'Ice Tea Pêche', price: 3.50, size: '33cl' },
     { name: 'Ice Tea Citron', price: 3.50, size: '33cl' },
-    { name: 'Ayran', price: 2.50, size: '25cl' },
     { name: 'Eau Gazéifiée', price: 3.00, size: '50cl' },
     { name: 'Eau Plate', price: 3.00, size: '50cl' },
   ],
@@ -126,26 +125,26 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
     set({ isLoading: true });
     try {
       // 1. Fetch Settings
-      const settingsDoc = await getDoc(doc(db, 'settings', 'restaurant'));
+      const settingsDoc = await getDoc(doc(db, 'settings', 'pokemoons_restaurant'));
       if (settingsDoc.exists()) {
         const data = settingsDoc.data();
         set({ settings: { ...DEFAULT_SETTINGS, ...data } as RestaurantSettings });
       } else {
         // First initialization
-        await setDoc(doc(db, 'settings', 'restaurant'), DEFAULT_SETTINGS);
+        await setDoc(doc(db, 'settings', 'pokemoons_restaurant'), DEFAULT_SETTINGS);
       }
 
       // 2. Fetch Categories
-      const categoriesDoc = await getDoc(doc(db, 'settings', 'categories'));
+      const categoriesDoc = await getDoc(doc(db, 'settings', 'pokemoons_categories'));
       if (categoriesDoc.exists()) {
         set({ categories: categoriesDoc.data().list });
       } else {
-        await setDoc(doc(db, 'settings', 'categories'), { list: INITIAL_CATEGORIES });
+        await setDoc(doc(db, 'settings', 'pokemoons_categories'), { list: INITIAL_CATEGORIES });
         set({ categories: INITIAL_CATEGORIES });
       }
 
       // 3. Listen to Products in real-time
-      onSnapshot(collection(db, 'products'), (snapshot) => {
+      onSnapshot(collection(db, 'pokemoons_products'), (snapshot) => {
         const prodList: Product[] = [];
         snapshot.forEach((docSnap) => {
           prodList.push({ id: docSnap.id, ...docSnap.data() } as Product);
@@ -155,8 +154,8 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
         prodList.forEach(async (p) => {
           if (typeof p.image === 'number') {
             const initial = INITIAL_PRODUCTS.find(ip => ip.id === p.id);
-            const imageKey = typeof initial?.image === 'string' ? initial.image : 'kebab';
-            await updateDoc(doc(db, 'products', p.id), { image: imageKey });
+            const imageKey = typeof initial?.image === 'string' ? initial.image : 'poke';
+            await updateDoc(doc(db, 'pokemoons_products', p.id), { image: imageKey });
           }
         });
 
@@ -164,9 +163,14 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
         if (prodList.length === 0 && INITIAL_PRODUCTS.length > 0) {
           INITIAL_PRODUCTS.forEach(async (p) => {
             const { id, ...rest } = p;
-            await setDoc(doc(db, 'products', id), rest);
+            await setDoc(doc(db, 'pokemoons_products', id), rest);
           });
         } else {
+          // FORCE UPDATE: push hardcoded PRODUCTS to firebase so the new Compose Ton Poké is available
+          INITIAL_PRODUCTS.forEach(async (p) => {
+            const { id, ...rest } = p;
+            await setDoc(doc(db, 'pokemoons_products', id), rest, { merge: true });
+          });
           set({ products: prodList });
         }
       });
@@ -180,7 +184,7 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
 
   addProduct: async (productData) => {
     try {
-      const newDocRef = doc(collection(db, 'products'));
+      const newDocRef = doc(collection(db, 'pokemoons_products'));
       await setDoc(newDocRef, productData);
     } catch (err) {
       console.error('Erreur ajout produit:', err);
@@ -189,7 +193,7 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
 
   updateProduct: async (id, data) => {
     try {
-      await updateDoc(doc(db, 'products', id), data);
+      await updateDoc(doc(db, 'pokemoons_products', id), data);
     } catch (err) {
       console.error('Erreur MAJ produit:', err);
     }
@@ -197,7 +201,7 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
 
   deleteProduct: async (id) => {
     try {
-      await deleteDoc(doc(db, 'products', id));
+      await deleteDoc(doc(db, 'pokemoons_products', id));
     } catch (err) {
       console.error('Erreur suppression produit:', err);
     }
@@ -232,7 +236,7 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
   updateSettings: async (data) => {
     try {
       const updated = { ...get().settings, ...data };
-      await setDoc(doc(db, 'settings', 'restaurant'), updated);
+      await updateDoc(doc(db, 'settings', 'pokemoons_restaurant'), data);
       set({ settings: updated });
     } catch (err) {
       console.error('Erreur MAJ réglages:', err);

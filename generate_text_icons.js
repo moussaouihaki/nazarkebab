@@ -20,7 +20,7 @@ function generateIcon(width, height, outputFilePath) {
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, width, height);
 
-    // NAZAR (White)
+    // POKÉ (White)
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     
@@ -34,20 +34,20 @@ function generateIcon(width, height, outputFilePath) {
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 10;
     
-    // Draw NAZAR slightly above center
-    ctx.fillText('NAZAR', width / 2, height / 2 - (fontSizeNazar * 0.15));
+    // Draw POKÉ slightly above center
+    ctx.fillText('POKÉ', width / 2, height / 2 - (fontSizeNazar * 0.15));
 
-    // KEBAB (Red/Primary)
+    // MOONS (Green/Primary)
     const fontSizeKebab = width * 0.10;
     ctx.font = `${fontSizeKebab}px "InterBold"`;
-    ctx.fillStyle = '#FF2A2A'; // Theme.colors.success/primary
+    ctx.fillStyle = '#297f3a'; // Theme.colors.success/primary
     ctx.letterSpacing = '10px'; // canvas doesn't support letterSpacing directly, we'll draw text normally but add space
     
-    // Draw KEBAB below NAZAR
+    // Draw MOONS below POKÉ
     const kebabY = height / 2 + (fontSizeNazar * 0.45);
     
     // Simulate letter spacing
-    const text = 'K E B A B'; // Trick for spacing
+    const text = 'M O O N S'; // Trick for spacing
     ctx.fillText(text, width / 2, kebabY);
 
     const buffer = canvas.toBuffer('image/png');

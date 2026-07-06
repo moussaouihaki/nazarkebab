@@ -75,7 +75,7 @@ export default function CartScreen() {
     checkZone(address, total, deliveryType);
   }, [address, total, deliveryType, zones]);
 
-  const loyaltyDiscount = useLoyalty ? 12.00 : 0; // Prix moyen offert pour un kebab
+  const loyaltyDiscount = useLoyalty ? 18.00 : 0; // Prix moyen offert pour un poké
   const grandTotal = Math.max(0, total + deliveryFee - loyaltyDiscount);
 
   const handleGoToInfo = () => {
@@ -113,7 +113,7 @@ export default function CartScreen() {
             <Text style={styles.confirmTitle}>COMMANDE ENVOYÉE</Text>
             <Text style={styles.confirmOrderId}>#{placedOrder.id}</Text>
             <Text style={styles.confirmSubtitle}>
-              Votre commande a été transmise à Nazar Kebab. Vous recevrez une confirmation dans quelques instants.
+              Votre commande a été transmise à Pokémoons. Vous recevrez une confirmation dans quelques instants.
             </Text>
 
             <View style={styles.trackingBox}>
@@ -242,7 +242,7 @@ export default function CartScreen() {
             <Text style={styles.fieldLabel}>NOTE POUR LA CUISINE (facultatif)</Text>
             <TextInput 
               style={[styles.input, { height: 100, textAlignVertical: 'top' }]} 
-              placeholder="Ex: Sans oignons sur le kebab..." 
+              placeholder="Ex: Sans oignons sur le poké..." 
               placeholderTextColor={Theme.colors.textSecondary}
               value={note}
               onChangeText={setNote}
@@ -327,6 +327,12 @@ export default function CartScreen() {
                   <View style={styles.itemInfo}>
                     <Text style={styles.itemName} numberOfLines={2}>{item.name}</Text>
                     {item.note && <Text style={styles.itemNote}>{item.note}</Text>}
+                    {item.selectedOptions && Object.entries(item.selectedOptions).map(([sectionTitle, choices]) => (
+                      <Text key={sectionTitle} style={styles.itemNote}>
+                        <Text style={{ fontFamily: Theme.fonts.bodyBold }}>{sectionTitle.split(' (')[0]}: </Text>
+                        {choices.join(', ')}
+                      </Text>
+                    ))}
                     <Text style={styles.itemPrice}>{item.price.toFixed(2)} CHF / u</Text>
                   </View>
                   
@@ -373,7 +379,7 @@ export default function CartScreen() {
                     >
                       <Ionicons name={useLoyalty ? "checkmark-circle" : "add-circle-outline"} size={20} color={useLoyalty ? "#000" : Theme.colors.success} />
                       <Text style={[styles.useLoyaltyText, useLoyalty && styles.useLoyaltyTextActive]}>
-                        {useLoyalty ? "Kebab Gratuit Appliqué ! ✅" : "Utiliser mon Kebab Gratuit 🎁"}
+                        {useLoyalty ? "Poké Gratuit Appliqué ! ✅" : "Utiliser mon Poké Gratuit 🎁"}
                       </Text>
                     </TouchableOpacity>
                   )}
@@ -450,7 +456,7 @@ const styles = StyleSheet.create({
   scrollContent: { padding: 16, paddingBottom: 40 },
   sectionLabel: { fontFamily: Theme.fonts.bodyMedium, fontSize: 11, color: Theme.colors.textSecondary, letterSpacing: 2, marginBottom: 16 },
   cartItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, gap: 12, backgroundColor: Theme.colors.surface, borderRadius: 16, padding: 12, marginBottom: 10 },
-  itemImageBox: { width: 66, height: 66, backgroundColor: '#222', overflow: 'hidden', borderRadius: 12, flexShrink: 0 },
+  itemImageBox: { width: 66, height: 66, backgroundColor: Theme.colors.surface, overflow: 'hidden', borderRadius: 12, flexShrink: 0 },
   itemImage: { width: '100%', height: '100%' },
   itemInfo: { flex: 1, minWidth: 0, justifyContent: 'center' },
   itemName: { fontFamily: Theme.fonts.title, fontSize: 18, color: Theme.colors.text, marginBottom: 2, letterSpacing: 0.5 },
@@ -467,14 +473,14 @@ const styles = StyleSheet.create({
   summaryValue: { fontFamily: Theme.fonts.bodyMedium, fontSize: 14, color: Theme.colors.text },
   footer: { padding: 16, paddingBottom: Platform.OS === 'ios' ? 30 : 16, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Theme.colors.border, backgroundColor: Theme.colors.background },
   goldBtn: { backgroundColor: Theme.colors.success, paddingVertical: 18, paddingHorizontal: 24, borderRadius: 100, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', shadowColor: Theme.colors.success, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35, shadowRadius: 14, elevation: 8 },
-  goldBtnText: { fontFamily: Theme.fonts.bodyBold, fontSize: 16, color: '#000', letterSpacing: 0.5 },
+  goldBtnText: { fontFamily: Theme.fonts.bodyBold, fontSize: 16, color: '#FFF', letterSpacing: 0.5 },
   fieldLabel: { fontFamily: Theme.fonts.bodyMedium, fontSize: 10, color: Theme.colors.textSecondary, letterSpacing: 2, marginBottom: 8, marginTop: 20 },
   input: { backgroundColor: Theme.colors.surface, padding: 16, fontFamily: Theme.fonts.body, fontSize: 14, color: Theme.colors.text, borderWidth: StyleSheet.hairlineWidth, borderColor: Theme.colors.border, borderRadius: 12 },
   toggleRow: { flexDirection: 'row', gap: 12 },
   toggleBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, backgroundColor: Theme.colors.surface, borderWidth: 1, borderColor: Theme.colors.border, borderRadius: 12 },
   toggleBtnActive: { backgroundColor: Theme.colors.success, borderColor: Theme.colors.success },
   toggleText: { fontFamily: Theme.fonts.bodyMedium, fontSize: 14, color: Theme.colors.textSecondary },
-  toggleTextActive: { color: '#000' },
+  toggleTextActive: { color: '#FFF' },
   // Confirmation
   confirmationScreen: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32, gap: 16 },
   confirmationIcon: { width: 80, height: 80, borderRadius: 40, backgroundColor: Theme.colors.success, alignItems: 'center', justifyContent: 'center', shadowColor: Theme.colors.success, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.4, shadowRadius: 20, elevation: 10 },
@@ -491,16 +497,16 @@ const styles = StyleSheet.create({
   zoneText: { fontFamily: Theme.fonts.bodyMedium, fontSize: 13, marginBottom: 2 },
   zoneSubText: { fontFamily: Theme.fonts.body, fontSize: 12, color: Theme.colors.textSecondary },
   // Loyalty styles
-  loyaltyCard: { backgroundColor: '#1A1A1A', padding: 20, borderRadius: 20, borderStyle: 'dotted', borderWidth: 2, borderColor: '#333', marginTop: 20 },
+  loyaltyCard: { backgroundColor: Theme.colors.surface, padding: 20, borderRadius: 20, borderStyle: 'dotted', borderWidth: 2, borderColor: Theme.colors.border, marginTop: 20 },
   loyaltyHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 15, gap: 10 },
   loyaltyTitle: { fontFamily: Theme.fonts.title, color: Theme.colors.text, fontSize: 16, letterSpacing: 2, flex: 1 },
   loyaltyPointsText: { fontFamily: Theme.fonts.bodyBold, color: Theme.colors.success, fontSize: 12 },
   loyaltyGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 15, justifyContent: 'center' },
-  stamp: { width: 34, height: 34, borderRadius: 17, borderWidth: 1, borderColor: '#444', alignItems: 'center', justifyContent: 'center' },
+  stamp: { width: 34, height: 34, borderRadius: 17, borderWidth: 1, borderColor: Theme.colors.border, alignItems: 'center', justifyContent: 'center' },
   stampFilled: { backgroundColor: Theme.colors.success, borderColor: Theme.colors.success },
   loyaltySubtext: { fontFamily: Theme.fonts.body, fontSize: 11, color: Theme.colors.textSecondary, textAlign: 'center' , fontStyle: 'italic'},
   useLoyaltyBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, padding: 12, backgroundColor: Theme.colors.surface, borderRadius: 12, borderWidth: 1, borderColor: Theme.colors.success },
   useLoyaltyBtnActive: { backgroundColor: Theme.colors.success },
   useLoyaltyText: { fontFamily: Theme.fonts.bodyBold, color: Theme.colors.success, fontSize: 13 },
-  useLoyaltyTextActive: { color: '#000' },
+  useLoyaltyTextActive: { color: '#FFF' },
 });

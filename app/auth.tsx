@@ -114,8 +114,8 @@ export default function AuthScreen() {
           <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
             {/* LOGO */}
             <View style={styles.logoBlock}>
-              <Text style={styles.logoNazar}>NAZAR</Text>
-              <Text style={styles.logoKebab}>KEBAB</Text>
+              <Text style={styles.logoNazar}>POKÉMOONS</Text>
+              <Text style={styles.logoKebab}></Text>
             </View>
 
             {/* TITLE */}
@@ -261,11 +261,11 @@ export default function AuthScreen() {
                     return;
                   }
                   const result = await LocalAuthentication.authenticateAsync({
-                    promptMessage: 'Connexion à Nazar Kebab',
+                    promptMessage: 'Connexion à Pokémoons',
                     fallbackLabel: 'Utiliser le mot de passe',
                   });
                   if (result.success) {
-                    const ok = await login('demo@nazarkebab.ch', 'password');
+                    const ok = await login('demo@pokemoons.ch', 'password');
                     if (ok) router.replace('/');
                   }
                 }}
@@ -299,7 +299,7 @@ const styles = StyleSheet.create({
   modeBtn: { flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center' },
   modeBtnActive: { backgroundColor: Theme.colors.success },
   modeBtnText: { fontFamily: Theme.fonts.bodyMedium, fontSize: 14, color: Theme.colors.textSecondary },
-  modeBtnTextActive: { color: '#000' },
+  modeBtnTextActive: { color: '#FFF' },
   row: { flexDirection: 'row', gap: 12 },
   inputGroup: { marginBottom: 16 },
   label: { fontFamily: Theme.fonts.bodyMedium, fontSize: 10, color: Theme.colors.textSecondary, letterSpacing: 2, marginBottom: 8 },
@@ -309,7 +309,7 @@ const styles = StyleSheet.create({
   errorBox: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: Theme.colors.danger + '22', padding: 12, borderRadius: 10, marginBottom: 16, borderWidth: 1, borderColor: Theme.colors.danger + '44' },
   errorText: { fontFamily: Theme.fonts.body, fontSize: 13, color: Theme.colors.danger, flex: 1 },
   submitBtn: { backgroundColor: Theme.colors.success, paddingVertical: 18, borderRadius: 100, alignItems: 'center', shadowColor: Theme.colors.success, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35, shadowRadius: 14, elevation: 8, marginBottom: 24 },
-  submitBtnText: { fontFamily: Theme.fonts.bodyBold, fontSize: 16, color: '#000', letterSpacing: 1 },
+  submitBtnText: { fontFamily: Theme.fonts.bodyBold, fontSize: 16, color: '#FFF', letterSpacing: 1 },
   demoBox: { padding: 16, backgroundColor: Theme.colors.surface, borderRadius: 12, borderWidth: 1, borderColor: Theme.colors.border, gap: 4 },
   demoTitle: { fontFamily: Theme.fonts.bodyMedium, fontSize: 13, color: Theme.colors.text },
   demoText: { fontFamily: Theme.fonts.body, fontSize: 12, color: Theme.colors.textSecondary },

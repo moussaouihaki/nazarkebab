@@ -398,7 +398,7 @@ const styles = StyleSheet.create({
   headerTitle: { fontFamily: Theme.fonts.logo, fontSize: 20, color: Theme.colors.text, letterSpacing: 4 },
   iconBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   saveBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backgroundColor: Theme.colors.success },
-  saveBtnText: { fontFamily: Theme.fonts.bodyBold, fontSize: 13, color: '#000' },
+  saveBtnText: { fontFamily: Theme.fonts.bodyBold, fontSize: 13, color: '#FFF' },
   scrollContent: { padding: 16 },
 
   // Not logged in
@@ -407,7 +407,7 @@ const styles = StyleSheet.create({
   notLoggedTitle: { fontFamily: Theme.fonts.logo, fontSize: 32, color: Theme.colors.text },
   notLoggedSubtitle: { fontFamily: Theme.fonts.body, fontSize: 14, color: Theme.colors.textSecondary, textAlign: 'center', lineHeight: 22 },
   goldBtn: { backgroundColor: Theme.colors.success, paddingVertical: 16, paddingHorizontal: 32, borderRadius: 100, shadowColor: Theme.colors.success, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35, shadowRadius: 14, elevation: 8, alignItems: 'center', width: '100%' },
-  goldBtnText: { fontFamily: Theme.fonts.bodyBold, fontSize: 16, color: '#000', letterSpacing: 0.5 },
+  goldBtnText: { fontFamily: Theme.fonts.bodyBold, fontSize: 16, color: '#FFF', letterSpacing: 0.5 },
   linkText: { fontFamily: Theme.fonts.bodyMedium, fontSize: 14, color: Theme.colors.success },
   infoBox: { width: '100%', backgroundColor: Theme.colors.surface, borderRadius: 16, padding: 16, gap: 6, borderWidth: StyleSheet.hairlineWidth, borderColor: Theme.colors.border, marginTop: 8 },
   infoBoxTitle: { fontFamily: Theme.fonts.title, fontSize: 20, color: Theme.colors.text, marginBottom: 4 },
@@ -416,7 +416,7 @@ const styles = StyleSheet.create({
   // Avatar
   avatarSection: { alignItems: 'center', paddingVertical: 24 },
   avatar: { width: 84, height: 84, borderRadius: 42, backgroundColor: Theme.colors.success, alignItems: 'center', justifyContent: 'center', marginBottom: 12, shadowColor: Theme.colors.success, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 14, elevation: 8 },
-  avatarText: { fontFamily: Theme.fonts.logo, fontSize: 30, color: '#000' },
+  avatarText: { fontFamily: Theme.fonts.logo, fontSize: 30, color: '#FFF' },
   userName: { fontFamily: Theme.fonts.title, fontSize: 26, color: Theme.colors.text, letterSpacing: 1 },
   userEmail: { fontFamily: Theme.fonts.body, fontSize: 13, color: Theme.colors.textSecondary, marginTop: 4 },
   adminBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 8, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, backgroundColor: Theme.colors.primary + '22', borderWidth: 1, borderColor: Theme.colors.primary + '44' },

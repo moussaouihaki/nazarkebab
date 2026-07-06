@@ -19,9 +19,9 @@ const getCategoryImage = (cat: string) => {
   if (prod) return getImageSource(prod.image);
   
   // Fallback based on category name
-  const key = cat.toLowerCase().includes('kebab') ? 'kebab' : 
-              cat.toLowerCase().includes('tacos') ? 'tacos' :
-              cat.toLowerCase().includes('pizza') ? 'pizza' : 'kebab';
+  const key = cat.toLowerCase().includes('poké') ? 'poke' : 
+              cat.toLowerCase().includes('dessert') ? 'dessert' : 
+              cat.toLowerCase().includes('boisson') ? 'boisson' : 'poke';
   return IMAGES_MAP[key];
 };
 
@@ -39,9 +39,9 @@ export default function HomeScreen() {
     if (prod) return getImageSource(prod.image);
     
     // Fallback based on category name
-    const key = cat.toLowerCase().includes('kebab') ? 'kebab' : 
-                cat.toLowerCase().includes('tacos') ? 'tacos' :
-                cat.toLowerCase().includes('pizza') ? 'pizza' : 'kebab';
+    const key = cat.toLowerCase().includes('poké') ? 'poke' : 
+                cat.toLowerCase().includes('dessert') ? 'dessert' : 
+                cat.toLowerCase().includes('boisson') ? 'boisson' : 'poke';
     return IMAGES_MAP[key];
   };
 
@@ -70,8 +70,7 @@ export default function HomeScreen() {
                  contentFit="contain"
                />
                <View>
-                 <Text style={styles.logoNazar}>NAZAR</Text>
-                 <Text style={styles.logoKebab}>KEBAB</Text>
+                 <Text style={styles.logoNazar}>POKÉMOONS</Text>
                </View>
              </View>
              <TouchableOpacity style={styles.cartButton} onPress={() => router.push('/cart')}>
@@ -98,11 +97,11 @@ export default function HomeScreen() {
            <View style={styles.heroOverlay} />
            <View style={styles.heroContent}>
             <View style={styles.statusRow}>
-              <View style={[styles.statusIndicator, { backgroundColor: checkIsRestaurantOpen(settings) ? '#4CAF50' : '#FF2A2A' }]} />
+              <View style={[styles.statusIndicator, { backgroundColor: checkIsRestaurantOpen(settings) ? Theme.colors.success : Theme.colors.danger }]} />
               <Text style={styles.statusText}>{checkIsRestaurantOpen(settings) ? 'ACTUELLEMENT OUVERT' : 'FERMÉ ACTUELLEMENT'}</Text>
             </View>
-              <Text style={styles.heroGolden}>DEPUIS 2005</Text>
-              <Text style={styles.heroTitle}>L'ART DU KEBAB</Text>
+              <Text style={styles.heroGolden}>DEPUIS 4 ANS</Text>
+              <Text style={styles.heroTitle}>L'ART DU POKÉ BOWL</Text>
               <TouchableOpacity style={styles.heroBtn} onPress={() => router.push('/menu')} activeOpacity={0.8}>
                  <Text style={styles.heroBtnText}>VOIR LA CARTE</Text>
               </TouchableOpacity>
@@ -182,8 +181,8 @@ export default function HomeScreen() {
         
         {/* PREMIUM FOOTER */}
         <View style={styles.footerInfo}>
-          <Text style={styles.logoNazar}>NAZAR</Text>
-          <Text style={styles.footerMeta}>GRAND-RUE 9, 2900 PORRENTRUY</Text>
+          <Text style={styles.logoNazar}>POKÉMOONS</Text>
+          <Text style={styles.footerMeta}>LA CHAUX-DE-FONDS</Text>
           <Text style={styles.footerMeta}>RESERVATIONS: 032 757 44 44</Text>
         </View>
 
@@ -258,7 +257,7 @@ const styles = StyleSheet.create({
     borderColor: Theme.colors.background,
   },
   badgeText: {
-    color: '#000',
+    color: '#FFF',
     fontSize: 7,
     fontFamily: Theme.fonts.bodyBold,
   },
@@ -453,7 +452,7 @@ const styles = StyleSheet.create({
   footerInfo: {
     marginTop: 60,
     padding: Theme.spacing.xl,
-    backgroundColor: '#020202',
+    backgroundColor: Theme.colors.surface,
     alignItems: 'center',
     borderTopWidth: StyleSheet.hairlineWidth,
     borderColor: Theme.colors.border,

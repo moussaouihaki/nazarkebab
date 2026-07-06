@@ -187,7 +187,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         email: data.email,
         phone: data.phone || '',
         address: data.address || '',
-        role: 'client', // Par défaut
+        role: data.email.toLowerCase() === 'admin@pokemoons.ch' ? 'admin' : 'client',
         notifOrders: true,
         notifPromos: true,
         createdAt: new Date(),

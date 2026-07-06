@@ -1,13 +1,13 @@
 export const Theme = {
   colors: {
-    primary: '#FF2A2A', // Brighter Red for better contrast on black
-    background: '#040404', // Extreme Deep Black
-    surface: '#0E0E0E', // Barely visible grey surface
-    text: '#F5F5F5', // Off-white for less eye-strain
-    textSecondary: '#8A8A8A', // Silver
-    border: '#1A1A1A', // Edge-to-edge subtle lines
-    success: '#FF2A2A', // Back to Brighter Red
-    danger: '#FF2A2A', // Back to Brighter Red
+    primary: '#297f3a', // Pokémoons Green
+    background: '#FFFFFF', // Pure White
+    surface: '#F5F5F5', // Light grey surface
+    text: '#121212', // Near black for readability
+    textSecondary: '#666666', // Dark grey
+    border: '#E0E0E0', // Light grey border
+    success: '#4CAF50', // Standard green
+    danger: '#F44336', // Standard red
   },
   spacing: {
     xs: 4,

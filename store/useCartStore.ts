@@ -34,6 +34,7 @@ export interface Product {
 export interface CartItem extends Product {
   quantity: number;
   note?: string;
+  selectedOptions?: Record<string, string[]>;
 }
 
 export interface Order {
@@ -69,7 +70,7 @@ interface CartState {
   orders: Order[];
   activeOrder: Order | null;
   isLoading: boolean;
-  addItem: (product: Product, note?: string, quantity?: number) => void;
+  addItem: (product: Product, note?: string, quantity?: number, selectedOptions?: Record<string, string[]>) => void;
   updateQuantity: (cartItemId: string, delta: number) => void;
   removeItem: (cartItemId: string) => void;
   removeAllOfItem: (cartItemId: string) => void;
@@ -123,9 +124,19 @@ export const useCartStore = create<CartState>((set, get) => ({
   activeOrder: null,
   isLoading: false,
 
-  addItem: (product, note, quantity = 1) => {
+  addItem: (product, note, quantity = 1, selectedOptions) => {
     const currentItems = get().items;
-    const uniqueId = note ? `${product.id}-${hashNote(note)}` : product.id;
+    
+    // Create a stable string representation of selected options for hashing
+    let optionsHashStr = '';
+    if (selectedOptions) {
+      const sortedKeys = Object.keys(selectedOptions).sort();
+      optionsHashStr = sortedKeys.map(k => `${k}:${[...selectedOptions[k]].sort().join(',')}`).join('|');
+    }
+    
+    const uniqueIdBase = note ? `${product.id}-${hashNote(note)}` : product.id;
+    const uniqueId = optionsHashStr ? `${uniqueIdBase}-${hashNote(optionsHashStr)}` : uniqueIdBase;
+    
     const existingItem = currentItems.find((item) => item.id === uniqueId);
     let newItems;
     if (existingItem) {
@@ -133,7 +144,7 @@ export const useCartStore = create<CartState>((set, get) => ({
         item.id === uniqueId ? { ...item, quantity: item.quantity + quantity } : item
       );
     } else {
-      newItems = [...currentItems, { ...product, id: uniqueId, quantity, note }];
+      newItems = [...currentItems, { ...product, id: uniqueId, quantity, note, selectedOptions }];
     }
     set({ items: newItems, total: newItems.reduce((acc, item) => acc + item.price * item.quantity, 0) });
   },
@@ -217,7 +228,7 @@ export const useCartStore = create<CartState>((set, get) => ({
             );
             if (Platform.OS === 'web' && typeof window !== 'undefined' && 'Notification' in window) {
               if (Notification.permission === 'granted') {
-                new Notification("NAZAR KEBAB 🗞️", {
+                new Notification("POKÉMOONS 🗞️", {
                   body: `Nouvelle commande #${orderId} - ${data.total} CHF`,
                   icon: '/favicon.ico'
                 });
@@ -370,6 +381,17 @@ export const useCartStore = create<CartState>((set, get) => ({
           adminMessages[status],
           `Statut mis à jour pour #${orderId}`
         );
+      }
+
+      // ENVOI DE LA NOTIFICATION PUSH RÉELLE AU CLIENT
+      if (clientPushToken && clientMessages[status]) {
+        console.log(`Sending push notification to client for status ${status}...`);
+        sendPushNotification(
+          clientPushToken,
+          adminMessages[status], // Le titre (ex: Commande Confirmée ✅)
+          clientMessages[status], // Le corps du texte
+          { orderId: orderId, status: status }
+        ).catch(e => console.error("Error sending push from admin:", e));
       }
 
       // NOUVEAU : Points de fidélité lors de la livraison

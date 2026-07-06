@@ -105,7 +105,7 @@ export default function AdminScreen() {
         {/* SAAS SIDEBAR */}
         <View style={styles.saasSidebar}>
           <View style={styles.saasSidebarHeader}>
-            <Text style={styles.saasLogo}>NAZAR</Text>
+            <Text style={styles.saasLogo}>POKÉMOONS</Text>
             <Text style={styles.saasLogoSub}>WORKSPACE</Text>
           </View>
           
@@ -414,7 +414,16 @@ function OrdersTab() {
                   {order.deliveryType === 'delivery' && <Text style={styles.tdSub}>{order.customerAddress}</Text>}
                 </View>
                 <View style={{ flex: 2 }}>
-                  <Text style={styles.tdSub}>{order.items.map(i => `${i.quantity}× ${i.name}`).join(', ')}</Text>
+                  {order.items.map((i, idx) => (
+                    <View key={idx} style={{ marginBottom: 4 }}>
+                      <Text style={styles.tdSub}>{i.quantity}× {i.name}</Text>
+                      {i.selectedOptions && Object.entries(i.selectedOptions).map(([section, choices]) => (
+                        <Text key={section} style={[styles.tdSub, { fontSize: 10, color: Theme.colors.success }]}>
+                          ↳ {section.split(' (')[0]}: {choices.join(', ')}
+                        </Text>
+                      ))}
+                    </View>
+                  ))}
                 </View>
                 <View style={{ flex: 1.5 }}>
                    <Text style={[styles.tdTitle, { color: Theme.colors.success }]}>{order.total.toFixed(2)} CHF</Text>
@@ -460,9 +469,18 @@ function OrdersTab() {
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.orderItemsList}>
-              {order.items.map(i => `${i.quantity}× ${i.name}`).join(', ')}
-            </Text>
+            <View style={{ marginBottom: 12 }}>
+              {order.items.map((i, idx) => (
+                <View key={idx} style={{ marginBottom: 4 }}>
+                  <Text style={styles.orderItemsList}>{i.quantity}× {i.name}</Text>
+                  {i.selectedOptions && Object.entries(i.selectedOptions).map(([section, choices]) => (
+                    <Text key={section} style={[styles.orderItemsList, { fontSize: 11, color: Theme.colors.success, marginLeft: 16 }]}>
+                      ↳ {section.split(' (')[0]}: {choices.join(', ')}
+                    </Text>
+                  ))}
+                </View>
+              ))}
+            </View>
 
             {order.note && <Text style={styles.orderNote}>📝 {order.note}</Text>}
 
@@ -556,6 +574,11 @@ function KitchenTab() {
                       <Text style={styles.kItem}><Text style={styles.kItemQty}>{it.quantity}x</Text> {it.name}</Text>
                    </View>
                    {it.note && <Text style={styles.kItemNote}>↳ {it.note}</Text>}
+                   {it.selectedOptions && Object.entries(it.selectedOptions).map(([section, choices]: [string, any]) => (
+                     <Text key={section} style={[styles.kItemNote, { color: Theme.colors.success }]}>
+                       ↳ {section.split(' (')[0]}: {choices.join(', ')}
+                     </Text>
+                   ))}
                  </View>
                ))}
              </View>
@@ -720,7 +743,7 @@ function CrmTab() {
         </Text>
         <TextInput
           style={{ backgroundColor: Theme.colors.surface, borderRadius: 8, padding: 16, fontFamily: Theme.fonts.body, fontSize: 15, color: Theme.colors.text, minHeight: 80, borderColor: Theme.colors.border, borderWidth: 1, marginBottom: 16 }}
-          placeholder="Ex: 🎁 1 Assiette achetée = 1 Boisson offerte ce soir chez Nazar Kebab !"
+          placeholder="Ex: 🎁 1 Poké acheté = 1 Boisson offerte ce soir chez Pokémoons !"
           placeholderTextColor="#999"
           multiline
           value={promoText}
@@ -956,8 +979,8 @@ function AccountingTab() {
           <div class="page">
             <div class="header-container">
               <div class="logo-section">
-                <h1>NAZAR</h1>
-                <span>KEBAB</span>
+                <h1>POKÉMOONS</h1>
+                <span></span>
               </div>
               <div class="establishment-info">
                 <strong>${settings.name}</strong><br>
@@ -1015,8 +1038,8 @@ function AccountingTab() {
             </table>
 
             <div class="footer">
-              Ce rapport a été généré automatiquement par le système NAZAR Workspace le ${new Date().toLocaleString('fr-CH')}.<br>
-              Document à valeur comptable interne - Nazar Kebab Application.
+              Ce rapport a été généré automatiquement par le système POKÉMOONS Workspace le ${new Date().toLocaleString('fr-CH')}.<br>
+              Document à valeur comptable interne - Pokémoons Application.
             </div>
           </div>
         </body>
@@ -1370,7 +1393,7 @@ function ProductModal({ visible, product, categories, defaultCategory, onClose, 
 
 
             <Text style={styles.fieldLabel}>NOM DU PRODUIT *</Text>
-            <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="Ex: DÖNER KEBAB" placeholderTextColor={Theme.colors.textSecondary} />
+            <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="Ex: POKÉ SAUMON" placeholderTextColor={Theme.colors.textSecondary} />
 
             <Text style={styles.fieldLabel}>DESCRIPTION</Text>
             <TextInput style={[styles.input, { height: 80, textAlignVertical: 'top' }]} value={description} onChangeText={setDescription} placeholder="Ingrédients, options..." placeholderTextColor={Theme.colors.textSecondary} multiline />
@@ -1488,7 +1511,7 @@ function SettingsTab() {
           />
         </View>
         <TouchableOpacity style={{ backgroundColor: Theme.colors.success, padding: 12, borderRadius: 8, marginTop: 12, alignItems: 'center' }} onPress={handleSave}>
-           <Text style={{ fontFamily: Theme.fonts.bodyBold, color: '#000' }}>{saved ? '● ENREGISTRÉ !' : 'SAUVEGARDER TEMPS'}</Text>
+           <Text style={{ fontFamily: Theme.fonts.bodyBold, color: '#FFF' }}>{saved ? '● ENREGISTRÉ !' : 'SAUVEGARDER TEMPS'}</Text>
         </TouchableOpacity>
       </View>
 
@@ -1880,7 +1903,7 @@ const styles = StyleSheet.create({
   saasTopBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 32, paddingVertical: 20, backgroundColor: Theme.colors.surface, borderBottomWidth: 1, borderColor: Theme.colors.border },
   saasTopBarTitle: { fontFamily: Theme.fonts.title, fontSize: 24, color: Theme.colors.text },
   saasAdminBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: Theme.colors.success, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 100 },
-  saasAdminBadgeText: { fontFamily: Theme.fonts.bodyBold, fontSize: 10, color: '#000', letterSpacing: 1 },
+  saasAdminBadgeText: { fontFamily: Theme.fonts.bodyBold, fontSize: 10, color: '#FFF', letterSpacing: 1 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: Theme.colors.border },
   headerTitle: { fontFamily: Theme.fonts.logo, fontSize: 20, color: Theme.colors.text, letterSpacing: 4 },
   iconBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
@@ -1936,10 +1959,10 @@ const styles = StyleSheet.create({
   orderTime: { fontFamily: Theme.fonts.body, fontSize: 12, color: Theme.colors.textSecondary },
   orderActions: { flexDirection: 'row', gap: 10, marginTop: 12 },
   advanceBtn: { flex: 1, backgroundColor: Theme.colors.success, paddingVertical: 10, borderRadius: 100, alignItems: 'center' },
-  advanceBtnText: { fontFamily: Theme.fonts.bodyBold, fontSize: 13, color: '#000' },
+  advanceBtnText: { fontFamily: Theme.fonts.bodyBold, fontSize: 13, color: '#FFF' },
   cancelOrderBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: Theme.colors.danger, borderRadius: 20 },
   payBtn: { flex: 1, backgroundColor: '#E0E0E0', paddingVertical: 10, borderRadius: 100, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 6 },
-  payBtnText: { fontFamily: Theme.fonts.bodyBold, fontSize: 13, color: '#000' },
+  payBtnText: { fontFamily: Theme.fonts.bodyBold, fontSize: 13, color: '#121212' },
   receiptIconBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: Theme.colors.background, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: Theme.colors.border },
   receiptIconText: { fontFamily: Theme.fonts.bodyMedium, fontSize: 12, color: Theme.colors.textSecondary },
 
@@ -1968,7 +1991,7 @@ const styles = StyleSheet.create({
   catPill: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 100, borderWidth: 1, borderColor: Theme.colors.border, backgroundColor: 'transparent' },
   catPillActive: { backgroundColor: Theme.colors.success, borderColor: Theme.colors.success },
   catPillText: { fontFamily: Theme.fonts.bodyMedium, fontSize: 12, color: Theme.colors.textSecondary },
-  catPillTextActive: { color: '#000' },
+  catPillTextActive: { color: '#FFF' },
   addCatBtn: { width: 38, height: 38, borderRadius: 19, borderWidth: 1, borderColor: Theme.colors.success, alignItems: 'center', justifyContent: 'center' },
   menuItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: Theme.colors.surface, borderRadius: 12, padding: 12, marginBottom: 10, gap: 12, borderWidth: StyleSheet.hairlineWidth, borderColor: Theme.colors.border },
   menuItemImage: { width: 64, height: 64, borderRadius: 10, backgroundColor: Theme.colors.background },
@@ -2011,7 +2034,7 @@ const styles = StyleSheet.create({
 
   // SHARED
   goldBtn: { backgroundColor: Theme.colors.success, paddingVertical: 16, paddingHorizontal: 24, borderRadius: 100, alignItems: 'center', shadowColor: Theme.colors.success, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 6 },
-  goldBtnText: { fontFamily: Theme.fonts.bodyBold, fontSize: 15, color: '#000', letterSpacing: 0.5 },
+  goldBtnText: { fontFamily: Theme.fonts.bodyBold, fontSize: 15, color: '#FFF', letterSpacing: 0.5 },
   sectionTitle: { fontFamily: Theme.fonts.title, fontSize: 24, color: Theme.colors.text, letterSpacing: 2 },
   emptyState: { alignItems: 'center', paddingTop: 60, gap: 12 },
   emptyTitle: { fontFamily: Theme.fonts.title, fontSize: 24, color: Theme.colors.text, letterSpacing: 2 },

@@ -4,7 +4,7 @@ export interface DeliveryZone {
   cities: string[];
   postalCodes: string[];
   minOrder: number;       // Minimum de commande en CHF
-  deliveryFee: number;    // Frais de livraison en CHF (offerts chez Nazar)
+  deliveryFee: number;    // Frais de livraison en CHF (offerts chez Pokémoons)
   estimatedTime: number;  // Temps estimé en minutes
   available: boolean;
 }
@@ -12,9 +12,9 @@ export interface DeliveryZone {
 export const DELIVERY_ZONES: DeliveryZone[] = [
   {
     zoneNumber: 1,
-    name: 'Zone 1 — Porrentruy',
-    cities: ['Porrentruy'],
-    postalCodes: ['2900', '2902', '2903', '2904'],
+    name: 'Zone 1 — La Chaux-de-Fonds',
+    cities: ['La Chaux-de-Fonds'],
+    postalCodes: ['2300'],
     minOrder: 20,
     deliveryFee: 0,
     estimatedTime: 15,

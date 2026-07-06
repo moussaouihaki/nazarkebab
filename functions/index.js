@@ -1,70 +1,60 @@
-const functions = require('firebase-functions/v1');
-const admin = require('firebase-admin');
-const axios = require('axios');
+const { onDocumentUpdated } = require('firebase-functions/v2/firestore');
+const { initializeApp } = require('firebase-admin/app');
+const https = require('https');
 
-admin.initializeApp();
+initializeApp();
 
-/** 
- * Déclenchement Automatique des Notifications sur Changement de Statut 
- * Version Professionnelle v1 (Stable)
- */
-exports.onOrderStatusUpdate = functions
-  .region('europe-west1')
-  .firestore.document('orders/{orderId}')
-  .onUpdate(async (change, context) => {
-    const before = change.before.data();
-    const after = change.after.data();
-    const orderId = context.params.orderId;
+exports.pushNotifications = onDocumentUpdated({
+  document: 'orders/{orderId}',
+  region: 'europe-west1'
+}, async (event) => {
+    const before = event.data.before.data();
+    const after = event.data.after.data();
+    const orderId = event.params.orderId;
 
-    // On ne fait rien si le statut n'a pas changé
     if (before.status === after.status) return null;
 
-    // On récupère le Push Token
     const pushToken = after.pushToken;
-    if (!pushToken) {
-      console.log(`Aucun jeton pour la commande ${orderId}`);
-      return null;
-    }
+    if (!pushToken) return null;
 
     const messages = {
-      confirmed: "Le restaurant a validé votre commande !",
-      preparing: "Votre repas est en préparation 👨‍🍳",
-      ready: "Votre commande est prête / en route ! 🛵",
-      delivered: "Bon appétit ! Votre commande a été livrée.",
-      cancelled: "Désolé, votre commande a été annulée."
-    };
-
-    const statusTitle = {
-        confirmed: "Commande Confirmée ✅",
-        preparing: "En Préparation 👨‍🍳",
-        ready: "Prête / En livraison 🛍️",
-        delivered: "Terminée 🎉",
-        cancelled: "Annulée ❌"
+      confirmed: "Commande validée !",
+      preparing: "En préparation...",
+      ready: "C'est prêt !",
+      delivered: "Livré !",
+      cancelled: "Annulée"
     };
 
     const messageBody = messages[after.status];
-    const messageTitle = statusTitle[after.status] || "Nazar Kebab 🗞️";
-
     if (!messageBody) return null;
 
-    const payload = {
+    const payload = JSON.stringify({
       to: pushToken,
-      sound: 'default',
-      title: messageTitle,
+      title: "Pokémoons",
       body: messageBody,
-      data: { orderId: orderId, status: after.status },
+      data: { orderId: orderId },
       priority: 'high',
-      mutableContent: true,
-      channelId: 'orders',
-      _displayInForeground: true,
-    };
+      channelId: 'orders'
+    });
 
-    try {
-      console.log(`Envoi push pour ${orderId} : ${after.status}`);
-      await axios.post('https://exp.host/--/api/v2/push/send', payload);
-      return console.log(`Notification envoyée !`);
-    } catch (error) {
-      console.error(`Erreur notification:`, error);
-      return null;
-    }
-  });
+    return new Promise((resolve, reject) => {
+      const options = {
+        hostname: 'exp.host',
+        path: '/--/api/v2/push/send',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': payload.length,
+        },
+      };
+
+      const req = https.request(options, (res) => {
+        res.on('data', () => {});
+        res.on('end', () => resolve());
+      });
+
+      req.on('error', (e) => reject(e));
+      req.write(payload);
+      req.end();
+    });
+});

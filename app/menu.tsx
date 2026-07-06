@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
     borderColor: Theme.colors.background,
   },
   badgeText: {
-    color: '#000',
+    color: '#FFF',
     fontSize: 7,
     fontFamily: Theme.fonts.bodyBold,
   },
@@ -251,7 +251,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   tabTextActive: {
-    color: '#000',
+    color: '#FFF',
     fontFamily: Theme.fonts.bodyBold,
   },
   scrollContent: {
@@ -260,7 +260,7 @@ const styles = StyleSheet.create({
   categoryHero: {
     alignItems: 'center',
     paddingVertical: 40,
-    backgroundColor: '#020202',
+    backgroundColor: Theme.colors.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderColor: Theme.colors.border,
   },
@@ -376,9 +376,9 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
   },
-  floatingCartCount: { fontFamily: Theme.fonts.bodyMedium, fontSize: 12, color: '#000', letterSpacing: 1 },
-  floatingCartText:  { fontFamily: Theme.fonts.bodyBold,   fontSize: 14, color: '#000', letterSpacing: 1 },
-  floatingCartPrice: { fontFamily: Theme.fonts.bodyBold,   fontSize: 14, color: '#000' },
+  floatingCartCount: { fontFamily: Theme.fonts.bodyMedium, fontSize: 12, color: '#FFF', letterSpacing: 1 },
+  floatingCartText:  { fontFamily: Theme.fonts.bodyBold,   fontSize: 14, color: '#FFF', letterSpacing: 1 },
+  floatingCartPrice: { fontFamily: Theme.fonts.bodyBold,   fontSize: 14, color: '#FFF' },
   // Search
   searchBar: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 16, marginBottom: 10, backgroundColor: Theme.colors.surface, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, borderWidth: StyleSheet.hairlineWidth, borderColor: Theme.colors.border },
   searchInput: { flex: 1, fontFamily: Theme.fonts.body, fontSize: 14, color: Theme.colors.text },
