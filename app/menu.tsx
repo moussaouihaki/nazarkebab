@@ -17,7 +17,7 @@ export default function MenuScreen() {
   const cartItems = useCartStore((state) => state.items);
   const cartTotal = useCartStore((state) => state.total);
   const cartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
-  const [activeCategory, setActiveCategory] = useState(params.category ? (params.category as string) : categories[1]);
+  const [activeCategory, setActiveCategory] = useState(params.category ? (params.category as string) : categories[0] || 'POKÉ BOWL');
   const [search, setSearch] = useState('');
 
   useEffect(() => {

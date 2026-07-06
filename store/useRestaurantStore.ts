@@ -116,8 +116,8 @@ const DEFAULT_SETTINGS: RestaurantSettings = {
 };
 
 export const useRestaurantStore = create<RestaurantState>((set, get) => ({
-  products: [],
-  categories: [],
+  products: INITIAL_PRODUCTS,
+  categories: INITIAL_CATEGORIES,
   settings: DEFAULT_SETTINGS,
   isLoading: false,
 
