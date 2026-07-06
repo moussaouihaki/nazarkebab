@@ -27,7 +27,7 @@ export interface Product {
 }
 
 export const IMAGES_MAP: Record<string, any> = {
-  poke: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&q=80',
+  poke: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=1600&q=80',
   dessert: 'https://images.unsplash.com/photo-1551024506-0bccd828d307?w=800&q=80',
   drink_33cl: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=800&q=80',
   drink_50cl: require('../assets/images/bottle_50cl.png'),
