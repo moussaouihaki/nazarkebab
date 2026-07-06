@@ -103,10 +103,10 @@ export const PRODUCTS: Product[] = [
     category: 'POKÉ BOWL',
     name: 'COMPOSE TON POKÉ',
     description: 'Crée ton propre Poké Bowl de A à Z avec tes ingrédients préférés.',
-    price: 4.00,
+    price: 0.00,
     image: 'poke',
     highlighted: true,
-    hasSauces: true,
+    hasSauces: false,
     customizationSections: [
       {
         title: 'Choisis ta base (1 au choix)',
@@ -115,38 +115,52 @@ export const PRODUCTS: Product[] = [
         choices: [
           { name: 'Riz Blanc', priceOffset: 0 },
           { name: 'Riz Brun', priceOffset: 0 },
-          { name: 'Quinoa', priceOffset: 1.50 },
+          { name: 'Quinoa', priceOffset: 0 },
           { name: 'Boulgour', priceOffset: 0 },
           { name: 'Salade Mixte', priceOffset: 0 }
         ]
       },
       {
         title: 'Choisis ta protéine (1 au choix)',
-        required: true,
+        required: false,
         maxChoices: 1,
         choices: [
-          { name: 'Saumon Frais', priceOffset: 3.00 },
-          { name: 'Poulet Mariné', priceOffset: 0 },
-          { name: 'Falafels', priceOffset: 0 },
-          { name: 'Bœuf', priceOffset: 2.00 },
-          { name: 'Crevettes', priceOffset: 2.00 }
+          { name: 'Saumon Frais', priceOffset: 6.00 },
+          { name: 'Thon Frais', priceOffset: 6.00 },
+          { name: 'Crevettes (Black Tiger)', priceOffset: 6.00 },
+          { name: 'Bœuf', priceOffset: 6.00 },
+          { name: 'Poulet Mariné', priceOffset: 6.00 },
+          { name: 'Tofu', priceOffset: 6.00 },
+          { name: 'Falafels', priceOffset: 6.00 }
         ]
       },
       {
         title: 'Choisis tes accompagnements (4 au choix)',
-        required: true,
+        required: false,
         maxChoices: 4,
         choices: [
-          { name: 'Avocat', priceOffset: 0 },
-          { name: 'Edamame', priceOffset: 0 },
-          { name: 'Mangue', priceOffset: 0 },
-          { name: 'Concombre', priceOffset: 0 },
-          { name: 'Chou Rouge', priceOffset: 0 },
-          { name: 'Carottes', priceOffset: 0 },
-          { name: 'Radis', priceOffset: 0 },
-          { name: 'Tomates Cerises', priceOffset: 0 },
-          { name: 'Poivrons', priceOffset: 0 },
-          { name: 'Champignons', priceOffset: 0 }
+          { name: 'Avocat', priceOffset: 2.00 },
+          { name: 'Mangue', priceOffset: 2.00 },
+          { name: 'Ananas', priceOffset: 2.00 },
+          { name: 'Kiwi', priceOffset: 2.00 },
+          { name: 'Edamame', priceOffset: 2.00 },
+          { name: 'Concombre', priceOffset: 2.00 },
+          { name: 'Chou Rouge', priceOffset: 2.00 },
+          { name: 'Carottes', priceOffset: 2.00 },
+          { name: 'Radis', priceOffset: 2.00 },
+          { name: 'Tomates Cerises', priceOffset: 2.00 },
+          { name: 'Poivrons', priceOffset: 2.00 },
+          { name: 'Champignons Frais', priceOffset: 2.00 },
+          { name: 'Lentilles', priceOffset: 2.00 },
+          { name: 'Algues Wakame', priceOffset: 2.00 },
+          { name: 'Pois Chiches', priceOffset: 2.00 },
+          { name: 'Graines de Grenade', priceOffset: 2.00 },
+          { name: 'Citron Vert', priceOffset: 2.00 },
+          { name: 'Oignons Rouges', priceOffset: 2.00 },
+          { name: 'Maïs', priceOffset: 2.00 },
+          { name: 'Olives', priceOffset: 2.00 },
+          { name: 'Feta', priceOffset: 2.00 },
+          { name: 'Œuf', priceOffset: 2.00 }
         ]
       },
       {
@@ -154,12 +168,59 @@ export const PRODUCTS: Product[] = [
         required: false,
         maxChoices: 2,
         choices: [
-          { name: 'Oignons Frits', priceOffset: 0 },
-          { name: 'Graines de Sésame', priceOffset: 0 },
-          { name: 'Cacahuètes Écrasées', priceOffset: 0 },
-          { name: 'Graines de Grenade', priceOffset: 0 },
-          { name: 'Ciboulette', priceOffset: 0 },
-          { name: 'Noix Écrasées', priceOffset: 0 }
+          { name: 'Oignons Frits', priceOffset: 1.00 },
+          { name: 'Graines de Sésame', priceOffset: 1.00 },
+          { name: 'Cacahuètes Écrasées', priceOffset: 1.00 },
+          { name: 'Noix de Cajou', priceOffset: 1.00 },
+          { name: 'Amandes', priceOffset: 1.00 },
+          { name: 'Raisins Secs', priceOffset: 1.00 },
+          { name: 'Persil', priceOffset: 1.00 },
+          { name: 'Ciboulette', priceOffset: 1.00 },
+          { name: 'Noix Écrasées', priceOffset: 1.00 }
+        ]
+      {
+        title: 'Choisis ta sauce (1 au choix)',
+        required: true,
+        maxChoices: 1,
+        choices: [
+          { name: 'Teriyaki', priceOffset: 0 },
+          { name: 'Garlic Teriyaki', priceOffset: 0 },
+          { name: 'Soy (Soja)', priceOffset: 0 },
+          { name: 'Spicy Mayo Maison', priceOffset: 0 },
+          { name: 'Homemade Lemon Olive Oil', priceOffset: 0 },
+          { name: 'Special House Sauce', priceOffset: 0 }
+        ]
+      },
+      {
+        title: 'Sauce Supplémentaire',
+        required: false,
+        maxChoices: 2,
+        choices: [
+          { name: 'Teriyaki (Extra)', priceOffset: 0.50 },
+          { name: 'Garlic Teriyaki (Extra)', priceOffset: 0.50 },
+          { name: 'Soy (Extra)', priceOffset: 0.50 },
+          { name: 'Spicy Mayo Maison (Extra)', priceOffset: 0.50 },
+          { name: 'Homemade Lemon Olive Oil (Extra)', priceOffset: 0.50 },
+          { name: 'Special House Sauce (Extra)', priceOffset: 0.50 }
+        ]
+      },
+      {
+        title: 'Choisis ta boisson',
+        required: true,
+        maxChoices: 1,
+        choices: [
+          { name: 'Sans Boisson', priceOffset: 0 },
+          { name: 'Coca-Cola 0.5l', priceOffset: 4.00 },
+          { name: 'Coca-Cola 1.5l', priceOffset: 9.00 },
+          { name: 'Coca-Cola Zero 0.5l', priceOffset: 4.00 },
+          { name: 'Coca-Cola Zero 1.5l', priceOffset: 9.00 },
+          { name: 'Fanta Orange 0.5l', priceOffset: 4.00 },
+          { name: 'Fanta Orange 1.5l', priceOffset: 9.00 },
+          { name: 'Fusetea Lemon 0.5l', priceOffset: 4.00 },
+          { name: 'Fusetea Peach 0.5l', priceOffset: 4.00 },
+          { name: 'Valser Pétillante 0.5l', priceOffset: 4.00 },
+          { name: 'Valser Plate 0.5l', priceOffset: 4.00 },
+          { name: 'Valser Plate 1.5l', priceOffset: 9.00 }
         ]
       }
     ]
