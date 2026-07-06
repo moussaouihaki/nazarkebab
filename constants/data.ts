@@ -103,7 +103,7 @@ export const PRODUCTS: Product[] = [
     category: 'POKÉ BOWL',
     name: 'COMPOSE TON POKÉ',
     description: 'Crée ton propre Poké Bowl de A à Z avec tes ingrédients préférés.',
-    price: 0.00,
+    price: 4.00,
     image: 'poke',
     highlighted: true,
     hasSauces: false,
