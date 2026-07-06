@@ -119,6 +119,26 @@ export default function HomeScreen() {
            </View>
         </View>
 
+        <View style={styles.innerContainer}>
+        {/* CONCEPT & VALUES */}
+        <View style={[styles.valuesContainer, isDesktop && { flexDirection: 'row' }]}>
+          <View style={styles.valueItem}>
+            <Ionicons name="leaf-outline" size={32} color={Theme.colors.success} />
+            <Text style={styles.valueTitle}>PRODUITS FRAIS</Text>
+            <Text style={styles.valueDesc}>Sélectionnés avec soin pour une qualité optimale et un goût authentique.</Text>
+          </View>
+          <View style={styles.valueItem}>
+            <Ionicons name="heart-outline" size={32} color={Theme.colors.success} />
+            <Text style={styles.valueTitle}>FAIT MAISON</Text>
+            <Text style={styles.valueDesc}>Des recettes uniques préparées avec amour par nos chefs passionnés.</Text>
+          </View>
+          <View style={styles.valueItem}>
+            <Ionicons name="nutrition-outline" size={32} color={Theme.colors.success} />
+            <Text style={styles.valueTitle}>SAIN & GOURMAND</Text>
+            <Text style={styles.valueDesc}>L'équilibre parfait entre une alimentation saine et le plaisir gustatif.</Text>
+          </View>
+        </View>
+
         {/* SHARP CATEGORIES (Chic, zero border radius) */}
         <View style={styles.sectionHeader}>
            <Text style={styles.sectionTitle}>NOTRE CARTE</Text>
@@ -152,7 +172,7 @@ export default function HomeScreen() {
           {populars.map((product) => (
             <TouchableOpacity 
               key={product.id} 
-              style={styles.feedCard}
+              style={[styles.feedCard, isDesktop && { width: '47%' }]}
               activeOpacity={0.9}
               onPress={() => router.push({ pathname: '/product/[id]', params: { id: product.id } })}
             >
@@ -187,6 +207,7 @@ export default function HomeScreen() {
         </View>
 
         <View style={{ height: 100 }} />
+        </View>
       </ScrollView>
       <BottomBar />
     </SafeAreaView>
@@ -197,6 +218,42 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Theme.colors.background,
+  },
+  innerContainer: {
+    width: '100%',
+    maxWidth: 1200,
+    alignSelf: 'center',
+  },
+  valuesContainer: {
+    flexDirection: 'column',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 40,
+    gap: 20,
+  },
+  valueItem: {
+    alignItems: 'center',
+    flex: 1,
+    padding: 24,
+    borderRadius: 20,
+    backgroundColor: Theme.colors.surface,
+    borderWidth: 1,
+    borderColor: Theme.colors.border,
+  },
+  valueTitle: {
+    fontFamily: Theme.fonts.title,
+    fontSize: 22,
+    color: Theme.colors.text,
+    marginTop: 16,
+    marginBottom: 8,
+    letterSpacing: 1,
+  },
+  valueDesc: {
+    fontFamily: Theme.fonts.body,
+    fontSize: 14,
+    color: Theme.colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 22,
   },
   header: {
     paddingHorizontal: 16,
@@ -345,6 +402,8 @@ const styles = StyleSheet.create({
   categoriesScroll: {
     paddingHorizontal: 16,
     gap: 16,
+    flexGrow: 1,
+    justifyContent: 'center',
   },
   categoryCard: {
     width: Platform.OS === 'web' ? 160 : 140,
@@ -384,6 +443,9 @@ const styles = StyleSheet.create({
   feedWrapper: {
     paddingHorizontal: 16,
     gap: 40,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
   },
   feedCard: {
     width: '100%',
