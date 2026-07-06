@@ -1152,7 +1152,7 @@ function MenuTab() {
   const [showCatModal, setShowCatModal] = useState(false);
   const [newCatName, setNewCatName] = useState('');
 
-  const filtered = products.filter(p => p.category === selectedCategory);
+  const filtered = products.filter(p => p.category?.toUpperCase() === selectedCategory?.toUpperCase());
 
   const openAdd = () => { setEditingProduct(null); setShowModal(true); };
   const openEdit = (p: Product) => { setEditingProduct(p); setShowModal(true); };
