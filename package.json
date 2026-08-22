@@ -51,6 +51,7 @@
   },
   "devDependencies": {
     "@types/react": "~19.1.10",
+    "babel-plugin-transform-import-meta": "^2.2.1",
     "canvas": "^3.2.1",
     "firebase-tools": "^15.11.0",
     "jimp": "^0.22.12",
