@@ -1,5 +1,7 @@
-import React from 'react';
-import { View, Text, StyleSheet, Dimensions, ScrollView, TouchableOpacity, SafeAreaView, Platform, useWindowDimensions } from 'react-native';
+import React, { useRef } from 'react';
+import { View, Text, StyleSheet, Dimensions, TouchableOpacity, SafeAreaView, Platform, useWindowDimensions } from 'react-native';
+import Animated, { useAnimatedScrollHandler, useSharedValue, useAnimatedStyle, interpolate, Extrapolation, FadeInDown } from 'react-native-reanimated';
+import { BlurView } from 'expo-blur';
 import { Theme } from '../constants/theme';
 import { PRODUCTS, CATEGORIES, IMAGES_MAP, getImageSource } from '../constants/data';
 import { Image } from 'expo-image';
@@ -48,52 +50,81 @@ export default function HomeScreen() {
   const { width } = useWindowDimensions();
   const isDesktop = Platform.OS === 'web' && width >= 768;
 
-  return (
-    <SafeAreaView style={styles.container}>
+  const scrollY = useSharedValue(0);
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      scrollY.value = event.contentOffset.y;
+    },
+  });
 
-      {/* Header mobile uniquement - caché sur desktop car DesktopHeader prend le relais */}
+  const headerAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      opacity: interpolate(scrollY.value, [0, 100], [0, 1], Extrapolation.CLAMP),
+    };
+  });
+
+  const heroAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ translateY: interpolate(scrollY.value, [-100, 0, 300], [-50, 0, 150], Extrapolation.CLAMP) }],
+    };
+  });
+
+  return (
+    <View style={styles.container}>
+
+      {/* Floating Header mobile avec Glassmorphism */}
       {!isDesktop && (
-        <View style={styles.header}>
-          <View style={styles.headerTop}>
-             <TouchableOpacity style={styles.iconButton} onPress={() => router.push('/notifications')}>
-               <Ionicons name="notifications-outline" size={24} color={Theme.colors.textSecondary} />
-               {unreadCount > 0 && (
-                 <View style={styles.notifBadge}>
-                    <Text style={styles.notifBadgeText}>{unreadCount}</Text>
+        <Animated.View style={[styles.floatingHeader, headerAnimatedStyle]}>
+          <BlurView intensity={80} tint="light" style={StyleSheet.absoluteFill} />
+          <SafeAreaView edges={['top']}>
+            <View style={styles.headerTop}>
+               <TouchableOpacity style={styles.iconButton} onPress={() => router.push('/notifications')}>
+                 <Ionicons name="notifications-outline" size={24} color={Theme.colors.textSecondary} />
+                 {unreadCount > 0 && (
+                   <View style={styles.notifBadge}>
+                      <Text style={styles.notifBadgeText}>{unreadCount}</Text>
+                   </View>
+                 )}
+               </TouchableOpacity>
+               <View style={[styles.logoWrapper, { flexDirection: 'row', alignItems: 'center' }]}>
+                 <Image 
+                   source={require('../assets/images/logo.png')} 
+                   style={{ width: 30, height: 30, borderRadius: 15, marginRight: 10 }}
+                   contentFit="contain"
+                 />
+                 <View>
+                   <Text style={styles.logoNazar}>POKÉMOONS</Text>
                  </View>
-               )}
-             </TouchableOpacity>
-             <View style={[styles.logoWrapper, { flexDirection: 'row', alignItems: 'center' }]}>
-               <Image 
-                 source={require('../assets/images/logo.png')} 
-                 style={{ width: 30, height: 30, borderRadius: 15, marginRight: 10 }}
-                 contentFit="contain"
-               />
-               <View>
-                 <Text style={styles.logoNazar}>POKÉMOONS</Text>
                </View>
-             </View>
-             <TouchableOpacity style={styles.cartButton} onPress={() => router.push('/cart')}>
-               <Ionicons name="bag-handle-outline" size={24} color={Theme.colors.text} />
-               {cartCount > 0 && (
-                 <View style={styles.badge}>
-                   <Text style={styles.badgeText}>{cartCount}</Text>
-                 </View>
-               )}
-             </TouchableOpacity>
-          </View>
-        </View>
+               <TouchableOpacity style={styles.cartButton} onPress={() => router.push('/cart')}>
+                 <Ionicons name="bag-handle-outline" size={24} color={Theme.colors.text} />
+                 {cartCount > 0 && (
+                   <View style={styles.badge}>
+                     <Text style={styles.badgeText}>{cartCount}</Text>
+                   </View>
+                 )}
+               </TouchableOpacity>
+            </View>
+          </SafeAreaView>
+        </Animated.View>
       )}
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <Animated.ScrollView 
+        contentContainerStyle={styles.scrollContent} 
+        showsVerticalScrollIndicator={false}
+        onScroll={scrollHandler}
+        scrollEventThrottle={16}
+      >
         
-        {/* EDITORIAL HERO BANNER (Bleed Edge) */}
+        {/* EDITORIAL HERO BANNER (Bleed Edge with Parallax) */}
         <View style={styles.heroContainer}>
-           <Image 
-             source={{ uri: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=1200&q=80' }} 
-             style={StyleSheet.absoluteFillObject} 
-             contentFit="cover" 
-           />
+           <Animated.View style={[StyleSheet.absoluteFillObject, heroAnimatedStyle]}>
+             <Image 
+               source={{ uri: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=1200&q=80' }} 
+               style={StyleSheet.absoluteFillObject} 
+               contentFit="cover" 
+             />
+           </Animated.View>
            <View style={styles.heroOverlay} />
            <View style={styles.heroContent}>
             <View style={styles.statusRow}>
@@ -145,22 +176,24 @@ export default function HomeScreen() {
            <View style={styles.goldLine} />
         </View>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoriesScroll}>
+        <Animated.ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoriesScroll}>
           {CATEGORIES.map((cat, index) => (
-             <TouchableOpacity key={cat} style={styles.categoryCard} onPress={() => router.push({ pathname: '/menu', params: { category: cat } })}>
-                <Image 
-                  source={getImageSource(getCategoryImage(cat))} 
-                  style={StyleSheet.absoluteFillObject} 
-                  contentFit="cover" 
-                />
-                <View style={styles.cardOverlay} />
-                <View style={styles.cardContent}>
-                  <Text style={styles.cardNumber}>0{index + 1}</Text>
-                  <Text style={styles.categoryText} numberOfLines={1}>{cat}</Text>
-                </View>
-             </TouchableOpacity>
+             <Animated.View key={cat} entering={FadeInDown.delay(index * 100).springify()}>
+               <TouchableOpacity style={styles.categoryCard} onPress={() => router.push({ pathname: '/menu', params: { category: cat } })}>
+                  <Image 
+                    source={getImageSource(getCategoryImage(cat))} 
+                    style={StyleSheet.absoluteFillObject} 
+                    contentFit="cover" 
+                  />
+                  <View style={styles.cardOverlay} />
+                  <View style={styles.cardContent}>
+                    <Text style={styles.cardNumber}>0{index + 1}</Text>
+                    <Text style={styles.categoryText} numberOfLines={1}>{cat}</Text>
+                  </View>
+               </TouchableOpacity>
+             </Animated.View>
           ))}
-        </ScrollView>
+        </Animated.ScrollView>
 
         {/* FEED: INCONTOURNABLES (Fine Dining Gallery) */}
         <View style={[styles.sectionHeader, { marginTop: 40 }]}>
@@ -169,33 +202,36 @@ export default function HomeScreen() {
         </View>
         
         <View style={styles.feedWrapper}>
-          {populars.map((product) => (
-            <TouchableOpacity 
-              key={product.id} 
-              style={[styles.feedCard, isDesktop && { width: '47%' }]}
-              activeOpacity={0.9}
-              onPress={() => router.push({ pathname: '/product/[id]', params: { id: product.id } })}
-            >
-              <View style={styles.feedImageWrapper}>
-                <Image 
-                  source={getImageSource(product.image)} 
-                  style={styles.feedImage} 
-                  contentFit="cover" 
-                />
-                {/* Gold tag for popular items */}
-                <View style={styles.feedTag}>
-                   <Text style={styles.feedTagText}>Maison</Text>
+          {populars.map((product, index) => (
+            <Animated.View key={product.id} entering={FadeInDown.delay(300 + index * 100).springify()} style={[styles.feedCard, isDesktop && { width: '47%' }]}>
+              <TouchableOpacity 
+                style={{ width: '100%', alignItems: 'center' }}
+                activeOpacity={0.9}
+                onPress={() => router.push({ pathname: '/product/[id]', params: { id: product.id } })}
+              >
+                <View style={styles.feedImageWrapper}>
+                  <Image 
+                    source={getImageSource(product.image)} 
+                    style={styles.feedImage} 
+                    contentFit="cover" 
+                    transition={500}
+                  />
+                  {/* Gold tag for popular items */}
+                  <View style={styles.feedTag}>
+                     <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFill} />
+                     <Text style={styles.feedTagText}>Maison</Text>
+                  </View>
                 </View>
-              </View>
-              
-              <View style={styles.feedInfo}>
-                <View style={styles.feedTitleRow}>
-                  <Text style={styles.feedItemTitle}>{product.name}</Text>
-                  <Text style={styles.feedPrice}>{product.price.toFixed(2)} CHF</Text>
+                
+                <View style={styles.feedInfo}>
+                  <View style={styles.feedTitleRow}>
+                    <Text style={styles.feedItemTitle}>{product.name}</Text>
+                    <Text style={styles.feedPrice}>{product.price.toFixed(2)} CHF</Text>
+                  </View>
+                  <Text style={styles.feedDesc} numberOfLines={2}>{product.description || product.category}</Text>
                 </View>
-                <Text style={styles.feedDesc} numberOfLines={2}>{product.description || product.category}</Text>
-              </View>
-            </TouchableOpacity>
+              </TouchableOpacity>
+            </Animated.View>
           ))}
         </View>
         
@@ -220,9 +256,9 @@ export default function HomeScreen() {
 
         <View style={{ height: 100 }} />
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
       <BottomBar />
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -231,54 +267,21 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Theme.colors.background,
   },
-  innerContainer: {
-    width: '100%',
-    maxWidth: 1200,
-    alignSelf: 'center',
-  },
-  valuesContainer: {
-    flexDirection: 'column',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 40,
-    gap: 20,
-  },
-  valueItem: {
-    alignItems: 'center',
-    flex: 1,
-    padding: 24,
-    borderRadius: 20,
-    backgroundColor: Theme.colors.surface,
-    borderWidth: 1,
-    borderColor: Theme.colors.border,
-  },
-  valueTitle: {
-    fontFamily: Theme.fonts.title,
-    fontSize: 22,
-    color: Theme.colors.text,
-    marginTop: 16,
-    marginBottom: 8,
-    letterSpacing: 1,
-  },
-  valueDesc: {
-    fontFamily: Theme.fonts.body,
-    fontSize: 14,
-    color: Theme.colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 22,
-  },
-  header: {
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    backgroundColor: Theme.colors.background,
+  floatingHeader: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 100,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderColor: Theme.colors.border,
+    borderColor: 'rgba(0,0,0,0.1)',
   },
   headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
   },
   logoWrapper: {
     alignItems: 'center',
@@ -481,18 +484,18 @@ const styles = StyleSheet.create({
     bottom: 12,
     left: '50%',
     transform: [{ translateX: -40 }],
-    backgroundColor: Theme.colors.background,
     paddingHorizontal: 16,
     paddingVertical: 6,
-    borderWidth: 1,
-    borderColor: Theme.colors.success,
     borderRadius: 100,
     zIndex: 2,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
   },
   feedTagText: {
     fontFamily: Theme.fonts.bodyMedium,
     fontSize: 10,
-    color: Theme.colors.success,
+    color: '#FFF',
     letterSpacing: 2,
     textTransform: 'uppercase',
   },

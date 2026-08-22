@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import {
@@ -111,11 +113,13 @@ const cleanForFirebase = (obj: any): any => {
   return clean;
 };
 
-export const useCartStore = create<CartState>((set, get) => ({
-  items: [],
-  total: 0,
-  deliveryFee: 0,
-  deliveryType: 'delivery',
+export const useCartStore = create<CartState>()(
+  persist(
+    (set, get) => ({
+      items: [],
+      total: 0,
+      deliveryFee: 0,
+      deliveryType: 'delivery',
   customerName: '',
   customerPhone: '',
   customerAddress: '',
@@ -415,4 +419,20 @@ export const useCartStore = create<CartState>((set, get) => ({
   markAsPaid: async (orderId, method) => {
     await updateDoc(doc(db, 'orders', orderId), { isPaid: true, paymentMethod: method });
   },
-}));
+    }),
+    {
+      name: 'cart-storage',
+      storage: createJSONStorage(() => AsyncStorage),
+      partialize: (state) => ({ 
+        items: state.items, 
+        total: state.total,
+        deliveryFee: state.deliveryFee,
+        deliveryType: state.deliveryType,
+        customerName: state.customerName,
+        customerPhone: state.customerPhone,
+        customerAddress: state.customerAddress,
+        orderNote: state.orderNote
+      }),
+    }
+  )
+);

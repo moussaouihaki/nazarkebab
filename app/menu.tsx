@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Platform, SafeAreaView, TextInput, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Platform, SafeAreaView, TextInput, useWindowDimensions } from 'react-native';
+import Animated, { FadeInUp, Layout } from 'react-native-reanimated';
+import { BlurView } from 'expo-blur';
 import { Theme } from '../constants/theme';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -48,6 +50,7 @@ export default function MenuScreen() {
     <View style={styles.container}>
       {/* MOBILE HEADER (Top Bar) */}
       <SafeAreaView style={[styles.header, isDesktop && { display: 'none' }]}>
+        <BlurView intensity={80} tint="light" style={StyleSheet.absoluteFill} />
         <View style={styles.headerTop}>
            <TouchableOpacity style={styles.iconButton} onPress={() => router.push('/')}>
              <Ionicons name="arrow-back" size={24} color={Theme.colors.text} />
@@ -85,7 +88,7 @@ export default function MenuScreen() {
 
         {/* CATEGORY TABS */}
         <View style={styles.tabsWrapper}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.tabsScroll, isDesktop && { justifyContent: 'center' }]}>
+          <Animated.ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.tabsScroll, isDesktop && { justifyContent: 'center' }]}>
             {categories.map(cat => {
                const isActive = activeCategory === cat;
                return (
@@ -94,11 +97,11 @@ export default function MenuScreen() {
                  </TouchableOpacity>
                );
             })}
-          </ScrollView>
+          </Animated.ScrollView>
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <Animated.ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         
         {/* SEARCH RESULTS OR CATEGORY HERO */}
         {!search.trim() ? (
@@ -116,11 +119,11 @@ export default function MenuScreen() {
 
         {/* MINIMALIST LIST */}
         <View style={styles.listContainer}>
-          {(search.trim() ? allSearchResults : filteredProducts).map((product) => {
+          {(search.trim() ? allSearchResults : filteredProducts).map((product, index) => {
             return (
-              <TouchableOpacity 
-                key={product.id} 
-                style={styles.listItem}
+              <Animated.View key={product.id} entering={FadeInUp.delay(index * 50).springify()} layout={Layout.springify()}>
+                <TouchableOpacity 
+                  style={styles.listItem}
                 activeOpacity={0.7}
                 onPress={() => router.push({ pathname: '/product/[id]', params: { id: product.id } })}
               >
@@ -148,8 +151,9 @@ export default function MenuScreen() {
                   )}
                 </View>
               </TouchableOpacity>
-            );
-          })}
+            </Animated.View>
+          );
+        })}
           {search.trim() && allSearchResults.length === 0 && (
             <View style={{ alignItems: 'center', marginTop: 100, opacity: 0.5 }}>
               <Ionicons name="search-outline" size={64} color={Theme.colors.textSecondary} />
@@ -160,7 +164,7 @@ export default function MenuScreen() {
         </View>
         
         <View style={{ height: 120 }} />
-      </ScrollView>
+      </Animated.ScrollView>
 
       {/* LUXURY FLOATING CART */}
       {cartCount > 0 && (
@@ -188,9 +192,9 @@ const styles = StyleSheet.create({
     backgroundColor: Theme.colors.background,
   },
   header: {
-    backgroundColor: Theme.colors.background,
+    backgroundColor: 'transparent',
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderColor: Theme.colors.border,
+    borderColor: 'rgba(0,0,0,0.1)',
   },
   desktopTabsContainer: {
     backgroundColor: Theme.colors.background,

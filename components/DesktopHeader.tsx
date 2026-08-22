@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet, TouchableOpacity, Platform, useWindowDimensions } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { router, usePathname } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Theme } from '../constants/theme';
@@ -19,7 +20,7 @@ export default function DesktopHeader() {
   if (!isDesktop) return null;
 
   return (
-    <View style={styles.header}>
+    <BlurView intensity={80} tint="light" style={styles.header}>
       <View style={styles.logoWrapper}>
         <TouchableOpacity onPress={() => router.push('/')} style={{ flexDirection: 'row', alignItems: 'center' }}>
           <Text style={styles.logoNazar}>POKÉMOONS</Text>
@@ -71,21 +72,25 @@ export default function DesktopHeader() {
           )}
         </TouchableOpacity>
       </View>
-    </View>
+    </BlurView>
   );
 }
 
 const styles = StyleSheet.create({
   header: {
     height: 80,
-    backgroundColor: Theme.colors.surface,
+    backgroundColor: 'rgba(255, 255, 255, 0.7)', // Semi-transparent for blur
     borderBottomWidth: 1,
-    borderColor: Theme.colors.border,
+    borderColor: 'rgba(0,0,0,0.05)',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 40,
     zIndex: 100,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
   },
   logoWrapper: { flexDirection: 'row', alignItems: 'baseline', gap: 6 },
   logoNazar: { fontFamily: Theme.fonts.logo, fontSize: 32, color: Theme.colors.text, letterSpacing: 4 },

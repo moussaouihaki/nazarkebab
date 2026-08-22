@@ -8,7 +8,7 @@ import { useDeliveryZoneStore, DeliveryZone } from '../store/useDeliveryZoneStor
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { getImageSource } from '../constants/data';
-import { useRestaurantStore } from '../store/useRestaurantStore';
+import { useRestaurantStore, checkIsRestaurantOpen } from '../store/useRestaurantStore';
 
 type Step = 'cart' | 'info' | 'confirmation';
 
@@ -89,6 +89,11 @@ export default function CartScreen() {
   };
 
   const handlePlaceOrder = async () => {
+    if (!settings.isOpen || !checkIsRestaurantOpen(settings)) {
+      alert("Désolé, le restaurant est actuellement fermé. Vous ne pouvez pas passer commande pour le moment.");
+      return;
+    }
+
     setCustomerInfo(name, phone, address);
     setOrderNote(note);
     

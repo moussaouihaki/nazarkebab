@@ -549,22 +549,30 @@ function KitchenTab() {
         <View style={[styles.kanbanCount, { backgroundColor: color + '22' }]}><Text style={[styles.kanbanCountText, { color }]}>{data.length}</Text></View>
       </View>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 10, paddingBottom: 100 }}>
-        {data.map(o => (
-           <View key={o.id} style={styles.kTicket}>
-             {/* Header Ticket */}
-             <View style={styles.kTop}>
-               <View>
-                 <Text style={styles.kId}>N° {o.id}</Text>
-                 <Text style={styles.kTime}>{new Date(o.createdAt).toLocaleTimeString('fr-CH', { hour: '2-digit', minute: '2-digit' })}</Text>
+        {data.map(o => {
+           const minsElapsed = Math.floor((Date.now() - new Date(o.createdAt).getTime()) / 60000);
+           const isLate = minsElapsed > 15 && o.status !== 'ready';
+           return (
+             <View key={o.id} style={[styles.kTicket, isLate && { borderColor: Theme.colors.danger, borderWidth: 2 }]}>
+               {/* Header Ticket */}
+               <View style={styles.kTop}>
+                 <View>
+                   <Text style={styles.kId}>N° {o.id}</Text>
+                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                     <Text style={styles.kTime}>{new Date(o.createdAt).toLocaleTimeString('fr-CH', { hour: '2-digit', minute: '2-digit' })}</Text>
+                     <View style={{ backgroundColor: isLate ? Theme.colors.danger : Theme.colors.surface, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
+                       <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 10, color: isLate ? '#fff' : Theme.colors.textSecondary }}>{minsElapsed} min</Text>
+                     </View>
+                   </View>
+                 </View>
+                 <View style={[styles.kTypeBadge, { backgroundColor: o.deliveryType === 'delivery' ? '#007AFF22' : '#FF950022' }]}>
+                   <Text style={[styles.kTypeText, { color: o.deliveryType === 'delivery' ? '#007AFF' : '#FF9500' }]}>
+                     {o.deliveryType === 'delivery' ? 'LIVRAISON' : 'À EMPORTER'}
+                   </Text>
+                 </View>
                </View>
-               <View style={[styles.kTypeBadge, { backgroundColor: o.deliveryType === 'delivery' ? '#007AFF22' : '#FF950022' }]}>
-                 <Text style={[styles.kTypeText, { color: o.deliveryType === 'delivery' ? '#007AFF' : '#FF9500' }]}>
-                   {o.deliveryType === 'delivery' ? 'LIVRAISON' : 'À EMPORTER'}
-                 </Text>
-               </View>
-             </View>
 
-             <View style={styles.kDivider} />
+               <View style={styles.kDivider} />
 
              {/* Items */}
              <View style={styles.kItems}>
@@ -621,7 +629,8 @@ function KitchenTab() {
                 </TouchableOpacity>
              )}
            </View>
-        ))}
+           );
+        })}
         {data.length === 0 && (
            <View style={{ alignItems: 'center', marginTop: 100, opacity: 0.3 }}>
              <Ionicons name="restaurant-outline" size={48} color={Theme.colors.textSecondary} />
@@ -719,6 +728,8 @@ function CrmTab() {
   const { orders } = useCartStore();
   const [promoText, setPromoText] = useState('');
   const [isSendingPromo, setIsSendingPromo] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedClient, setSelectedClient] = useState<any>(null);
 
   // Basic aggregation logic for CRM from orders history
   const uniqueNames = Array.from(new Set(orders.map(o => o.customerName)));
@@ -727,8 +738,15 @@ function CrmTab() {
     const userOrders = orders.filter(o => o.customerName === name && o.status !== 'cancelled');
     const spent = userOrders.reduce((acc, curr) => acc + curr.total, 0);
     const phone = userOrders.length > 0 ? userOrders[0].customerPhone : '-';
-    return { name, phone, orderCount: userOrders.length, totalSpent: spent };
-  }).filter(c => c.orderCount > 0).sort((a: any, b: any) => b.totalSpent - a.totalSpent); // Sort by highest spender
+    // Loyalty points (mock logic: 1 CHF = 1 Point)
+    const loyaltyPoints = Math.floor(spent);
+    return { name, phone, orderCount: userOrders.length, totalSpent: spent, loyaltyPoints, orders: userOrders };
+  }).filter(c => c.orderCount > 0).sort((a: any, b: any) => b.totalSpent - a.totalSpent);
+
+  const filteredCrmData = crmData.filter(client => 
+    client.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    client.phone.includes(searchQuery)
+  );
 
   return (
     <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -785,26 +803,40 @@ function CrmTab() {
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.sectionHeader}>BASE CLIENTS CRM ({crmData.length})</Text>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 16 }}>
+        <Text style={styles.sectionHeader}>BASE CLIENTS CRM ({filteredCrmData.length})</Text>
+        <TextInput 
+          style={{ backgroundColor: Theme.colors.surface, borderRadius: 8, padding: 10, borderWidth: 1, borderColor: Theme.colors.border, width: 250, fontFamily: Theme.fonts.body, fontSize: 13 }}
+          placeholder="Rechercher un client (Nom, Tél...)"
+          placeholderTextColor="#999"
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+      </View>
+
       <View style={styles.dataTableWrapper}>
         <View style={styles.tableHeaderRow}>
           <Text style={[styles.th, { flex: 2 }]}>CLIENT</Text>
           <Text style={[styles.th, { flex: 2 }]}>CONTACT</Text>
-          <Text style={[styles.th, { flex: 1, textAlign: 'center' }]}>COMMANDES</Text>
+          <Text style={[styles.th, { flex: 1, textAlign: 'center' }]}>PTS FIDÉLITÉ</Text>
           <Text style={[styles.th, { flex: 1, textAlign: 'right' }]}>C.A. GÉNÉRÉ</Text>
         </View>
         
-        {crmData.map((client: any, i: number) => (
-          <View key={client.name} style={[styles.tableRow, { backgroundColor: i === 0 ? Theme.colors.success + '1A' : 'transparent' }]}>
+        {filteredCrmData.map((client: any, i: number) => (
+          <TouchableOpacity 
+            key={client.name} 
+            style={[styles.tableRow, { backgroundColor: i === 0 && !searchQuery ? Theme.colors.success + '1A' : 'transparent' }]}
+            onPress={() => setSelectedClient(client)}
+          >
             <View style={{ flex: 2 }}>
-              <Text style={styles.tdTitle}>{client.name} {i === 0 && '👑'}</Text>
+              <Text style={styles.tdTitle}>{client.name} {i === 0 && !searchQuery && '👑'}</Text>
             </View>
             <View style={{ flex: 2 }}>
               <Text style={styles.tdTitle}>{client.phone || '-'}</Text>
             </View>
             <View style={{ flex: 1, alignItems: 'center' }}>
               <View style={[styles.statusPill, { backgroundColor: Theme.colors.surface, borderColor: Theme.colors.border }]}>
-                 <Text style={[styles.statusPillText, { color: Theme.colors.textSecondary }]}>{client.orderCount}</Text>
+                 <Text style={[styles.statusPillText, { color: Theme.colors.primary }]}>{client.loyaltyPoints} pts</Text>
               </View>
             </View>
             <View style={{ flex: 1, alignItems: 'flex-end' }}>
@@ -812,9 +844,73 @@ function CrmTab() {
                 {client.totalSpent.toFixed(2)} CHF
               </Text>
             </View>
-          </View>
+          </TouchableOpacity>
         ))}
+        {filteredCrmData.length === 0 && (
+          <Text style={{ textAlign: 'center', padding: 20, fontFamily: Theme.fonts.body, color: Theme.colors.textSecondary }}>Aucun client trouvé.</Text>
+        )}
       </View>
+
+      {/* CLIENT MODAL */}
+      <Modal visible={!!selectedClient} animationType="fade" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalBox, { width: '90%', maxWidth: 500, padding: 0, overflow: 'hidden' }]}>
+            {selectedClient && (
+              <>
+                <View style={{ padding: 20, backgroundColor: Theme.colors.surface, borderBottomWidth: 1, borderColor: Theme.colors.border, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <View>
+                    <Text style={{ fontFamily: Theme.fonts.title, fontSize: 24, color: Theme.colors.text }}>{selectedClient.name}</Text>
+                    <Text style={{ fontFamily: Theme.fonts.body, fontSize: 14, color: Theme.colors.textSecondary }}>{selectedClient.phone}</Text>
+                  </View>
+                  <TouchableOpacity onPress={() => setSelectedClient(null)}>
+                    <Ionicons name="close" size={24} color={Theme.colors.textSecondary} />
+                  </TouchableOpacity>
+                </View>
+                
+                <View style={{ padding: 20 }}>
+                  <View style={{ flexDirection: 'row', gap: 12, marginBottom: 20 }}>
+                    <View style={{ flex: 1, backgroundColor: Theme.colors.background, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: Theme.colors.border }}>
+                      <Text style={{ fontFamily: Theme.fonts.bodyMedium, fontSize: 10, color: Theme.colors.textSecondary, textTransform: 'uppercase' }}>Commandes</Text>
+                      <Text style={{ fontFamily: Theme.fonts.title, fontSize: 20, color: Theme.colors.text }}>{selectedClient.orderCount}</Text>
+                    </View>
+                    <View style={{ flex: 1, backgroundColor: Theme.colors.background, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: Theme.colors.border }}>
+                      <Text style={{ fontFamily: Theme.fonts.bodyMedium, fontSize: 10, color: Theme.colors.textSecondary, textTransform: 'uppercase' }}>C.A. Total</Text>
+                      <Text style={{ fontFamily: Theme.fonts.title, fontSize: 20, color: Theme.colors.success }}>{selectedClient.totalSpent.toFixed(2)} CHF</Text>
+                    </View>
+                    <View style={{ flex: 1, backgroundColor: Theme.colors.background, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: Theme.colors.border }}>
+                      <Text style={{ fontFamily: Theme.fonts.bodyMedium, fontSize: 10, color: Theme.colors.textSecondary, textTransform: 'uppercase' }}>Fidélité</Text>
+                      <Text style={{ fontFamily: Theme.fonts.title, fontSize: 20, color: Theme.colors.primary }}>{selectedClient.loyaltyPoints} pts</Text>
+                    </View>
+                  </View>
+
+                  <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 14, marginBottom: 10, color: Theme.colors.text }}>DERNIÈRES COMMANDES</Text>
+                  <ScrollView style={{ maxHeight: 150 }} nestedScrollEnabled>
+                    {selectedClient.orders.map((o: any) => (
+                      <View key={o.id} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderColor: Theme.colors.border }}>
+                        <Text style={{ fontFamily: Theme.fonts.body, fontSize: 13, color: Theme.colors.text }}>{new Date(o.createdAt).toLocaleDateString('fr-CH')}</Text>
+                        <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 13, color: Theme.colors.text }}>{o.total.toFixed(2)} CHF</Text>
+                      </View>
+                    ))}
+                  </ScrollView>
+
+                  <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 14, marginTop: 20, marginBottom: 10, color: Theme.colors.text }}>NOTES INTERNES</Text>
+                  <TextInput 
+                    style={{ backgroundColor: Theme.colors.background, borderRadius: 8, padding: 12, borderWidth: 1, borderColor: Theme.colors.border, fontFamily: Theme.fonts.body, fontSize: 13, minHeight: 80 }}
+                    placeholder="Ajouter une note sur ce client (ex: Allergie arachide)..."
+                    placeholderTextColor="#999"
+                    multiline
+                  />
+                  
+                  <TouchableOpacity style={{ backgroundColor: Theme.colors.success, padding: 14, borderRadius: 100, alignItems: 'center', marginTop: 20 }}>
+                    <Text style={{ fontFamily: Theme.fonts.bodyBold, color: '#000', fontSize: 14 }}>SAUVEGARDER LA FICHE</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
+
     </ScrollView>
   );
 }
