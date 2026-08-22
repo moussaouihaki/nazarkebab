@@ -11,6 +11,7 @@ import { Theme } from '../constants/theme';
 import { useAuthStore } from '../store/useAuthStore';
 import { useCartStore } from '../store/useCartStore';
 import { useRestaurantStore, checkIsRestaurantOpen } from '../store/useRestaurantStore';
+import { useContentStore } from '../store/useContentStore';
 import { useDeliveryZoneStore, DeliveryZone } from '../store/useDeliveryZoneStore';
 import { Product, PRODUCTS, IMAGES_MAP, getImageSource } from '../constants/data';
 import { collection, query, where, getDocs } from 'firebase/firestore';
@@ -19,7 +20,7 @@ import { sendPushNotification } from '../lib/pushNotifications';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 
-type Tab = 'dashboard' | 'orders' | 'kitchen' | 'crm' | 'menu' | 'settings' | 'accounting';
+type Tab = 'dashboard' | 'orders' | 'kitchen' | 'crm' | 'menu' | 'settings' | 'accounting' | 'cms';
 
 // ──────────────────────────────────
 // ORDER STATUS CONFIG
@@ -85,6 +86,7 @@ export default function AdminScreen() {
     { key: 'crm',        icon: 'people-outline',      label: 'Clients CRM' },
     { key: 'menu',       icon: 'restaurant-outline',  label: 'Menu & Stock' },
     { key: 'accounting', icon: 'bar-chart-outline',   label: 'Comptabilité' }, // NEW
+    { key: 'cms',        icon: 'color-palette-outline', label: 'Site Web (CMS)' },
     { key: 'settings',   icon: 'settings-outline',    label: 'Réglages' },
   ] as { key: Tab; icon: any; label: string }[];
 
@@ -95,6 +97,7 @@ export default function AdminScreen() {
     if (tab === 'crm') return <CrmTab />;
     if (tab === 'menu') return <MenuTab />;
     if (tab === 'accounting') return <AccountingTab />; // NEW
+    if (tab === 'cms') return <CmsTab />;
     if (tab === 'settings') return <SettingsTab />;
     return null;
   };
@@ -2160,3 +2163,133 @@ const styles = StyleSheet.create({
   kBtn: { marginTop: 16, paddingVertical: 12, borderRadius: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   kBtnText: { fontFamily: Theme.fonts.bodyBold, fontSize: 13, color: '#fff', letterSpacing: 0.5 },
 });
+
+// ──────────────────────────────────
+// TAB: CMS (SITE WEB)
+// ──────────────────────────────────
+function CmsTab() {
+  const { content, updateContent } = useContentStore();
+  const [localContent, setLocalContent] = useState(content);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Sync when content loads from Firebase
+  React.useEffect(() => {
+    setLocalContent(content);
+  }, [content]);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      await updateContent(localContent);
+      Alert.alert('Succès', 'Le site a été mis à jour avec succès !');
+    } catch (e) {
+      Alert.alert('Erreur', 'Impossible de sauvegarder.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <ScrollView contentContainerStyle={styles.scrollContent}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+        <Text style={styles.sectionTitle}>Gestion du Site (CMS)</Text>
+        <TouchableOpacity style={styles.goldBtn} onPress={handleSave} disabled={isSaving}>
+          {isSaving ? <ActivityIndicator color="#000" /> : <Text style={styles.goldBtnText}>Publier les modifications</Text>}
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.settingsSection}>
+        <Text style={styles.settingsSectionTitle}>Bannière Principale (Hero)</Text>
+        <Text style={styles.inputLabel}>Titre principal (ex: L'ART DU POKÉ BOWL)</Text>
+        <TextInput
+          style={styles.input}
+          value={localContent.heroTitle}
+          onChangeText={t => setLocalContent({ ...localContent, heroTitle: t })}
+        />
+        
+        <Text style={styles.inputLabel}>Sous-titre (ex: DEPUIS 4 ANS)</Text>
+        <TextInput
+          style={styles.input}
+          value={localContent.heroSubtitle}
+          onChangeText={t => setLocalContent({ ...localContent, heroSubtitle: t })}
+        />
+
+        <Text style={styles.inputLabel}>Texte du bouton (ex: VOIR LA CARTE)</Text>
+        <TextInput
+          style={styles.input}
+          value={localContent.heroButtonText}
+          onChangeText={t => setLocalContent({ ...localContent, heroButtonText: t })}
+        />
+        
+        <Text style={styles.inputLabel}>URL de l'image de fond</Text>
+        <TextInput
+          style={styles.input}
+          value={localContent.heroImage}
+          onChangeText={t => setLocalContent({ ...localContent, heroImage: t })}
+          placeholder="https://..."
+        />
+      </View>
+
+      <View style={styles.settingsSection}>
+        <Text style={styles.settingsSectionTitle}>Widgets / Valeurs (Concept)</Text>
+        {localContent.values.map((val, idx) => (
+          <View key={val.id} style={{ marginBottom: 24, padding: 16, backgroundColor: Theme.colors.background, borderRadius: 12 }}>
+            <Text style={[styles.inputLabel, { color: Theme.colors.success }]}>Widget {idx + 1}</Text>
+            
+            <Text style={styles.inputLabel}>Icône (Ionicons)</Text>
+            <TextInput
+              style={styles.input}
+              value={val.icon}
+              onChangeText={t => {
+                const newValues = [...localContent.values];
+                newValues[idx].icon = t;
+                setLocalContent({ ...localContent, values: newValues });
+              }}
+            />
+
+            <Text style={styles.inputLabel}>Titre</Text>
+            <TextInput
+              style={styles.input}
+              value={val.title}
+              onChangeText={t => {
+                const newValues = [...localContent.values];
+                newValues[idx].title = t;
+                setLocalContent({ ...localContent, values: newValues });
+              }}
+            />
+
+            <Text style={styles.inputLabel}>Description</Text>
+            <TextInput
+              style={[styles.input, { height: 80 }]}
+              multiline
+              value={val.description}
+              onChangeText={t => {
+                const newValues = [...localContent.values];
+                newValues[idx].description = t;
+                setLocalContent({ ...localContent, values: newValues });
+              }}
+            />
+          </View>
+        ))}
+      </View>
+
+      <View style={styles.settingsSection}>
+        <Text style={styles.settingsSectionTitle}>Pied de page (Footer)</Text>
+        <Text style={styles.inputLabel}>Ville</Text>
+        <TextInput
+          style={styles.input}
+          value={localContent.footerCity}
+          onChangeText={t => setLocalContent({ ...localContent, footerCity: t })}
+        />
+        <Text style={styles.inputLabel}>Téléphone</Text>
+        <TextInput
+          style={styles.input}
+          value={localContent.footerPhone}
+          onChangeText={t => setLocalContent({ ...localContent, footerPhone: t })}
+        />
+      </View>
+      
+      <View style={{ height: 100 }} />
+    </ScrollView>
+  );
+}

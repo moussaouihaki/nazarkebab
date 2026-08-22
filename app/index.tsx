@@ -10,6 +10,7 @@ import { router } from 'expo-router';
 import { useCartStore } from '../store/useCartStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { useRestaurantStore } from '../store/useRestaurantStore';
+import { useContentStore } from '../store/useContentStore';
 import { useNotificationStore } from '../store/useNotificationStore';
 import { checkIsRestaurantOpen } from '../store/useRestaurantStore';
 import BottomBar from '../components/BottomBar';
@@ -33,7 +34,13 @@ export default function HomeScreen() {
   const { user } = useAuthStore();
   const isAdmin = user?.role === 'admin';
   const { products, categories, settings } = useRestaurantStore();
+  const { content, fetchContent } = useContentStore();
   const unreadCount = useNotificationStore(s => s.unreadCount);
+
+  // Initialize content on load if on web or first mount
+  React.useEffect(() => {
+    fetchContent();
+  }, []);
 
   const populars = products.filter(p => p.highlighted);
   const getCategoryImage = (cat: string) => {
@@ -120,7 +127,7 @@ export default function HomeScreen() {
         <View style={styles.heroContainer}>
            <Animated.View style={[StyleSheet.absoluteFillObject, heroAnimatedStyle]}>
              <Image 
-               source={{ uri: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=1200&q=80' }} 
+               source={{ uri: content.heroImage }} 
                style={StyleSheet.absoluteFillObject} 
                contentFit="cover" 
              />
@@ -131,10 +138,10 @@ export default function HomeScreen() {
               <View style={[styles.statusIndicator, { backgroundColor: checkIsRestaurantOpen(settings) ? Theme.colors.success : Theme.colors.danger }]} />
               <Text style={styles.statusText}>{checkIsRestaurantOpen(settings) ? 'ACTUELLEMENT OUVERT' : 'FERMÉ ACTUELLEMENT'}</Text>
             </View>
-              <Text style={styles.heroGolden}>DEPUIS 4 ANS</Text>
-              <Text style={styles.heroTitle}>L'ART DU POKÉ BOWL</Text>
+              <Text style={styles.heroGolden}>{content.heroSubtitle}</Text>
+              <Text style={styles.heroTitle}>{content.heroTitle}</Text>
               <TouchableOpacity style={styles.heroBtn} onPress={() => router.push('/menu')} activeOpacity={0.8}>
-                 <Text style={styles.heroBtnText}>VOIR LA CARTE</Text>
+                 <Text style={styles.heroBtnText}>{content.heroButtonText}</Text>
               </TouchableOpacity>
 
               <View style={styles.timeBanner}>
@@ -153,21 +160,13 @@ export default function HomeScreen() {
         <View style={styles.innerContainer}>
         {/* CONCEPT & VALUES */}
         <View style={[styles.valuesContainer, isDesktop && { flexDirection: 'row' }]}>
-          <View style={styles.valueItem}>
-            <Ionicons name="leaf-outline" size={32} color={Theme.colors.success} />
-            <Text style={styles.valueTitle}>PRODUITS FRAIS</Text>
-            <Text style={styles.valueDesc}>Sélectionnés avec soin pour une qualité optimale et un goût authentique.</Text>
-          </View>
-          <View style={styles.valueItem}>
-            <Ionicons name="heart-outline" size={32} color={Theme.colors.success} />
-            <Text style={styles.valueTitle}>FAIT MAISON</Text>
-            <Text style={styles.valueDesc}>Des recettes uniques préparées avec amour par nos chefs passionnés.</Text>
-          </View>
-          <View style={styles.valueItem}>
-            <Ionicons name="nutrition-outline" size={32} color={Theme.colors.success} />
-            <Text style={styles.valueTitle}>SAIN & GOURMAND</Text>
-            <Text style={styles.valueDesc}>L'équilibre parfait entre une alimentation saine et le plaisir gustatif.</Text>
-          </View>
+          {content.values.map(val => (
+            <View key={val.id} style={styles.valueItem}>
+              <Ionicons name={val.icon as any} size={32} color={val.color || Theme.colors.success} />
+              <Text style={styles.valueTitle}>{val.title}</Text>
+              <Text style={styles.valueDesc}>{val.description}</Text>
+            </View>
+          ))}
         </View>
 
         {/* SHARP CATEGORIES (Chic, zero border radius) */}
@@ -238,8 +237,8 @@ export default function HomeScreen() {
         {/* PREMIUM FOOTER */}
         <View style={styles.footerInfo}>
           <Text style={styles.logoNazar}>POKÉMOONS</Text>
-          <Text style={styles.footerMeta}>LA CHAUX-DE-FONDS</Text>
-          <Text style={styles.footerMeta}>RESERVATIONS: 032 757 44 44</Text>
+          <Text style={styles.footerMeta}>{content.footerCity}</Text>
+          <Text style={styles.footerMeta}>RESERVATIONS: {content.footerPhone}</Text>
           
           {Platform.OS === 'web' && (
             <View style={styles.webFooter}>
@@ -249,7 +248,7 @@ export default function HomeScreen() {
                  <TouchableOpacity><Text style={styles.webFooterLink}>Politique de Confidentialité</Text></TouchableOpacity>
                  <TouchableOpacity><Text style={styles.webFooterLink}>Contact</Text></TouchableOpacity>
                </View>
-               <Text style={styles.webFooterCopyright}>© {new Date().getFullYear()} Pokémoons. Tous droits réservés.</Text>
+               <Text style={styles.webFooterCopyright}>© {new Date().getFullYear()} {content.footerCopyright}</Text>
             </View>
           )}
         </View>
