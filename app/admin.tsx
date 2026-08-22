@@ -1798,16 +1798,48 @@ function DeliveryZonesPanel() {
     badge: { fontFamily: Theme.fonts.bodyBold, fontSize: 12, color: Theme.colors.primary, backgroundColor: Theme.colors.primary + '15', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
   });
 
+  const [isAdding, setIsAdding] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newCp, setNewCp] = useState('');
+  const [newMin, setNewMin] = useState('20');
+  const [newFee, setNewFee] = useState('0');
+  const [newTime, setNewTime] = useState('20');
+
   if (zones.length === 0) return (
     <Text style={{ color: Theme.colors.textSecondary, fontFamily: Theme.fonts.body, fontSize: 13, padding: 12 }}>
       Chargement des zones...
     </Text>
   );
 
+  const handleAdd = () => {
+    if (!newName || !newCp) {
+      Alert.alert('Erreur', 'Veuillez remplir au moins le nom et les codes postaux.');
+      return;
+    }
+    const cida = newCp.split(',').map(s => s.trim()).filter(s => s);
+    addZone({
+      name: newName,
+      postalCodes: cida,
+      minOrder: parseFloat(newMin) || 0,
+      deliveryFee: parseFloat(newFee) || 0,
+      estimatedTime: parseInt(newTime) || 30,
+      active: true,
+    });
+    setIsAdding(false);
+    setNewName(''); setNewCp(''); setNewMin('20'); setNewFee('0'); setNewTime('20');
+  };
+
+  const handleDelete = (id: string, name: string) => {
+    Alert.alert('Supprimer la zone', `Voulez-vous vraiment supprimer "${name}" ?`, [
+      { text: 'Annuler', style: 'cancel' },
+      { text: 'Supprimer', style: 'destructive', onPress: () => deleteZone(id) }
+    ]);
+  };
+
   return (
     <View style={styles.card}>
       {zones.map((zone, i) => (
-        <View key={zone.id} style={[styles.row, i === zones.length - 1 && { borderBottomWidth: 0 }]}>
+        <View key={zone.id} style={[styles.row, i === zones.length - 1 && !isAdding && { borderBottomWidth: 0 }]}>
           <View style={{ flex: 1 }}>
             <Text style={styles.zoneName}>{zone.name}</Text>
             <Text style={styles.zoneMeta}>
@@ -1817,14 +1849,44 @@ function DeliveryZonesPanel() {
               CP: {zone.postalCodes.join(', ')}
             </Text>
           </View>
-          <Switch
-            value={zone.active}
-            onValueChange={(v) => updateZone(zone.id, { active: v })}
-            trackColor={{ false: Theme.colors.surface, true: Theme.colors.success + '88' }}
-            thumbColor={zone.active ? Theme.colors.success : Theme.colors.textSecondary}
-          />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <Switch
+              value={zone.active}
+              onValueChange={(v) => updateZone(zone.id, { active: v })}
+              trackColor={{ false: Theme.colors.surface, true: Theme.colors.success + '88' }}
+              thumbColor={zone.active ? Theme.colors.success : Theme.colors.textSecondary}
+            />
+            <TouchableOpacity onPress={() => handleDelete(zone.id, zone.name)} style={{ padding: 8 }}>
+              <Ionicons name="trash-outline" size={20} color={Theme.colors.danger} />
+            </TouchableOpacity>
+          </View>
         </View>
       ))}
+
+      {isAdding ? (
+        <View style={{ padding: 16, backgroundColor: Theme.colors.background }}>
+          <Text style={[styles.zoneName, { marginBottom: 12 }]}>NOUVELLE ZONE</Text>
+          <TextInput style={[styles.input, { marginBottom: 8 }]} placeholder="Nom (ex: La Chaux-de-Fonds Centre)" value={newName} onChangeText={setNewName} />
+          <TextInput style={[styles.input, { marginBottom: 8 }]} placeholder="Codes postaux (ex: 2300, 2304)" value={newCp} onChangeText={setNewCp} />
+          <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
+            <TextInput style={[styles.input, { flex: 1 }]} placeholder="Min. Commande (CHF)" value={newMin} onChangeText={setNewMin} keyboardType="numeric" />
+            <TextInput style={[styles.input, { flex: 1 }]} placeholder="Frais (CHF)" value={newFee} onChangeText={setNewFee} keyboardType="numeric" />
+            <TextInput style={[styles.input, { flex: 1 }]} placeholder="Temps (min)" value={newTime} onChangeText={setNewTime} keyboardType="numeric" />
+          </View>
+          <View style={{ flexDirection: 'row', gap: 12, marginTop: 8 }}>
+             <TouchableOpacity style={{ flex: 1, padding: 12, alignItems: 'center', backgroundColor: Theme.colors.surface, borderRadius: 8 }} onPress={() => setIsAdding(false)}>
+               <Text style={{ fontFamily: Theme.fonts.bodyBold, color: Theme.colors.text }}>Annuler</Text>
+             </TouchableOpacity>
+             <TouchableOpacity style={{ flex: 1, padding: 12, alignItems: 'center', backgroundColor: Theme.colors.success, borderRadius: 8 }} onPress={handleAdd}>
+               <Text style={{ fontFamily: Theme.fonts.bodyBold, color: '#FFF' }}>Ajouter</Text>
+             </TouchableOpacity>
+          </View>
+        </View>
+      ) : (
+        <TouchableOpacity style={{ padding: 16, alignItems: 'center', backgroundColor: Theme.colors.background }} onPress={() => setIsAdding(true)}>
+          <Text style={{ fontFamily: Theme.fonts.bodyBold, color: Theme.colors.primary }}>+ Ajouter une zone de livraison</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -2172,7 +2234,6 @@ function CmsTab() {
   const [localContent, setLocalContent] = useState(content);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Sync when content loads from Firebase
   React.useEffect(() => {
     setLocalContent(content);
   }, [content]);
@@ -2190,55 +2251,65 @@ function CmsTab() {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.scrollContent}>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+    <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 }]}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
         <Text style={styles.sectionTitle}>Gestion du Site (CMS)</Text>
-        <TouchableOpacity style={styles.goldBtn} onPress={handleSave} disabled={isSaving}>
-          {isSaving ? <ActivityIndicator color="#000" /> : <Text style={styles.goldBtnText}>Publier les modifications</Text>}
+        <TouchableOpacity style={[styles.goldBtn, { paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8 }]} onPress={handleSave} disabled={isSaving}>
+          {isSaving ? <ActivityIndicator color="#000" /> : <Text style={styles.goldBtnText}>Publier en direct</Text>}
         </TouchableOpacity>
       </View>
 
-      <View style={styles.settingsSection}>
-        <Text style={styles.settingsSectionTitle}>Bannière Principale (Hero)</Text>
+      <Text style={[styles.sectionHeader, { color: Theme.colors.success }]}>
+        <Ionicons name="image-outline" size={20} /> BANNIÈRE PRINCIPALE (HERO)
+      </Text>
+      <View style={styles.settingsCard}>
         <Text style={styles.inputLabel}>Titre principal (ex: L'ART DU POKÉ BOWL)</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, { backgroundColor: Theme.colors.background, marginBottom: 16 }]}
           value={localContent.heroTitle}
           onChangeText={t => setLocalContent({ ...localContent, heroTitle: t })}
         />
         
         <Text style={styles.inputLabel}>Sous-titre (ex: DEPUIS 4 ANS)</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, { backgroundColor: Theme.colors.background, marginBottom: 16 }]}
           value={localContent.heroSubtitle}
           onChangeText={t => setLocalContent({ ...localContent, heroSubtitle: t })}
         />
 
-        <Text style={styles.inputLabel}>Texte du bouton (ex: VOIR LA CARTE)</Text>
+        <Text style={styles.inputLabel}>Texte du bouton principal</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, { backgroundColor: Theme.colors.background, marginBottom: 16 }]}
           value={localContent.heroButtonText}
           onChangeText={t => setLocalContent({ ...localContent, heroButtonText: t })}
         />
         
         <Text style={styles.inputLabel}>URL de l'image de fond</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, { backgroundColor: Theme.colors.background }]}
           value={localContent.heroImage}
           onChangeText={t => setLocalContent({ ...localContent, heroImage: t })}
           placeholder="https://..."
         />
       </View>
 
-      <View style={styles.settingsSection}>
-        <Text style={styles.settingsSectionTitle}>Widgets / Valeurs (Concept)</Text>
+      <Text style={[styles.sectionHeader, { color: Theme.colors.success, marginTop: 32 }]}>
+        <Ionicons name="star-outline" size={20} /> WIDGETS DE CONCEPT (3 BLOCS)
+      </Text>
+      
+      <View style={{ flexDirection: Platform.OS === 'web' && window.innerWidth >= 768 ? 'row' : 'column', gap: 16 }}>
         {localContent.values.map((val, idx) => (
-          <View key={val.id} style={{ marginBottom: 24, padding: 16, backgroundColor: Theme.colors.background, borderRadius: 12 }}>
-            <Text style={[styles.inputLabel, { color: Theme.colors.success }]}>Widget {idx + 1}</Text>
+          <View key={val.id} style={[styles.settingsCard, { flex: 1, borderWidth: 1, borderColor: Theme.colors.border + '55' }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+               <View style={{ backgroundColor: Theme.colors.success + '22', padding: 8, borderRadius: 8 }}>
+                 <Ionicons name={val.icon as any} size={24} color={Theme.colors.success} />
+               </View>
+               <Text style={[styles.inputLabel, { color: Theme.colors.success, marginBottom: 0 }]}>Widget {idx + 1}</Text>
+            </View>
             
-            <Text style={styles.inputLabel}>Icône (Ionicons)</Text>
+            <Text style={styles.inputLabel}>Nom de l'icône (Ionicons)</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: Theme.colors.background, marginBottom: 12 }]}
               value={val.icon}
               onChangeText={t => {
                 const newValues = [...localContent.values];
@@ -2247,9 +2318,9 @@ function CmsTab() {
               }}
             />
 
-            <Text style={styles.inputLabel}>Titre</Text>
+            <Text style={styles.inputLabel}>Titre court</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: Theme.colors.background, marginBottom: 12 }]}
               value={val.title}
               onChangeText={t => {
                 const newValues = [...localContent.values];
@@ -2260,7 +2331,7 @@ function CmsTab() {
 
             <Text style={styles.inputLabel}>Description</Text>
             <TextInput
-              style={[styles.input, { height: 80 }]}
+              style={[styles.input, { height: 80, backgroundColor: Theme.colors.background, textAlignVertical: 'top' }]}
               multiline
               value={val.description}
               onChangeText={t => {
@@ -2273,23 +2344,24 @@ function CmsTab() {
         ))}
       </View>
 
-      <View style={styles.settingsSection}>
-        <Text style={styles.settingsSectionTitle}>Pied de page (Footer)</Text>
-        <Text style={styles.inputLabel}>Ville</Text>
+      <Text style={[styles.sectionHeader, { color: Theme.colors.success, marginTop: 32 }]}>
+        <Ionicons name="information-circle-outline" size={20} /> PIED DE PAGE (FOOTER)
+      </Text>
+      <View style={styles.settingsCard}>
+        <Text style={styles.inputLabel}>Ville (ex: LA CHAUX-DE-FONDS)</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, { backgroundColor: Theme.colors.background, marginBottom: 16 }]}
           value={localContent.footerCity}
           onChangeText={t => setLocalContent({ ...localContent, footerCity: t })}
         />
-        <Text style={styles.inputLabel}>Téléphone</Text>
+        <Text style={styles.inputLabel}>Téléphone de contact</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, { backgroundColor: Theme.colors.background }]}
           value={localContent.footerPhone}
           onChangeText={t => setLocalContent({ ...localContent, footerPhone: t })}
         />
       </View>
       
-      <View style={{ height: 100 }} />
     </ScrollView>
   );
 }
