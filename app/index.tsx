@@ -126,7 +126,7 @@ export default function HomeScreen() {
         <View style={styles.heroContainer}>
            <Animated.View style={[StyleSheet.absoluteFillObject, heroAnimatedStyle]}>
               <Image 
-                source={content.heroImage ? { uri: content.heroImage } : require('../assets/images/hero-white.jpg')} 
+                source={require('../assets/images/hero-white.jpg')} 
                 style={[StyleSheet.absoluteFillObject, { backgroundColor: '#FFFFFF' }]} 
                 contentFit={Platform.OS === 'web' ? 'cover' : 'contain'}
                 contentPosition={Platform.OS === 'web' ? 'center' : 'top'}
