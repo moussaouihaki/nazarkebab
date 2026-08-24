@@ -74,6 +74,8 @@ export const useContentStore = create<ContentState>((set, get) => ({
         if (docSnap.exists()) {
           set({ content: { ...DEFAULT_CONTENT, ...docSnap.data() } as SiteContent });
         }
+      }, (error) => {
+        console.warn('Impossible de charger le contenu en direct (Firebase) - Utilisation des valeurs par défaut:', error.message);
       });
     } catch (err) {
       console.error('Erreur chargement du contenu:', err);

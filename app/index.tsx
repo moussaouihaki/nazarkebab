@@ -128,8 +128,8 @@ export default function HomeScreen() {
               <Image 
                 source={require('../assets/images/hero-white.jpg')} 
                 style={[StyleSheet.absoluteFillObject, { backgroundColor: '#FFFFFF' }]} 
-                contentFit={Platform.OS === 'web' ? 'cover' : 'contain'}
-                contentPosition={Platform.OS === 'web' ? 'center' : 'top'}
+                contentFit="cover"
+                contentPosition="center"
               />
             </Animated.View>
            <LinearGradient 

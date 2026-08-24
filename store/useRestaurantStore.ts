@@ -195,6 +195,8 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
            }
         });
         set({ products: mergedProducts });
+      }, (error) => {
+        console.warn('Impossible de charger les produits en direct (Firebase) - Utilisation des valeurs par défaut:', error.message);
       });
 
     } catch (err) {
