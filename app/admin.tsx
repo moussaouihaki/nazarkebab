@@ -14,11 +14,14 @@ import { useRestaurantStore, checkIsRestaurantOpen } from '../store/useRestauran
 import { useContentStore } from '../store/useContentStore';
 import { useDeliveryZoneStore, DeliveryZone } from '../store/useDeliveryZoneStore';
 import { Product, PRODUCTS, IMAGES_MAP, getImageSource } from '../constants/data';
+import { uploadImageAsync } from '../lib/uploadImage';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { sendPushNotification } from '../lib/pushNotifications';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
+import { generateReceiptHTML } from '../utils/receipt';
+import { splitOptions } from '../utils/optionsOrder';
 
 type Tab = 'dashboard' | 'orders' | 'kitchen' | 'crm' | 'menu' | 'settings' | 'accounting' | 'cms';
 
@@ -46,6 +49,46 @@ const NEXT_STATUS: Record<string, string | null> = {
   preparing: 'ready', ready: 'delivered',
   delivered: null, cancelled: null,
 };
+
+// ──────────────────────────────────────────────
+// PRINT SPOOLER (For Auto-Printing Orders)
+// ──────────────────────────────────────────────
+function PrintSpooler() {
+  const order = useCartStore(s => s.autoPrintOrder);
+  const settings = useRestaurantStore(s => s.settings);
+
+  React.useEffect(() => {
+    if (order) {
+       const printOrder = async () => {
+          const isPaid = order.isPaid;
+          const html = generateReceiptHTML(order, settings, isPaid);
+          try {
+             if (Platform.OS === 'web') {
+               const iframe = document.createElement('iframe');
+               iframe.style.display = 'none';
+               document.body.appendChild(iframe);
+               iframe.contentWindow?.document.write(html);
+               iframe.contentWindow?.document.close();
+               iframe.onload = () => {
+                 setTimeout(() => {
+                   iframe.contentWindow?.print();
+                   setTimeout(() => { if(document.body.contains(iframe)) document.body.removeChild(iframe) }, 1000);
+                 }, 500);
+               };
+             } else {
+               await Print.printAsync({ html });
+             }
+          } catch(e) {
+             console.error('Erreur auto-print', e);
+          }
+          useCartStore.getState().setAutoPrintOrder(null);
+       };
+       printOrder();
+    }
+  }, [order]);
+
+  return null;
+}
 
 // ──────────────────────────────────────────────
 // MAIN ADMIN SCREEN
@@ -86,7 +129,6 @@ export default function AdminScreen() {
     { key: 'crm',        icon: 'people-outline',      label: 'Clients CRM' },
     { key: 'menu',       icon: 'restaurant-outline',  label: 'Menu & Stock' },
     { key: 'accounting', icon: 'bar-chart-outline',   label: 'Comptabilité' }, // NEW
-    { key: 'cms',        icon: 'color-palette-outline', label: 'Site Web (CMS)' },
     { key: 'settings',   icon: 'settings-outline',    label: 'Réglages' },
   ] as { key: Tab; icon: any; label: string }[];
 
@@ -97,7 +139,6 @@ export default function AdminScreen() {
     if (tab === 'crm') return <CrmTab />;
     if (tab === 'menu') return <MenuTab />;
     if (tab === 'accounting') return <AccountingTab />; // NEW
-    if (tab === 'cms') return <CmsTab />;
     if (tab === 'settings') return <SettingsTab />;
     return null;
   };
@@ -146,6 +187,7 @@ export default function AdminScreen() {
              {renderContent()}
           </View>
         </View>
+        <PrintSpooler />
       </View>
     );
   }
@@ -406,7 +448,11 @@ function OrdersTab() {
               <View key={order.id} style={styles.tableRow}>
                 <View style={{ flex: 0.5 }}>
                   <Text style={styles.tdId}>#{order.id}</Text>
-                  <Text style={styles.tdTime}>~{order.estimatedTime}m</Text>
+                  {order.requestedTime && order.requestedTime !== 'ASAP' ? (
+                    <Text style={[styles.tdTime, { color: Theme.colors.primary, fontWeight: 'bold' }]}>POUR : {order.requestedTime}</Text>
+                  ) : (
+                    <Text style={styles.tdTime}>ASAP (~{order.estimatedTime}m)</Text>
+                  )}
                 </View>
                 <View style={{ flex: 1.5 }}>
                   <Text style={styles.tdTitle}>{order.customerName}</Text>
@@ -420,11 +466,25 @@ function OrdersTab() {
                   {order.items.map((i, idx) => (
                     <View key={idx} style={{ marginBottom: 4 }}>
                       <Text style={styles.tdSub}>{i.quantity}× {i.name}</Text>
-                      {i.selectedOptions && Object.entries(i.selectedOptions).map(([section, choices]) => (
-                        <Text key={section} style={[styles.tdSub, { fontSize: 10, color: Theme.colors.success }]}>
-                          ↳ {section.split(' (')[0]}: {choices.join(', ')}
-                        </Text>
-                      ))}
+                      {i.selectedOptions && (() => {
+                        const { food, extras } = splitOptions(i.selectedOptions);
+                        return (
+                          <>
+                            {food.map((f, idx) => (
+                              <Text key={`f-${idx}`} style={[styles.tdSub, { fontSize: 10, color: Theme.colors.success }]}>
+                                ↳ <Text style={{fontWeight: 'bold'}}>{f.sec}:</Text> {f.choices.join(', ')}
+                              </Text>
+                            ))}
+                            {extras.map((e, idx) => (
+                              <View key={`e-${idx}`} style={{ marginTop: 4, backgroundColor: '#eee', padding: 4, borderRadius: 4, alignSelf: 'flex-start' }}>
+                                <Text style={[styles.tdSub, { fontSize: 12, fontWeight: 'bold', color: '#000' }]}>
+                                  [+] {e.sec}: {e.choices.join(', ')}
+                                </Text>
+                              </View>
+                            ))}
+                          </>
+                        );
+                      })()}
                     </View>
                   ))}
                 </View>
@@ -476,11 +536,25 @@ function OrdersTab() {
               {order.items.map((i, idx) => (
                 <View key={idx} style={{ marginBottom: 4 }}>
                   <Text style={styles.orderItemsList}>{i.quantity}× {i.name}</Text>
-                  {i.selectedOptions && Object.entries(i.selectedOptions).map(([section, choices]) => (
-                    <Text key={section} style={[styles.orderItemsList, { fontSize: 11, color: Theme.colors.success, marginLeft: 16 }]}>
-                      ↳ {section.split(' (')[0]}: {choices.join(', ')}
-                    </Text>
-                  ))}
+                  {i.selectedOptions && (() => {
+                    const { food, extras } = splitOptions(i.selectedOptions);
+                    return (
+                      <>
+                        {food.map((f, idx) => (
+                          <Text key={`f-${idx}`} style={[styles.orderItemsList, { fontSize: 11, color: Theme.colors.success, marginLeft: 16 }]}>
+                            ↳ <Text style={{fontWeight: 'bold'}}>{f.sec}:</Text> {f.choices.join(', ')}
+                          </Text>
+                        ))}
+                        {extras.map((e, idx) => (
+                          <View key={`e-${idx}`} style={{ marginLeft: 16, marginTop: 4, backgroundColor: '#eee', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, alignSelf: 'flex-start' }}>
+                            <Text style={[styles.orderItemsList, { fontSize: 12, fontWeight: 'bold', color: '#000' }]}>
+                              [+] {e.sec}: {e.choices.join(', ')}
+                            </Text>
+                          </View>
+                        ))}
+                      </>
+                    );
+                  })()}
                 </View>
               ))}
             </View>
@@ -490,7 +564,11 @@ function OrdersTab() {
             <View style={styles.orderCardFooter}>
               <View>
                 <Text style={styles.orderTotal}>{order.total.toFixed(2)} CHF</Text>
-                <Text style={styles.orderTime}>~{order.estimatedTime} min</Text>
+                {order.requestedTime && order.requestedTime !== 'ASAP' ? (
+                  <Text style={[styles.orderTime, { color: Theme.colors.primary, fontWeight: 'bold' }]}>POUR : {order.requestedTime}</Text>
+                ) : (
+                  <Text style={styles.orderTime}>ASAP (~{order.estimatedTime} min)</Text>
+                )}
               </View>
               <TouchableOpacity onPress={() => router.push({ pathname: '/receipt', params: { id: order.id } })} style={styles.receiptIconBtn}>
                 <Ionicons name="receipt-outline" size={20} color={Theme.colors.textSecondary} />
@@ -567,6 +645,11 @@ function KitchenTab() {
                        <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 10, color: isLate ? '#fff' : Theme.colors.textSecondary }}>{minsElapsed} min</Text>
                      </View>
                    </View>
+                   {o.requestedTime && o.requestedTime !== 'ASAP' && (
+                     <View style={{ marginTop: 4, backgroundColor: Theme.colors.primary, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, alignSelf: 'flex-start' }}>
+                       <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 10, color: '#fff' }}>POUR : {o.requestedTime}</Text>
+                     </View>
+                   )}
                  </View>
                  <View style={[styles.kTypeBadge, { backgroundColor: o.deliveryType === 'delivery' ? '#007AFF22' : '#FF950022' }]}>
                    <Text style={[styles.kTypeText, { color: o.deliveryType === 'delivery' ? '#007AFF' : '#FF9500' }]}>
@@ -584,14 +667,28 @@ function KitchenTab() {
                    <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                       <Text style={styles.kItem}><Text style={styles.kItemQty}>{it.quantity}x</Text> {it.name}</Text>
                    </View>
-                   {it.note && <Text style={styles.kItemNote}>↳ {it.note}</Text>}
-                   {it.selectedOptions && Object.entries(it.selectedOptions).map(([section, choices]: [string, any]) => (
-                     <Text key={section} style={[styles.kItemNote, { color: Theme.colors.success }]}>
-                       ↳ {section.split(' (')[0]}: {choices.join(', ')}
-                     </Text>
-                   ))}
-                 </View>
-               ))}
+                    {it.note && <Text style={styles.kItemNote}>↳ {it.note}</Text>}
+                    {it.selectedOptions && (() => {
+                      const { food, extras } = splitOptions(it.selectedOptions);
+                      return (
+                        <>
+                          {food.map((f, idx) => (
+                            <Text key={`f-${idx}`} style={[styles.kItemNote, { color: Theme.colors.success }]}>
+                              ↳ <Text style={{fontWeight: 'bold'}}>{f.sec}:</Text> {f.choices.join(', ')}
+                            </Text>
+                          ))}
+                          {extras.map((e, idx) => (
+                            <View key={`e-${idx}`} style={{ marginTop: 4, backgroundColor: '#eee', padding: 6, borderRadius: 4, borderWidth: 1, borderColor: '#ccc' }}>
+                              <Text style={[styles.kItemNote, { color: '#000', fontWeight: 'bold', fontSize: 13 }]}>
+                                [+] {e.sec}: {e.choices.join(', ')}
+                              </Text>
+                            </View>
+                          ))}
+                        </>
+                      );
+                    })()}
+                  </View>
+                ))}
              </View>
 
              {/* Global Order Note */}
@@ -742,7 +839,7 @@ function CrmTab() {
     const spent = userOrders.reduce((acc, curr) => acc + curr.total, 0);
     const phone = userOrders.length > 0 ? userOrders[0].customerPhone : '-';
     // Loyalty points (mock logic: 1 CHF = 1 Point)
-    const loyaltyPoints = Math.floor(spent);
+    const loyaltyPoints = userOrders.length;
     return { name, phone, orderCount: userOrders.length, totalSpent: spent, loyaltyPoints, orders: userOrders };
   }).filter(c => c.orderCount > 0).sort((a: any, b: any) => b.totalSpent - a.totalSpent);
 
@@ -821,8 +918,8 @@ function CrmTab() {
         <View style={styles.tableHeaderRow}>
           <Text style={[styles.th, { flex: 2 }]}>CLIENT</Text>
           <Text style={[styles.th, { flex: 2 }]}>CONTACT</Text>
-          <Text style={[styles.th, { flex: 1, textAlign: 'center' }]}>PTS FIDÉLITÉ</Text>
-          <Text style={[styles.th, { flex: 1, textAlign: 'right' }]}>C.A. GÉNÉRÉ</Text>
+          <Text style={[styles.th, { flex: 1, textAlign: 'center', fontSize: 10 }]}>PTS</Text>
+          <Text style={[styles.th, { flex: 1, textAlign: 'right', fontSize: 10 }]}>C.A.</Text>
         </View>
         
         {filteredCrmData.map((client: any, i: number) => (
@@ -928,17 +1025,33 @@ function AccountingTab() {
   // Custom Date Range
   const now = new Date();
   const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-  const [startDate, setStartDate] = useState(firstDay.toISOString().split('T')[0]);
-  const [endDate, setEndDate] = useState(now.toISOString().split('T')[0]);
+
+  const formatFrenchDate = (date: Date) => {
+    const dd = String(date.getDate()).padStart(2, '0');
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const yyyy = date.getFullYear();
+    return `${dd}/${mm}/${yyyy}`;
+  };
+
+  const parseFrenchDate = (dateStr: string) => {
+    const parts = dateStr.split('/');
+    if (parts.length === 3) {
+      return new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+    }
+    return new Date(dateStr); // fallback if not DD/MM/YYYY
+  };
+
+  const [startDate, setStartDate] = useState(formatFrenchDate(firstDay));
+  const [endDate, setEndDate] = useState(formatFrenchDate(now));
 
   const filteredOrders = orders.filter(o => {
     if (o.status === 'cancelled') return false;
     const orderDate = new Date(o.createdAt);
     orderDate.setHours(0,0,0,0);
     
-    const start = new Date(startDate);
+    const start = parseFrenchDate(startDate);
     start.setHours(0,0,0,0);
-    const end = new Date(endDate);
+    const end = parseFrenchDate(endDate);
     end.setHours(23,59,59,999);
     
     return orderDate >= start && orderDate <= end;
@@ -1092,7 +1205,7 @@ function AccountingTab() {
 
             <div class="report-title">
               <h2>Rapport de Comptabilité</h2>
-              <div class="date-range">Période : ${new Date(startDate).toLocaleDateString('fr-CH')} — ${new Date(endDate).toLocaleDateString('fr-CH')}</div>
+              <div class="date-range">Période : ${startDate} — ${endDate}</div>
             </div>
 
             <div class="summary-cards">
@@ -1164,7 +1277,7 @@ function AccountingTab() {
         <View>
           <Text style={styles.sectionTitle}>Rapport Financier</Text>
           <Text style={{ fontFamily: Theme.fonts.body, fontSize: 13, color: Theme.colors.textSecondary }}>
-            Période du {new Date(startDate).toLocaleDateString('fr-CH')} au {new Date(endDate).toLocaleDateString('fr-CH')}
+            Période du {startDate} au {endDate}
           </Text>
         </View>
         <TouchableOpacity style={styles.goldBtn} onPress={exportPDF}>
@@ -1183,7 +1296,7 @@ function AccountingTab() {
               style={styles.modalInput} 
               value={startDate} 
               onChangeText={setStartDate} 
-              placeholder="YYYY-MM-DD"
+              placeholder="JJ/MM/AAAA"
             />
           </View>
           <Ionicons name="arrow-forward" size={20} color={Theme.colors.textSecondary} style={{ marginTop: 20 }} />
@@ -1193,7 +1306,7 @@ function AccountingTab() {
               style={styles.modalInput} 
               value={endDate} 
               onChangeText={setEndDate} 
-              placeholder="YYYY-MM-DD"
+              placeholder="JJ/MM/AAAA"
             />
           </View>
         </View>
@@ -1250,6 +1363,7 @@ function MenuTab() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showCatModal, setShowCatModal] = useState(false);
   const [newCatName, setNewCatName] = useState('');
+  const [fastEditMode, setFastEditMode] = useState(false);
 
   const filtered = products.filter(p => p.category?.toUpperCase() === selectedCategory?.toUpperCase());
 
@@ -1276,7 +1390,7 @@ function MenuTab() {
   return (
     <View style={{ flex: 1 }}>
       {/* CATEGORY FILTER + ADD */}
-      <View style={styles.menuCategoryBar}>
+      <View style={[styles.menuCategoryBar, { flexDirection: 'row', alignItems: 'center' }]}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 16, paddingVertical: 12 }}>
           {categories.map(cat => (
             <TouchableOpacity
@@ -1292,40 +1406,76 @@ function MenuTab() {
             <Ionicons name="add" size={18} color={Theme.colors.success} />
           </TouchableOpacity>
         </ScrollView>
+        <TouchableOpacity 
+          style={{ marginRight: 16, padding: 8, backgroundColor: fastEditMode ? Theme.colors.success : Theme.colors.surface, borderRadius: 8, borderWidth: 1, borderColor: Theme.colors.border }}
+          onPress={() => setFastEditMode(!fastEditMode)}
+        >
+          <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 12, color: fastEditMode ? '#000' : Theme.colors.text }}>{fastEditMode ? 'ÉDITION RAPIDE : ON' : 'ÉDITION RAPIDE'}</Text>
+        </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
         {filtered.length === 0 && (
           <Text style={styles.emptySubtitle}>Aucun produit dans cette catégorie.</Text>
         )}
-        {filtered.map(product => (
-          <View key={product.id} style={styles.menuItem}>
-            <Image
-              source={getImageSource(product.image)}
-              style={styles.menuItemImage}
-              contentFit="cover"
-            />
-            <View style={[styles.menuItemInfo, product.outOfStock && {opacity: 0.5}]}>
-              <Text style={styles.menuItemName}>{product.name}</Text>
-              <Text style={styles.menuItemDesc} numberOfLines={1}>{product.description}</Text>
-              <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
-                <Text style={styles.menuItemPrice}>{product.price.toFixed(2)} CHF</Text>
-                {product.outOfStock && <Text style={{color: Theme.colors.danger, fontSize: 10, fontFamily: Theme.fonts.bodyBold}}>RUPTURE</Text>}
+        
+        {fastEditMode ? (
+          <View style={{ backgroundColor: '#FAFAFA', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: Theme.colors.border }}>
+            {filtered.map(product => (
+              <View key={product.id} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: Theme.colors.border }}>
+                 <Text style={{ fontFamily: Theme.fonts.bodyMedium, fontSize: 14, color: Theme.colors.text, flex: 1 }}>{product.name}</Text>
+                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <TextInput 
+                      style={{ backgroundColor: '#FFF', borderWidth: 1, borderColor: Theme.colors.border, borderRadius: 8, padding: 8, width: 80, textAlign: 'center', fontFamily: Theme.fonts.bodyBold }}
+                      defaultValue={product.price.toString()}
+                      keyboardType="numeric"
+                      onBlur={(e) => {
+                         const val = parseFloat(e.nativeEvent.text);
+                         if (!isNaN(val) && val !== product.price) {
+                            updateProduct(product.id, { price: val });
+                         }
+                      }}
+                    />
+                    <Text style={{ fontFamily: Theme.fonts.body, fontSize: 12, color: Theme.colors.textSecondary }}>CHF</Text>
+                 </View>
+              </View>
+            ))}
+          </View>
+        ) : (
+          filtered.map(product => (
+            <View key={product.id} style={styles.menuItem}>
+              <Image
+                source={getImageSource(product.image)}
+                style={styles.menuItemImage}
+                contentFit="cover"
+              />
+              <View style={[styles.menuItemInfo, product.outOfStock && {opacity: 0.5}]}>
+                <Text style={styles.menuItemName}>{product.name}</Text>
+                <Text style={styles.menuItemDesc} numberOfLines={1}>{product.description}</Text>
+                <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
+                  <Text style={styles.menuItemPrice}>{product.price.toFixed(2)} CHF</Text>
+                  {product.outOfStock && <Text style={{color: Theme.colors.danger, fontSize: 10, fontFamily: Theme.fonts.bodyBold}}>RUPTURE</Text>}
+                </View>
+              </View>
+              <View style={[styles.menuItemActions, {flexDirection: 'row'}]}>
+                <TouchableOpacity onPress={() => updateProduct(product.id, { outOfStock: !product.outOfStock })} style={styles.stockBtn}>
+                  <Ionicons name={product.outOfStock ? 'eye-off' : 'eye'} size={20} color={product.outOfStock ? Theme.colors.danger : Theme.colors.success} />
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.editBtn} onPress={() => openEdit(product)}>
+                  <Ionicons name="pencil" size={16} color={Theme.colors.success} />
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDelete(product)}>
+                  <Ionicons name="trash-outline" size={16} color={Theme.colors.danger} />
+                </TouchableOpacity>
               </View>
             </View>
-            <View style={[styles.menuItemActions, {flexDirection: 'row'}]}>
-              <TouchableOpacity onPress={() => updateProduct(product.id, { outOfStock: !product.outOfStock })} style={styles.stockBtn}>
-                <Ionicons name={product.outOfStock ? 'eye-off' : 'eye'} size={20} color={product.outOfStock ? Theme.colors.danger : Theme.colors.success} />
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.editBtn} onPress={() => openEdit(product)}>
-                <Ionicons name="pencil" size={16} color={Theme.colors.success} />
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDelete(product)}>
-                <Ionicons name="trash-outline" size={16} color={Theme.colors.danger} />
-              </TouchableOpacity>
-            </View>
-          </View>
-        ))}
+          ))
+        )}
+
+        <View style={{ marginTop: 40, borderTopWidth: 1, borderColor: Theme.colors.border, paddingTop: 24 }}>
+          <Text style={styles.sectionHeader}>SAUCES & BOISSONS (LISTE GLOBALE)</Text>
+          <SaucesDrinksPanel />
+        </View>
       </ScrollView>
 
       {/* FAB ADD PRODUCT */}
@@ -1399,6 +1549,7 @@ function ProductModal({ visible, product, categories, defaultCategory, onClose, 
   const [highlighted, setHighlighted] = useState(false);
   const [hasSauces, setHasSauces] = useState(false);
   const [hasDrinkSelection, setHasDrinkSelection] = useState(false);
+  const [customizationSections, setCustomizationSections] = useState<any[]>([]);
   const [pickingImage, setPickingImage] = useState(false);
 
   React.useEffect(() => {
@@ -1411,6 +1562,9 @@ function ProductModal({ visible, product, categories, defaultCategory, onClose, 
       setHighlighted(product?.highlighted || false);
       setHasSauces(product?.hasSauces || false);
       setHasDrinkSelection(product?.hasDrinkSelection || false);
+      
+      // Deep copy to avoid mutating store state directly on edit
+      setCustomizationSections(product?.customizationSections ? JSON.parse(JSON.stringify(product.customizationSections)) : []);
     }
   }, [visible, product]);
 
@@ -1430,7 +1584,16 @@ function ProductModal({ visible, product, categories, defaultCategory, onClose, 
     });
     setPickingImage(false);
     if (!result.canceled && result.assets[0]) {
-      setImageUri(result.assets[0].uri);
+      try {
+        Alert.alert('Upload en cours', 'Veuillez patienter pendant le téléchargement de l\'image...');
+        const uri = result.assets[0].uri;
+        const filename = uri.substring(uri.lastIndexOf('/') + 1);
+        const downloadUrl = await uploadImageAsync(uri, `products/${Date.now()}_${filename}`);
+        setImageUri(downloadUrl);
+        Alert.alert('Succès', 'L\'image a été téléchargée avec succès.');
+      } catch (err) {
+        Alert.alert('Erreur', 'Impossible de télécharger l\'image.');
+      }
     }
   };
 
@@ -1448,6 +1611,7 @@ function ProductModal({ visible, product, categories, defaultCategory, onClose, 
       highlighted,
       hasSauces,
       hasDrinkSelection,
+      ...(customizationSections.length > 0 ? { customizationSections } : {})
     });
   };
 
@@ -1486,7 +1650,19 @@ function ProductModal({ visible, product, categories, defaultCategory, onClose, 
               })}
             </ScrollView>
 
-            <Text style={{ fontFamily: Theme.fonts.body, fontSize: 13, color: Theme.colors.textSecondary, marginBottom: 8 }}>Ou mettre un lien internet (URL) :</Text>
+            <Text style={{ fontFamily: Theme.fonts.body, fontSize: 13, color: Theme.colors.textSecondary, marginBottom: 8 }}>Ou uploader une image depuis le téléphone :</Text>
+            <TouchableOpacity style={styles.imagePicker} onPress={pickImage}>
+              {imageUri && imageUri.startsWith('http') ? (
+                <Image source={{ uri: imageUri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
+              ) : (
+                <>
+                  <Ionicons name="cloud-upload-outline" size={32} color={Theme.colors.textSecondary} />
+                  <Text style={styles.imagePickerText}>{pickingImage ? 'Chargement...' : 'Uploader une image'}</Text>
+                </>
+              )}
+            </TouchableOpacity>
+
+            <Text style={{ fontFamily: Theme.fonts.body, fontSize: 13, color: Theme.colors.textSecondary, marginBottom: 8, marginTop: 12 }}>Ou mettre un lien internet (URL) :</Text>
             <TextInput style={styles.input} value={imageUri} onChangeText={setImageUri} placeholder="https://..." placeholderTextColor={Theme.colors.textSecondary} />
 
 
@@ -1550,6 +1726,67 @@ function ProductModal({ visible, product, categories, defaultCategory, onClose, 
               />
             </View>
 
+            {/* CUSTOMIZATIONS EDITOR */}
+            {customizationSections.length > 0 && (
+              <View style={{ marginTop: 24, borderTopWidth: StyleSheet.hairlineWidth, borderColor: Theme.colors.border, paddingTop: 20 }}>
+                <Text style={styles.fieldLabel}>OPTIONS SUR-MESURE (COMPOSE TON POKÉ)</Text>
+                
+                {customizationSections.map((section, sIndex) => (
+                  <View key={sIndex} style={{ backgroundColor: Theme.colors.background, padding: 12, borderRadius: 12, marginBottom: 16, borderWidth: 1, borderColor: Theme.colors.border }}>
+                    <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 13, marginBottom: 12 }}>{section.title.toUpperCase()}</Text>
+                    
+                    {section.choices.map((choice: any, cIndex: number) => (
+                      <View key={cIndex} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                        <TextInput
+                          style={[styles.input, { flex: 2, marginBottom: 0, paddingVertical: 8, fontSize: 12 }]}
+                          value={choice.name}
+                          placeholder="Nom de l'ingrédient"
+                          placeholderTextColor={Theme.colors.textSecondary}
+                          onChangeText={(val) => {
+                             const newSecs = [...customizationSections];
+                             newSecs[sIndex].choices[cIndex].name = val;
+                             setCustomizationSections(newSecs);
+                          }}
+                        />
+                        <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: Theme.colors.background, borderWidth: 1, borderColor: Theme.colors.border, borderRadius: 8, paddingHorizontal: 8 }}>
+                           <Text style={{ fontSize: 12, color: Theme.colors.textSecondary, fontFamily: Theme.fonts.body }}>+</Text>
+                           <TextInput
+                             style={{ flex: 1, padding: 8, fontSize: 12, fontFamily: Theme.fonts.bodyBold, color: Theme.colors.text }}
+                             value={choice.priceOffset.toString()}
+                             keyboardType="numeric"
+                             onChangeText={(val) => {
+                                const newSecs = [...customizationSections];
+                                newSecs[sIndex].choices[cIndex].priceOffset = parseFloat(val) || 0;
+                                setCustomizationSections(newSecs);
+                             }}
+                           />
+                           <Text style={{ fontSize: 10, color: Theme.colors.textSecondary }}>CHF</Text>
+                        </View>
+                        <TouchableOpacity onPress={() => {
+                           const newSecs = [...customizationSections];
+                           newSecs[sIndex].choices.splice(cIndex, 1);
+                           setCustomizationSections(newSecs);
+                        }}>
+                           <Ionicons name="trash" size={16} color={Theme.colors.danger} />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                    
+                    <TouchableOpacity 
+                      style={{ marginTop: 8, padding: 10, alignItems: 'center', backgroundColor: Theme.colors.surface, borderRadius: 8, borderWidth: 1, borderColor: Theme.colors.border, borderStyle: 'dashed' }}
+                      onPress={() => {
+                        const newSecs = [...customizationSections];
+                        newSecs[sIndex].choices.push({ name: 'Nouvel Ingrédient', priceOffset: 0 });
+                        setCustomizationSections(newSecs);
+                      }}
+                    >
+                      <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 12, color: Theme.colors.text }}>+ Ajouter un ingrédient</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+            )}
+
             <View style={{ height: 80 }} />
           </ScrollView>
         </SafeAreaView>
@@ -1571,6 +1808,12 @@ function SettingsTab() {
   const [localInsta, setLocalInsta] = useState(settings.instagram);
   const [localDelivery, setLocalDelivery] = useState(settings.deliveryTime);
   const [localTakeaway, setLocalTakeaway] = useState(settings.takeAwayTime);
+  const [localIsOpen, setLocalIsOpen] = useState(settings.isOpen);
+  const [localOpenOverrideMessage, setLocalOpenOverrideMessage] = useState(settings.openOverrideMessage || '');
+  const [localClosedFrom, setLocalClosedFrom] = useState(settings.closedFrom || '');
+  const [localClosedTo, setLocalClosedTo] = useState(settings.closedTo || '');
+  const [localAnnouncementEnabled, setLocalAnnouncementEnabled] = useState(settings.announcementEnabled || false);
+  const [localAnnouncementMessage, setLocalAnnouncementMessage] = useState(settings.announcementMessage || '');
   const [saved, setSaved] = useState(false);
 
   const handleSave = () => {
@@ -1578,6 +1821,9 @@ function SettingsTab() {
       name: localName, phone: localPhone, address: localAddress,
       email: localEmail, website: localWeb, instagram: localInsta,
       deliveryTime: localDelivery, takeAwayTime: localTakeaway,
+      isOpen: localIsOpen, openOverrideMessage: localOpenOverrideMessage,
+      closedFrom: localClosedFrom, closedTo: localClosedTo,
+      announcementEnabled: localAnnouncementEnabled, announcementMessage: localAnnouncementMessage
     });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -1585,6 +1831,63 @@ function SettingsTab() {
 
   return (
     <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 }]}>
+
+      {/* FERMETURE EXCEPTIONNELLE */}
+      <Text style={[styles.sectionHeader, { color: Theme.colors.danger }]}>ÉTAT DU RESTAURANT</Text>
+      <View style={[styles.settingsCard, { borderColor: !localIsOpen ? Theme.colors.danger : Theme.colors.border, borderWidth: 1 }]}>
+        <View style={styles.switchRow}>
+          <View>
+            <Text style={styles.switchLabel}>Prendre des commandes</Text>
+            <Text style={styles.switchSubtitle}>{localIsOpen ? "Actif : les clients peuvent commander" : "Bloqué : commandes désactivées"}</Text>
+          </View>
+          <Switch 
+            value={localIsOpen} 
+            onValueChange={setLocalIsOpen}
+            trackColor={{ false: Theme.colors.danger, true: Theme.colors.success + '88' }}
+            thumbColor={localIsOpen ? Theme.colors.success : Theme.colors.textSecondary}
+          />
+        </View>
+        {!localIsOpen && (
+          <View style={{ marginTop: 16, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Theme.colors.border, paddingTop: 16 }}>
+            <Text style={styles.fieldLabel}>MESSAGE AUX CLIENTS</Text>
+            <TextInput 
+              style={[styles.input, { height: 80, textAlignVertical: 'top' }]} 
+              value={localOpenOverrideMessage} 
+              onChangeText={setLocalOpenOverrideMessage}
+              placeholder="Ex: Fermé pour congés annuels du 15 au 25 août."
+              placeholderTextColor="#999"
+              multiline
+            />
+
+            <Text style={[styles.fieldLabel, { marginTop: 16 }]}>PÉRIODE DE FERMETURE (YYYY-MM-DD)</Text>
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 12, color: Theme.colors.textSecondary, marginBottom: 4 }}>Date de début</Text>
+                <TextInput 
+                  style={styles.input} 
+                  value={localClosedFrom} 
+                  onChangeText={setLocalClosedFrom}
+                  placeholder="Ex: 2026-08-05"
+                  placeholderTextColor="#999"
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 12, color: Theme.colors.textSecondary, marginBottom: 4 }}>Date de fin</Text>
+                <TextInput 
+                  style={styles.input} 
+                  value={localClosedTo} 
+                  onChangeText={setLocalClosedTo}
+                  placeholder="Ex: 2026-08-25"
+                  placeholderTextColor="#999"
+                />
+              </View>
+            </View>
+          </View>
+        )}
+        <TouchableOpacity style={{ backgroundColor: Theme.colors.success, padding: 12, borderRadius: 8, marginTop: 16, alignItems: 'center' }} onPress={handleSave}>
+           <Text style={{ fontFamily: Theme.fonts.bodyBold, color: '#FFF' }}>{saved ? '● ENREGISTRÉ !' : 'SAUVEGARDER L\'ÉTAT'}</Text>
+        </TouchableOpacity>
+      </View>
 
       {/* TEMPS ESTIMÉS */}
       <Text style={[styles.sectionHeader, { color: Theme.colors.success }]}>TEMPS ESTIMÉS RÉELS (AFFICHÉS CLIENT)</Text>
@@ -1734,23 +2037,52 @@ function SettingsTab() {
             <View style={{ flex: 1 }}>
               <Text style={styles.dayLabel}>{h.day}</Text>
               {h.isOpen && (
-                <View style={{ flexDirection: 'row', gap: 8, marginTop: 6 }}>
-                  <TextInput
-                    style={styles.timeInput}
-                    value={h.open}
-                    onChangeText={v => updateHours(h.day, { open: v })}
-                    placeholder="11:00"
-                    placeholderTextColor={Theme.colors.textSecondary}
-                  />
-                  <Text style={{ color: Theme.colors.textSecondary, lineHeight: 36 }}>→</Text>
-                  <TextInput
-                    style={styles.timeInput}
-                    value={h.close}
-                    onChangeText={v => updateHours(h.day, { close: v })}
-                    placeholder="23:00"
-                    placeholderTextColor={Theme.colors.textSecondary}
-                  />
-                </View>
+                <>
+                  <View style={{ flexDirection: 'row', gap: 8, marginTop: 6, alignItems: 'center' }}>
+                    <TextInput
+                      style={styles.timeInput}
+                      value={h.open}
+                      onChangeText={v => updateHours(h.day, { open: v })}
+                      placeholder="11:00"
+                      placeholderTextColor={Theme.colors.textSecondary}
+                    />
+                    <Text style={{ color: Theme.colors.textSecondary, lineHeight: 36 }}>→</Text>
+                    <TextInput
+                      style={styles.timeInput}
+                      value={h.close}
+                      onChangeText={v => updateHours(h.day, { close: v })}
+                      placeholder="23:00"
+                      placeholderTextColor={Theme.colors.textSecondary}
+                    />
+                    {!h.hasSplitShift && (
+                      <TouchableOpacity onPress={() => updateHours(h.day, { hasSplitShift: true, open2: '18:00', close2: '23:00' })} style={{ marginLeft: 8, padding: 8 }}>
+                        <Ionicons name="add-circle-outline" size={20} color={Theme.colors.primary} />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                  {h.hasSplitShift && (
+                    <View style={{ flexDirection: 'row', gap: 8, marginTop: 6, alignItems: 'center' }}>
+                      <TextInput
+                        style={styles.timeInput}
+                        value={h.open2 || ''}
+                        onChangeText={v => updateHours(h.day, { open2: v })}
+                        placeholder="18:00"
+                        placeholderTextColor={Theme.colors.textSecondary}
+                      />
+                      <Text style={{ color: Theme.colors.textSecondary, lineHeight: 36 }}>→</Text>
+                      <TextInput
+                        style={styles.timeInput}
+                        value={h.close2 || ''}
+                        onChangeText={v => updateHours(h.day, { close2: v })}
+                        placeholder="23:00"
+                        placeholderTextColor={Theme.colors.textSecondary}
+                      />
+                      <TouchableOpacity onPress={() => updateHours(h.day, { hasSplitShift: false })} style={{ marginLeft: 8, padding: 8 }}>
+                        <Ionicons name="trash-outline" size={20} color={Theme.colors.danger} />
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </>
               )}
               {!h.isOpen && <Text style={styles.closedText}>Fermé</Text>}
             </View>
@@ -1768,9 +2100,46 @@ function SettingsTab() {
       <Text style={styles.sectionHeader}>ZONES DE LIVRAISON</Text>
       <DeliveryZonesPanel />
 
-      {/* SAUCES & BOISSONS */}
-      <Text style={styles.sectionHeader}>SAUCES & BOISSONS (LISTE GLOBALE)</Text>
-      <SaucesDrinksPanel />
+
+
+      {/* ANNONCE / FERMETURE EXCEPTIONNELLE */}
+      <Text style={styles.sectionHeader}>📢 ANNONCE / FERMETURE EXCEPTIONNELLE</Text>
+      <View style={styles.settingsCard}>
+        <View style={styles.switchRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.switchLabel}>Afficher un message d'annonce</Text>
+            <Text style={{ fontFamily: Theme.fonts.body, fontSize: 12, color: Theme.colors.textSecondary, marginTop: 4 }}>
+              Le message s'affichera en haut du site pour tous les clients.
+            </Text>
+          </View>
+          <Switch
+            value={localAnnouncementEnabled}
+            onValueChange={setLocalAnnouncementEnabled}
+            trackColor={{ false: Theme.colors.surface, true: '#FF950044' }}
+            thumbColor={localAnnouncementEnabled ? '#FF9500' : Theme.colors.textSecondary}
+          />
+        </View>
+        {localAnnouncementEnabled && (
+          <View style={{ paddingHorizontal: 16, paddingBottom: 16, paddingTop: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Theme.colors.border }}>
+            <Text style={[styles.fieldLabel, { marginBottom: 8 }]}>MESSAGE À AFFICHER</Text>
+            <TextInput
+              style={[styles.textInput, { minHeight: 80, textAlignVertical: 'top' }]}
+              multiline
+              numberOfLines={3}
+              placeholder="Ex: Fermé du 5 au 20 août pour congés. On se retrouve à la rentrée ! 🌴"
+              placeholderTextColor={Theme.colors.textSecondary}
+              value={localAnnouncementMessage}
+              onChangeText={setLocalAnnouncementMessage}
+            />
+            <View style={{ marginTop: 12, padding: 12, backgroundColor: '#FF950015', borderRadius: 10, borderLeftWidth: 3, borderLeftColor: '#FF9500' }}>
+              <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 12, color: '#FF9500', marginBottom: 4 }}>⚠️ APERÇU DU BANDEAU</Text>
+              <Text style={{ fontFamily: Theme.fonts.body, fontSize: 13, color: Theme.colors.text }}>
+                {localAnnouncementMessage || '(message vide)'}
+              </Text>
+            </View>
+          </View>
+        )}
+      </View>
 
       {/* SAVE BUTTON */}
       <TouchableOpacity style={[styles.goldBtn, { marginTop: 24 }]} onPress={handleSave}>
@@ -1897,9 +2266,6 @@ function DeliveryZonesPanel() {
 function SaucesDrinksPanel() {
   const { settings, updateSauces, updateDrinks } = useRestaurantStore();
   const [newSauce, setNewSauce] = useState('');
-  const [newDrinkName, setNewDrinkName] = useState('');
-  const [newDrinkPrice, setNewDrinkPrice] = useState('3.50');
-  const [newDrinkSize, setNewDrinkSize] = useState('33cl');
 
   const addSauce = () => {
     if (!newSauce.trim()) return;
@@ -1909,26 +2275,6 @@ function SaucesDrinksPanel() {
 
   const removeSauce = (name: string) => {
     updateSauces(settings.sauces.filter(s => s !== name));
-  };
-
-  const addDrink = () => {
-    if (!newDrinkName.trim()) return;
-    const newDrink = {
-      name: newDrinkName.trim(),
-      price: parseFloat(newDrinkPrice) || 0,
-      size: newDrinkSize.trim()
-    };
-    updateDrinks([...settings.drinks, newDrink]);
-    setNewDrinkName('');
-  };
-
-  const removeDrink = (name: string) => {
-    updateDrinks(settings.drinks.filter(d => d.name !== name));
-  };
-
-  const toggleDrinkStock = (name: string) => {
-    const updated = settings.drinks.map(d => d.name === name ? { ...d, outOfStock: !d.outOfStock } : d);
-    updateDrinks(updated);
   };
 
   const panels = StyleSheet.create({
@@ -1965,57 +2311,6 @@ function SaucesDrinksPanel() {
               <TouchableOpacity onPress={() => removeSauce(s)}>
                 <Ionicons name="close-circle" size={16} color={Theme.colors.danger} />
               </TouchableOpacity>
-            </View>
-          ))}
-        </View>
-      </View>
-
-      <View style={panels.card}>
-        <Text style={panels.label}>BOISSONS (SÉLECTION MENU)</Text>
-        <View style={{ gap: 10, marginBottom: 16 }}>
-          <TextInput 
-            style={panels.input} 
-            value={newDrinkName} 
-            onChangeText={setNewDrinkName} 
-            placeholder="Nom (ex: Coca-Cola)" 
-            placeholderTextColor={Theme.colors.textSecondary} 
-          />
-          <View style={{ flexDirection: 'row', gap: 10 }}>
-            <TextInput 
-              style={[panels.input, { flex: 1 }]} 
-              value={newDrinkPrice} 
-              onChangeText={setNewDrinkPrice} 
-              placeholder="Prix (ex: 3.50)" 
-              placeholderTextColor={Theme.colors.textSecondary} 
-              keyboardType="numeric"
-            />
-            <TextInput 
-              style={[panels.input, { flex: 1 }]} 
-              value={newDrinkSize} 
-              onChangeText={setNewDrinkSize} 
-              placeholder="Taille (ex: 33cl)" 
-              placeholderTextColor={Theme.colors.textSecondary} 
-            />
-            <TouchableOpacity style={panels.addBtn} onPress={addDrink}>
-              <Ionicons name="add" size={24} color="#000" />
-            </TouchableOpacity>
-          </View>
-        </View>
-        <View style={panels.chipContainer}>
-          {settings.drinks.map(d => (
-            <View key={d.name} style={[panels.chip, d.outOfStock && { opacity: 0.5, borderColor: Theme.colors.danger }]}>
-              <View style={{ flex: 1 }}>
-                <Text style={[panels.chipText, d.outOfStock && { textDecorationLine: 'line-through' }]}>{d.name}</Text>
-                <Text style={{ fontSize: 9, color: Theme.colors.textSecondary }}>{d.price} CHF • {d.size}</Text>
-              </View>
-              <View style={{ flexDirection: 'row', gap: 6, marginLeft: 8 }}>
-                <TouchableOpacity onPress={() => toggleDrinkStock(d.name)}>
-                  <Ionicons name={d.outOfStock ? 'eye-off' : 'eye'} size={16} color={d.outOfStock ? Theme.colors.danger : Theme.colors.success} />
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => removeDrink(d.name)}>
-                  <Ionicons name="close-circle" size={16} color={Theme.colors.textSecondary} />
-                </TouchableOpacity>
-              </View>
             </View>
           ))}
         </View>
@@ -2284,7 +2579,32 @@ function CmsTab() {
           onChangeText={t => setLocalContent({ ...localContent, heroButtonText: t })}
         />
         
-        <Text style={styles.inputLabel}>URL de l'image de fond</Text>
+        <Text style={styles.inputLabel}>URL de l'image de fond (ou choisissez une image)</Text>
+        <TouchableOpacity style={styles.imagePicker} onPress={async () => {
+          const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+          if (!perm.granted) return Alert.alert('Erreur', 'Permission refusée');
+          const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [16, 9], quality: 0.8 });
+          if (!result.canceled && result.assets[0]) {
+            try {
+              Alert.alert('Upload en cours...', 'Veuillez patienter');
+              const uri = result.assets[0].uri;
+              const downloadUrl = await uploadImageAsync(uri, `hero/${Date.now()}.jpg`);
+              setLocalContent({ ...localContent, heroImage: downloadUrl });
+              Alert.alert('Succès', 'Image téléchargée.');
+            } catch (err) {
+              Alert.alert('Erreur', 'Échec du téléchargement');
+            }
+          }
+        }}>
+          {localContent.heroImage ? (
+            <Image source={{ uri: localContent.heroImage }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
+          ) : (
+            <>
+              <Ionicons name="image-outline" size={32} color={Theme.colors.textSecondary} />
+              <Text style={styles.imagePickerText}>Choisir une image...</Text>
+            </>
+          )}
+        </TouchableOpacity>
         <TextInput
           style={[styles.input, { backgroundColor: Theme.colors.background }]}
           value={localContent.heroImage}

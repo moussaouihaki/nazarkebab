@@ -22,9 +22,9 @@ export default function DesktopHeader() {
   return (
     <BlurView intensity={80} tint="light" style={styles.header}>
       <View style={styles.logoWrapper}>
-        <TouchableOpacity onPress={() => router.push('/')} style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <Text style={styles.logoNazar}>POKÉMOONS</Text>
-          <Text style={styles.logoKebab}></Text>
+        <TouchableOpacity onPress={() => router.push('/')} style={{ flexDirection: 'column', alignItems: 'center' }}>
+          <Text style={styles.logoPoke}>POKÉ</Text>
+          <Text style={styles.logoMoons}>MOONS</Text>
         </TouchableOpacity>
       </View>
 
@@ -57,7 +57,7 @@ export default function DesktopHeader() {
         
         {isAdmin && (
            <TouchableOpacity onPress={() => router.push('/admin')} style={styles.adminBtn}>
-             <Ionicons name="shield-checkmark" size={16} color="#000" />
+             <Ionicons name="shield-checkmark" size={16} color="#FFF" />
              <Text style={styles.adminBtnText}>Admin</Text>
            </TouchableOpacity>
         )}
@@ -92,13 +92,40 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
   },
-  logoWrapper: { flexDirection: 'row', alignItems: 'baseline', gap: 6 },
-  logoNazar: { fontFamily: Theme.fonts.logo, fontSize: 32, color: Theme.colors.text, letterSpacing: 4 },
-  logoKebab: { fontFamily: Theme.fonts.bodyBold, fontSize: 12, color: Theme.colors.success, letterSpacing: 6 },
+  logoWrapper: { flexDirection: 'column', alignItems: 'center', justifyContent: 'center' },
+  logoPoke: {
+    fontFamily: Theme.fonts.logo,
+    fontSize: 28,
+    color: '#1B5E20',
+    letterSpacing: 2,
+    lineHeight: 28,
+  },
+  logoMoons: {
+    fontFamily: Theme.fonts.logo,
+    fontSize: 28,
+    color: 'transparent',
+    letterSpacing: 2,
+    lineHeight: 28,
+    marginTop: -8,
+    ...Platform.select({
+      web: {
+        color: '#FFFFFF',
+        textShadowColor: '#1B5E20',
+        textShadowOffset: { width: 1, height: 1 },
+        textShadowRadius: 1,
+      },
+      default: {
+        color: '#FFFFFF',
+        textShadowColor: '#1B5E20',
+        textShadowOffset: { width: 1, height: 1 },
+        textShadowRadius: 1,
+      }
+    })
+  },
   
   navLinks: { flexDirection: 'row', alignItems: 'center', gap: 40 },
   navLink: { fontFamily: Theme.fonts.bodyMedium, fontSize: 14, color: Theme.colors.textSecondary, letterSpacing: 2 },
-  navLinkActive: { color: Theme.colors.success, fontFamily: Theme.fonts.bodyBold },
+  navLinkActive: { color: Theme.colors.primary, fontFamily: Theme.fonts.bodyBold },
   
   actions: { flexDirection: 'row', alignItems: 'center', gap: 24 },
   actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 8 },
@@ -108,8 +135,8 @@ const styles = StyleSheet.create({
   badge: { backgroundColor: Theme.colors.success, width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center', position: 'absolute', top: -5, right: -5 },
   badgeText: { fontFamily: Theme.fonts.bodyBold, fontSize: 10, color: '#000' },
   
-  adminBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: Theme.colors.success, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 100 },
-  adminBtnText: { fontFamily: Theme.fonts.bodyBold, fontSize: 14, color: '#000' },
+  adminBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: Theme.colors.primary, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 100 },
+  adminBtnText: { fontFamily: Theme.fonts.bodyBold, fontSize: 14, color: '#FFF' },
   
   iconBtn: { padding: 8, position: 'relative' },
   notifBadge: { position: 'absolute', top: 5, right: 5, backgroundColor: Theme.colors.danger, width: 14, height: 14, borderRadius: 7, alignItems: 'center', justifyContent: 'center' },

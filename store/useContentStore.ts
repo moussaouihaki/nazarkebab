@@ -73,9 +73,6 @@ export const useContentStore = create<ContentState>((set, get) => ({
       onSnapshot(doc(db, 'settings', 'pokemoons_content'), (docSnap) => {
         if (docSnap.exists()) {
           set({ content: { ...DEFAULT_CONTENT, ...docSnap.data() } as SiteContent });
-        } else {
-          // Initialize if it doesn't exist
-          setDoc(doc(db, 'settings', 'pokemoons_content'), DEFAULT_CONTENT);
         }
       });
     } catch (err) {

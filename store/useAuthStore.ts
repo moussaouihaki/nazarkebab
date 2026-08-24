@@ -10,6 +10,8 @@ import {
   OAuthProvider
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { useNotificationStore } from './useNotificationStore';
+import { useCartStore } from './useCartStore';
 import { auth, db } from '../lib/firebase';
 
 export type UserRole = 'client' | 'admin';
@@ -20,7 +22,10 @@ export interface User {
   lastName: string;
   email: string;
   phone: string;
-  address: string;
+  address: string;          // Full address for backward compatibility
+  street?: string;
+  postalCode?: string;
+  city?: string;
   role: UserRole;
   notifOrders: boolean;   // Notif suivi commande
   notifPromos: boolean;   // Notif promos/offres
@@ -35,10 +40,10 @@ interface AuthState {
   isLoading: boolean;
   error: string | null;
 
-  login: (email: string, password: string) => Promise<boolean>;
+  login: (email: string, pass: string) => Promise<boolean>;
   loginWithGoogle: (idToken: string) => Promise<boolean>;
-  loginWithApple: (token: string, nonce?: string) => Promise<boolean>;
-  register: (data: { firstName: string; lastName: string; email: string; password: string; phone?: string; address?: string }) => Promise<boolean>;
+  loginWithApple: (identityToken: string, fullName?: { givenName: string | null; familyName: string | null }) => Promise<boolean>;
+  register: (data: any) => Promise<boolean>;
   logout: () => Promise<void>;
   deleteAccount: () => Promise<boolean>;
   updateProfile: (data: Partial<User>) => Promise<void>;
@@ -187,6 +192,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         email: data.email,
         phone: data.phone || '',
         address: data.address || '',
+        street: data.street || '',
+        postalCode: data.postalCode || '',
+        city: data.city || '',
         role: data.email.toLowerCase() === 'admin@pokemoons.ch' ? 'admin' : 'client',
         notifOrders: true,
         notifPromos: true,
@@ -214,6 +222,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       await signOut(auth);
       set({ user: null, isLoggedIn: false, error: null });
+      useNotificationStore.getState().clearAll();
+      useCartStore.getState().clearCart();
     } catch (err) {
       console.error('Erreur de déconnexion:', err);
     }

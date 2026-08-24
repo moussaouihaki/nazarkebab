@@ -7,6 +7,8 @@ import { useCartStore } from '../store/useCartStore';
 import { useRestaurantStore } from '../store/useRestaurantStore';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
+import { generateReceiptHTML } from '../utils/receipt';
+import { splitOptions } from '../utils/optionsOrder';
 
 export default function ReceiptScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -27,7 +29,7 @@ export default function ReceiptScreen() {
   const handlePrint = async () => {
     if (!order) return;
     const isPaid = order.isPaid;
-    const html = generateHTML(order, settings, isPaid);
+    const html = generateReceiptHTML(order, settings, isPaid);
 
     try {
       if (Platform.OS === 'web') {
@@ -49,7 +51,7 @@ export default function ReceiptScreen() {
     if (!order) return;
     try {
       const isPaid = order.isPaid;
-      const html = generateHTML(order, settings, isPaid);
+      const html = generateReceiptHTML(order, settings, isPaid);
       const { uri } = await Print.printToFileAsync({ html });
       await Sharing.shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' });
     } catch (e) {
@@ -57,59 +59,7 @@ export default function ReceiptScreen() {
     }
   };
 
-  function generateHTML(order: any, settings: any, isPaid: boolean) {
-    return `
-      <html>
-        <head>
-          <style>
-            body { font-family: 'Courier', monospace; padding: 20px; width: 320px; margin: auto; color: #333; }
-            .center { text-align: center; }
-            .divider { border-bottom: 2px dashed #000; margin: 15px 0; }
-            table { width: 100%; border-collapse: collapse; }
-            .qty { width: 40px; font-weight: bold; }
-            .price { text-align: right; }
-            .total { font-weight: bold; font-size: 1.3em; border-top: 1px solid #000; }
-            .status-box { border: 3px solid #000; padding: 10px; margin: 15px 0; font-weight: bold; font-size: 1.5em; text-align: center; }
-          </style>
-        </head>
-        <body>
-          <div class="center">
-            <h1 style="margin-bottom: 5px; font-size: 1.8em;">${settings.name.toUpperCase()}</h1>
-            <p style="font-size: 1em; margin-top: 0;">${settings.address}<br>Tél: ${settings.phone}</p>
-          </div>
-          <div class="divider"></div>
-          <div class="center">
-            <h3>${isPaid ? 'TICKET DE CAISSE' : 'BON DE COMMANDE'}</h3>
-            <p>N° ${order.id}</p>
-            <p>${new Date(order.createdAt).toLocaleString('fr-CH')}</p>
-          </div>
-          <div class="divider"></div>
-          <table>
-            ${order.items.map((item: any) => `
-              <tr>
-                <td class="qty">${item.quantity}x</td>
-                <td>${item.name}</td>
-                <td class="price">${(item.price * item.quantity).toFixed(2)}</td>
-              </tr>
-            `).join('')}
-          </table>
-          <div class="divider"></div>
-          <table style="margin-top: 10px;">
-            <tr><td>Total HT:</td><td class="price">${order.subTotal.toFixed(2)} CHF</td></tr>
-            <tr><td>TVA (2.6%):</td><td class="price">${order.taxAmount.toFixed(2)} CHF</td></tr>
-            <tr class="total"><td style="padding-top: 5px;">TOTAL TTC:</td><td class="price" style="padding-top: 5px;">${order.total.toFixed(2)} CHF</td></tr>
-          </table>
-          <div class="status-box">
-             ${isPaid ? 'PAYÉ' : 'À PAYER'}
-          </div>
-          <div class="center" style="margin-top: 20px;">
-            <p>Merci de votre confiance !</p>
-            <p style="font-size: 0.9em;">www.pokemoons.ch</p>
-          </div>
-        </body>
-      </html>
-    `;
-  }
+
 
   if (!order) {
     return (
@@ -157,7 +107,7 @@ export default function ReceiptScreen() {
               <Text style={styles.logoTitle}>{settings.name.toUpperCase()}</Text>
               <Text style={styles.receiptText}>{settings.address}</Text>
               <Text style={styles.receiptText}>Tél: {settings.phone}</Text>
-              <Text style={styles.receiptText}>CHE-123.456.789 TVA</Text>
+              {settings.tva ? <Text style={styles.receiptText}>{settings.tva}</Text> : null}
               <Text style={styles.receiptText}>www.pokemoons.ch</Text>
             </View>
 
@@ -169,7 +119,16 @@ export default function ReceiptScreen() {
               <Text style={styles.receiptText}>Commande: {order.id}</Text>
               <Text style={styles.receiptText}>Date: {new Date(order.createdAt).toLocaleString('fr-CH')}</Text>
               <Text style={styles.receiptText}>Client: {order.customerName}</Text>
-              <Text style={styles.receiptText}>Type: {order.deliveryType === 'delivery' ? 'LIVRAISON' : 'À EMPORTER'}</Text>
+              <Text style={styles.receiptText}>Tél: {order.customerPhone}</Text>
+              {order.deliveryType === 'delivery' && (
+                <Text style={styles.receiptText}>Adresse: {order.customerAddress}</Text>
+              )}
+              
+              <View style={[styles.statusBadge, { marginTop: 12, paddingVertical: 4, transform: [] }]}>
+                <Text style={[styles.statusBadgeText, { fontSize: 16, color: '#000' }]}>
+                  {order.deliveryType === 'delivery' ? 'LIVRAISON 🛵' : 'À EMPORTER 🛍️'}
+                </Text>
+              </View>
             </View>
 
             <View style={styles.divider} />
@@ -181,11 +140,37 @@ export default function ReceiptScreen() {
                 <Text style={[styles.itemName, styles.bold]}>ARTICLE</Text>
                 <Text style={[styles.itemTotal, styles.bold]}>TOTAL</Text>
               </View>
-              {order.items.map((item, idx) => (
-                <View key={idx} style={styles.itemRow}>
-                  <Text style={styles.itemQty}>{item.quantity}</Text>
-                  <Text style={styles.itemName}>{item.name}</Text>
-                  <Text style={styles.itemTotal}>{(item.price * item.quantity).toFixed(2)}</Text>
+              {order.items.map((item: any, idx: number) => (
+                <View key={idx} style={{ marginBottom: 12 }}>
+                  <View style={styles.itemRow}>
+                    <Text style={styles.itemQty}>{item.quantity}</Text>
+                    <Text style={styles.itemName}>{item.name}</Text>
+                    <Text style={styles.itemTotal}>{(item.price * item.quantity).toFixed(2)}</Text>
+                  </View>
+                  {item.selectedOptions && (() => {
+                    const { food, extras } = splitOptions(item.selectedOptions);
+                    return (
+                      <>
+                        {food.map((f, i) => (
+                          <View key={`f-${i}`} style={{ marginLeft: 20, marginTop: 6 }}>
+                            <View style={{ backgroundColor: '#fff', borderWidth: 1, borderColor: '#000', borderRadius: 4, paddingHorizontal: 4, paddingVertical: 2, alignSelf: 'flex-start' }}>
+                              <Text style={[styles.receiptText, { fontFamily: 'Courier-Bold', fontWeight: 'bold', fontSize: 10, color: '#000' }]}>{f.sec}</Text>
+                            </View>
+                            <Text style={[styles.receiptText, { marginLeft: 6, marginTop: 2, fontSize: 11, color: '#333' }]}>
+                              {f.choices.join(', ')}
+                            </Text>
+                          </View>
+                        ))}
+                        {extras.map((e, i) => (
+                          <View key={`e-${i}`} style={{ marginLeft: 20, marginTop: 10, padding: 4, backgroundColor: '#f0f0f0', borderStyle: 'dashed', borderWidth: 1, borderColor: '#aaa', borderRadius: 4, alignSelf: 'flex-start' }}>
+                            <Text style={[styles.receiptText, { fontFamily: 'Courier-Bold', fontWeight: 'bold', fontSize: 12, color: '#000' }]}>
+                              [+] {e.sec}: {e.choices.join(', ')}
+                            </Text>
+                          </View>
+                        ))}
+                      </>
+                    );
+                  })()}
                 </View>
               ))}
             </View>

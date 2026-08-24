@@ -33,6 +33,20 @@ export const IMAGES_MAP: Record<string, any> = {
   drink_50cl: require('../assets/images/bottle_50cl.png'),
   drink_15l: 'https://images.unsplash.com/photo-1581006852262-e4307cf6283a?w=800&q=80',
   drink_coffee: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=800&q=80',
+  poke_falafel: require('../assets/images/poke_falafel_1787556233726.jpg'),
+  poke_chicken: require('../assets/images/poke_chicken_1787556243371.jpg'),
+  poke_salmon: require('../assets/images/poke_salmon_1787556253667.jpg'),
+  poke_beef: require('../assets/images/poke_beef_1787556263551.jpg'),
+  poke_shrimp: require('../assets/images/poke_shrimp_1787556274499.jpg'),
+  dessert_1: require('../assets/images/tiramisu.jpg'),
+  dessert_2: require('../assets/images/fruit_salad.jpg'),
+  dessert_3: require('../assets/images/pineapple_salad.jpg'),
+  coca: require('../assets/images/coca.png'),
+  cocazero: require('../assets/images/cocazero.png'),
+  sprite: require('../assets/images/sprite.png'),
+  fanta: require('../assets/images/fanta.png'),
+  fusetea: require('../assets/images/fusetea.jpg'),
+  valser: require('../assets/images/valser.jpg'),
 };
 
 export const getImageSource = (image: any): any => {
@@ -52,7 +66,7 @@ export const PRODUCTS: Product[] = [
     name: 'POKÉMOONS FALAFEL',
     description: 'Boulgour, falafel, pois chiches, chou rouge, tomates cerises, poivrons, concombre, oignons frits et sauce au choix.',
     price: 18.00,
-    image: 'poke',
+    image: 'poke_falafel',
     highlighted: true,
     hasSauces: true,
   },
@@ -62,7 +76,7 @@ export const PRODUCTS: Product[] = [
     name: 'POKÉMOONS CHICKEN',
     description: 'Boulgour, escalope de poulet, avocat, oignon rouge, carottes, graines de grenade et cacahuètes écrasées.',
     price: 19.50,
-    image: 'poke',
+    image: 'poke_chicken',
     highlighted: true,
     hasSauces: true,
   },
@@ -72,7 +86,7 @@ export const PRODUCTS: Product[] = [
     name: 'POKÉMOONS SALMON',
     description: 'Riz blanc, dés de saumon cru, concombre, chou rouge, radis, edamame, citron vert, ciboulette.',
     price: 21.00,
-    image: 'poke',
+    image: 'poke_salmon',
     highlighted: true,
     hasSauces: true,
   },
@@ -82,7 +96,7 @@ export const PRODUCTS: Product[] = [
     name: 'POKÉMOONS BEEF',
     description: 'Quinoa, bœuf, champignons frais, poivron, pois chiches, noix écrasées, mangue.',
     price: 22.00,
-    image: 'poke',
+    image: 'poke_beef',
     highlighted: true,
     hasSauces: true,
   },
@@ -92,8 +106,8 @@ export const PRODUCTS: Product[] = [
     name: 'POKÉMOONS SHRIMP',
     description: 'Riz blanc, crevettes, citron vert, radis, avocat, oignon rouge, tomates cerises, graines de sésame.',
     price: 20.00,
-    image: 'poke',
-    highlighted: false,
+    image: 'poke_shrimp',
+    highlighted: true,
     hasSauces: true,
   },
 
@@ -105,13 +119,13 @@ export const PRODUCTS: Product[] = [
     description: 'Crée ton propre Poké Bowl de A à Z avec tes ingrédients préférés.',
     price: 4.00,
     image: 'poke',
-    highlighted: true,
+    highlighted: false,
     hasSauces: false,
     customizationSections: [
       {
-        title: 'Choisis ta base (1 au choix)',
+        title: 'Choisis ta base (2 au choix)',
         required: true,
-        maxChoices: 1,
+        maxChoices: 2,
         choices: [
           { name: 'Riz Blanc', priceOffset: 0 },
           { name: 'Riz Brun', priceOffset: 0 },
@@ -121,9 +135,9 @@ export const PRODUCTS: Product[] = [
         ]
       },
       {
-        title: 'Choisis ta protéine (1 au choix)',
+        title: 'Choisis ta protéine (2 au choix)',
         required: false,
-        maxChoices: 1,
+        maxChoices: 2,
         choices: [
           { name: 'Saumon Frais', priceOffset: 6.00 },
           { name: 'Thon Frais', priceOffset: 6.00 },
@@ -135,9 +149,9 @@ export const PRODUCTS: Product[] = [
         ]
       },
       {
-        title: 'Choisis tes accompagnements (4 au choix)',
+        title: 'Choisis tes accompagnements (5 au choix)',
         required: false,
-        maxChoices: 4,
+        maxChoices: 5,
         choices: [
           { name: 'Avocat', priceOffset: 2.00 },
           { name: 'Mangue', priceOffset: 2.00 },
@@ -164,9 +178,9 @@ export const PRODUCTS: Product[] = [
         ]
       },
       {
-        title: 'Choisis tes toppings (2 au choix)',
+        title: 'Choisis tes toppings (5 au choix)',
         required: false,
-        maxChoices: 2,
+        maxChoices: 5,
         choices: [
           { name: 'Oignons Frits', priceOffset: 1.00 },
           { name: 'Graines de Sésame', priceOffset: 1.00 },
@@ -204,25 +218,6 @@ export const PRODUCTS: Product[] = [
           { name: 'Homemade Lemon Olive Oil (Extra)', priceOffset: 0.50 },
           { name: 'Special House Sauce (Extra)', priceOffset: 0.50 }
         ]
-      },
-      {
-        title: 'Choisis ta boisson',
-        required: true,
-        maxChoices: 1,
-        choices: [
-          { name: 'Sans Boisson', priceOffset: 0 },
-          { name: 'Coca-Cola 0.5l', priceOffset: 4.00 },
-          { name: 'Coca-Cola 1.5l', priceOffset: 9.00 },
-          { name: 'Coca-Cola Zero 0.5l', priceOffset: 4.00 },
-          { name: 'Coca-Cola Zero 1.5l', priceOffset: 9.00 },
-          { name: 'Fanta Orange 0.5l', priceOffset: 4.00 },
-          { name: 'Fanta Orange 1.5l', priceOffset: 9.00 },
-          { name: 'Fusetea Lemon 0.5l', priceOffset: 4.00 },
-          { name: 'Fusetea Peach 0.5l', priceOffset: 4.00 },
-          { name: 'Valser Pétillante 0.5l', priceOffset: 4.00 },
-          { name: 'Valser Plate 0.5l', priceOffset: 4.00 },
-          { name: 'Valser Plate 1.5l', priceOffset: 9.00 }
-        ]
       }
     ]
   },
@@ -234,7 +229,7 @@ export const PRODUCTS: Product[] = [
     name: 'TIRAMISU MAISON',
     description: 'Notre fameux Tiramisu préparé sur place.',
     price: 6.50,
-    image: 'dessert',
+    image: 'dessert_1',
   },
   {
     id: 'dessert-2',
@@ -242,7 +237,7 @@ export const PRODUCTS: Product[] = [
     name: 'SALADE DE FRUITS DU MOMENT',
     description: 'Des fruits frais coupés du jour.',
     price: 5.50,
-    image: 'dessert',
+    image: 'dessert_2',
   },
   {
     id: 'dessert-3',
@@ -250,28 +245,28 @@ export const PRODUCTS: Product[] = [
     name: "SALADE D'ANANAS",
     description: 'Ananas frais et juteux.',
     price: 5.00,
-    image: 'dessert',
+    image: 'dessert_3',
   },
 
   // --- BOISSONS ---
-  { id: 'boisson-1', category: 'BOISSONS', name: 'Coca-Cola', description: '0.5l', price: 4.00, image: 'drink_33cl' },
-  { id: 'boisson-2', category: 'BOISSONS', name: 'Coca-Cola', description: '1.5l', price: 9.00, image: 'drink_33cl' },
-  { id: 'boisson-3', category: 'BOISSONS', name: 'Coca-Cola Zero', description: '0.5l', price: 4.00, image: 'drink_33cl' },
-  { id: 'boisson-4', category: 'BOISSONS', name: 'Coca-Cola Zero', description: '1.5l', price: 9.00, image: 'drink_33cl' },
-  { id: 'boisson-5', category: 'BOISSONS', name: 'Fanta', description: '0.5l', price: 4.00, image: 'drink_33cl' },
-  { id: 'boisson-6', category: 'BOISSONS', name: 'Fanta', description: '1.5l', price: 9.00, image: 'drink_33cl' },
-  { id: 'boisson-7', category: 'BOISSONS', name: 'Sprite', description: '0.5l', price: 4.00, image: 'drink_33cl' },
-  { id: 'boisson-8', category: 'BOISSONS', name: 'Sprite', description: '1.5l', price: 9.00, image: 'drink_33cl' },
-  { id: 'boisson-9', category: 'BOISSONS', name: 'Fusetea Lemon', description: '0.5l', price: 4.00, image: 'drink_33cl' },
-  { id: 'boisson-10', category: 'BOISSONS', name: 'Fusetea Peach', description: '0.5l', price: 4.00, image: 'drink_33cl' },
-  { id: 'boisson-11', category: 'BOISSONS', name: 'Valser Pétillante', description: '0.5l', price: 4.00, image: 'drink_33cl' },
-  { id: 'boisson-12', category: 'BOISSONS', name: 'Valser Plate', description: '0.5l', price: 4.00, image: 'drink_33cl' },
-  { id: 'boisson-13', category: 'BOISSONS', name: 'Valser Plate', description: '1.5l', price: 9.00, image: 'drink_33cl' },
-  { id: 'boisson-14', category: 'BOISSONS', name: 'Leafwell Citron, Gingembre', description: '0.33l', price: 4.50, image: 'drink_33cl' },
-  { id: 'boisson-15', category: 'BOISSONS', name: 'Leafwell Pêche, Vanille', description: '0.33l', price: 4.50, image: 'drink_33cl' },
-  { id: 'boisson-16', category: 'BOISSONS', name: 'Leafwell Fruits Rouges', description: '0.33l', price: 4.50, image: 'drink_33cl' },
-  { id: 'boisson-17', category: 'BOISSONS', name: 'Leafwell Pomme, Cannelle', description: '0.33l', price: 4.50, image: 'drink_33cl' },
-  { id: 'boisson-18', category: 'BOISSONS', name: 'Leafwell Myrtille, Sureau', description: '0.33l', price: 4.50, image: 'drink_33cl' },
-  { id: 'boisson-19', category: 'BOISSONS', name: 'Eau Pétillante', description: '1.5l', price: 9.00, image: 'drink_33cl' },
+  { id: 'boisson-1', category: 'BOISSONS', name: 'Coca-Cola', description: '0.5l', price: 4.00, image: 'coca' },
+  { id: 'boisson-2', category: 'BOISSONS', name: 'Coca-Cola', description: '1.5l', price: 9.00, image: 'coca' },
+  { id: 'boisson-3', category: 'BOISSONS', name: 'Coca-Cola Zero', description: '0.5l', price: 4.00, image: 'cocazero' },
+  { id: 'boisson-4', category: 'BOISSONS', name: 'Coca-Cola Zero', description: '1.5l', price: 9.00, image: 'cocazero' },
+  { id: 'boisson-5', category: 'BOISSONS', name: 'Fanta', description: '0.5l', price: 4.00, image: 'fanta' },
+  { id: 'boisson-6', category: 'BOISSONS', name: 'Fanta', description: '1.5l', price: 9.00, image: 'fanta' },
+  { id: 'boisson-7', category: 'BOISSONS', name: 'Sprite', description: '0.5l', price: 4.00, image: 'sprite' },
+  { id: 'boisson-8', category: 'BOISSONS', name: 'Sprite', description: '1.5l', price: 9.00, image: 'sprite' },
+  { id: 'boisson-9', category: 'BOISSONS', name: 'Fusetea Lemon', description: '0.5l', price: 4.00, image: 'fusetea' },
+  { id: 'boisson-10', category: 'BOISSONS', name: 'Fusetea Peach', description: '0.5l', price: 4.00, image: 'fusetea' },
+  { id: 'boisson-11', category: 'BOISSONS', name: 'Valser Pétillante', description: '0.5l', price: 4.00, image: 'valser' },
+  { id: 'boisson-12', category: 'BOISSONS', name: 'Valser Plate', description: '0.5l', price: 4.00, image: 'valser' },
+  { id: 'boisson-13', category: 'BOISSONS', name: 'Valser Plate', description: '1.5l', price: 9.00, image: 'valser' },
+  { id: 'boisson-14', category: 'BOISSONS', name: 'Leafwell Citron, Gingembre', description: '0.33l', price: 4.50, image: 'fusetea' },
+  { id: 'boisson-15', category: 'BOISSONS', name: 'Leafwell Pêche, Vanille', description: '0.33l', price: 4.50, image: 'fusetea' },
+  { id: 'boisson-16', category: 'BOISSONS', name: 'Leafwell Fruits Rouges', description: '0.33l', price: 4.50, image: 'fusetea' },
+  { id: 'boisson-17', category: 'BOISSONS', name: 'Leafwell Pomme, Cannelle', description: '0.33l', price: 4.50, image: 'fusetea' },
+  { id: 'boisson-18', category: 'BOISSONS', name: 'Leafwell Myrtille, Sureau', description: '0.33l', price: 4.50, image: 'fusetea' },
+  { id: 'boisson-19', category: 'BOISSONS', name: 'Eau Pétillante', description: '1.5l', price: 9.00, image: 'valser' },
   { id: 'boisson-20', category: 'BOISSONS', name: 'Red Bull', description: '0.25l', price: 5.00, image: 'drink_33cl' }
 ];

@@ -15,7 +15,7 @@ const { width } = Dimensions.get('window');
 
 export default function MenuScreen() {
   const params = useLocalSearchParams();
-  const { products, categories } = useRestaurantStore();
+  const { products, categories, settings } = useRestaurantStore();
   const cartItems = useCartStore((state) => state.items);
   const cartTotal = useCartStore((state) => state.total);
   const cartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
@@ -67,24 +67,10 @@ export default function MenuScreen() {
         </View>
       </SafeAreaView>
 
-      {/* SEARCH & TABS (Visible on both Mobile and Desktop) */}
-      <View style={[isDesktop && styles.desktopTabsContainer]}>
-        {/* SEARCH BAR */}
-        <View style={styles.searchBar}>
-          <Ionicons name="search-outline" size={18} color={Theme.colors.textSecondary} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Rechercher un plat..."
-            placeholderTextColor={Theme.colors.textSecondary}
-            value={search}
-            onChangeText={setSearch}
-          />
-          {search.length > 0 && (
-            <TouchableOpacity onPress={() => setSearch('')}>
-              <Ionicons name="close-circle" size={18} color={Theme.colors.textSecondary} />
-            </TouchableOpacity>
-          )}
-        </View>
+      {/* CATEGORY TABS & SEARCH (Visible on both Mobile and Desktop) */}
+      <View style={[isDesktop && styles.desktopTabsContainer, { backgroundColor: Theme.colors.background, paddingTop: isDesktop ? 90 : 10 }]}>
+        
+        
 
         {/* CATEGORY TABS */}
         <View style={styles.tabsWrapper}>
@@ -99,21 +85,20 @@ export default function MenuScreen() {
             })}
           </Animated.ScrollView>
         </View>
+
       </View>
 
-      <Animated.ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <Animated.ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         
         {/* SEARCH RESULTS OR CATEGORY HERO */}
         {!search.trim() ? (
           <View style={styles.categoryHero}>
             <Text style={styles.categoryHeroTitle}>{activeCategory}</Text>
-            <View style={styles.goldLine} />
           </View>
         ) : (
           <View style={styles.categoryHero}>
-            <Text style={[styles.categoryHeroTitle, { fontSize: 24 }]}>RÉSULTATS POUR "{search.toUpperCase()}"</Text>
-            <Text style={{ fontFamily: Theme.fonts.body, color: Theme.colors.textSecondary, marginTop: 8 }}>{allSearchResults.length} article(s) trouvé(s)</Text>
-            <View style={styles.goldLine} />
+            <Text style={[styles.categoryHeroTitle, { fontSize: 24 }]}>Résultats: "{search}"</Text>
+            <Text style={{ fontFamily: Theme.fonts.body, color: Theme.colors.textSecondary, marginTop: 4 }}>{allSearchResults.length} article(s) trouvé(s)</Text>
           </View>
         )}
 
@@ -124,34 +109,30 @@ export default function MenuScreen() {
               <Animated.View key={product.id} entering={FadeInUp.delay(index * 50).springify()} layout={Layout.springify()}>
                 <TouchableOpacity 
                   style={styles.listItem}
-                activeOpacity={0.7}
-                onPress={() => router.push({ pathname: '/product/[id]', params: { id: product.id } })}
-              >
-                <View style={styles.listInfo}>
-                  <Text style={styles.listTitle}>{product.name}</Text>
-                  <Text style={styles.listDesc} numberOfLines={2}>
-                    {product.description || `Dégustez notre ${product.name.toLowerCase()} préparé avec la plus grande attention.`}
-                  </Text>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                    <Text style={styles.listPrice}>{product.price.toFixed(2)}  <Text style={styles.listCurrency}>CHF</Text></Text>
-                    {search.trim() && <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 9, color: Theme.colors.textSecondary, backgroundColor: Theme.colors.surface, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>{product.category}</Text>}
+                  activeOpacity={0.7}
+                  onPress={() => router.push({ pathname: '/product/[id]', params: { id: product.id } })}
+                >
+                  <View style={styles.listImgWrapper}>
+                    <Image 
+                      source={getImageSource(product.image)} 
+                      style={styles.listImage} 
+                      contentFit="cover" 
+                    />
                   </View>
-                </View>
-                
-                <View style={styles.listImgWrapper}>
-                  <Image 
-                    source={getImageSource(product.image)} 
-                    style={styles.listImage} 
-                    contentFit="cover" 
-                  />
-                  {product.highlighted && (
-                    <View style={styles.starBadge}>
-                      <Ionicons name="star" size={10} color="#000" />
-                    </View>
-                  )}
-                </View>
-              </TouchableOpacity>
-            </Animated.View>
+                  
+                  <View style={styles.listInfo}>
+                    <Text style={styles.listTitle}>{product.name}</Text>
+                    <Text style={styles.listDesc} numberOfLines={2}>
+                      {product.description || `Dégustez notre ${product.name.toLowerCase()} préparé avec la plus grande attention.`}
+                    </Text>
+                    <Text style={styles.listPrice}>{product.price.toFixed(2)}  <Text style={styles.listCurrency}>CHF</Text></Text>
+                  </View>
+
+                  <TouchableOpacity style={styles.quickAddBtn} onPress={() => router.push({ pathname: '/product/[id]', params: { id: product.id } })}>
+                     <Ionicons name="add" size={16} color={Theme.colors.text} />
+                  </TouchableOpacity>
+                </TouchableOpacity>
+              </Animated.View>
           );
         })}
           {search.trim() && allSearchResults.length === 0 && (
@@ -248,49 +229,37 @@ const styles = StyleSheet.create({
   },
   tabBtn: {
     paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingVertical: 8,
     borderWidth: 1,
     borderColor: Theme.colors.border,
-    backgroundColor: 'transparent',
+    backgroundColor: '#FFF',
     borderRadius: 100,
   },
   tabBtnActive: {
-    borderColor: Theme.colors.success,
-    backgroundColor: Theme.colors.success,
+    borderColor: '#000',
+    backgroundColor: '#000',
   },
   tabText: {
-    fontFamily: Theme.fonts.bodyMedium,
-    fontSize: 12,
-    letterSpacing: 1,
+    fontFamily: Theme.fonts.bodyBold,
+    fontSize: 13,
     color: Theme.colors.textSecondary,
-    textTransform: 'uppercase',
   },
   tabTextActive: {
     color: '#FFF',
     fontFamily: Theme.fonts.bodyBold,
   },
   scrollContent: {
-    paddingBottom: 40,
+    paddingBottom: Platform.OS === 'ios' ? 220 : 180,
   },
   categoryHero: {
-    alignItems: 'center',
-    paddingVertical: 40,
-    backgroundColor: Theme.colors.surface,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderColor: Theme.colors.border,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    backgroundColor: Theme.colors.background,
   },
   categoryHeroTitle: {
     fontFamily: Theme.fonts.title,
-    fontSize: 48,
+    fontSize: 24,
     color: Theme.colors.text,
-    letterSpacing: 4,
-    textAlign: 'center',
-  },
-  goldLine: {
-    width: 40,
-    height: 2,
-    backgroundColor: Theme.colors.success,
-    marginTop: 12,
   },
   listContainer: {
     paddingTop: 16,
@@ -298,67 +267,95 @@ const styles = StyleSheet.create({
   listItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 20, // Slightly reduced to fit more
+    paddingVertical: 16,
     paddingHorizontal: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Theme.colors.border,
-    alignItems: 'center', // Align items vertically center
-  },
-  listInfo: {
-    flex: 1,
-    paddingRight: 16, // Reduced padding
-    minWidth: 0, // CRITICAL for Android text wrap
-    justifyContent: 'center',
-  },
-  listTitle: {
-    fontFamily: Theme.fonts.title,
-    fontSize: 20, // Slightly smaller
-    color: Theme.colors.text,
-    letterSpacing: 0.5,
-    marginBottom: 4,
-  },
-  listDesc: {
-    fontFamily: Theme.fonts.body,
-    fontSize: 13,
-    color: Theme.colors.textSecondary,
-    lineHeight: 20,
-    marginBottom: 12,
-  },
-  listPrice: {
-    fontFamily: Theme.fonts.bodyMedium,
-    fontSize: 16,
-    color: Theme.colors.primary, // Red accents for price
-  },
-  listCurrency: {
-    fontSize: 10,
-    color: Theme.colors.textSecondary,
+    alignItems: 'center',
+    gap: 16,
   },
   listImgWrapper: {
-    width: 100, // Slightly smaller
-    height: 100,
-    borderRadius: 16,
+    width: 80,
+    height: 80,
+    borderRadius: 12,
     backgroundColor: Theme.colors.surface,
-    position: 'relative',
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: Theme.colors.border,
-    flexShrink: 0, // Prevent image from being crushed
+    flexShrink: 0,
   },
   listImage: {
     width: '100%',
     height: '100%',
   },
-  starBadge: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    backgroundColor: Theme.colors.success, // Gold
-    padding: 4,
-    borderRadius: 0,
+  listInfo: {
+    flex: 1,
+    minWidth: 0,
+    justifyContent: 'center',
   },
+  listTitle: {
+    fontFamily: Theme.fonts.title,
+    fontSize: 16,
+    color: Theme.colors.text,
+    marginBottom: 4,
+  },
+  listDesc: {
+    fontFamily: Theme.fonts.body,
+    fontSize: 11,
+    color: Theme.colors.textSecondary,
+    lineHeight: 16,
+    marginBottom: 8,
+  },
+  listPrice: {
+    fontFamily: Theme.fonts.bodyBold,
+    fontSize: 14,
+    color: Theme.colors.text,
+  },
+  listCurrency: {
+    fontSize: 10,
+    color: Theme.colors.textSecondary,
+  },
+  quickAddBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Theme.colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FAFAFA',
+  },
+  searchBarContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 16,
+    marginBottom: 10,
+    gap: 10,
+  },
+  searchBar: { 
+    flex: 1, 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    gap: 8, 
+    backgroundColor: '#F5F5F5', 
+    borderRadius: 12, 
+    paddingHorizontal: 12, 
+    paddingVertical: 10, 
+  },
+  filterBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Theme.colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFF',
+  },
+  searchInput: { flex: 1, fontFamily: Theme.fonts.body, fontSize: 14, color: Theme.colors.text, padding: 0 },
   floatingCartWrapper: {
     position: 'absolute',
-    bottom: Platform.OS === 'ios' ? 100 : 90,
+    bottom: Platform.OS === 'ios' ? 120 : 110,
     left: 16,
     right: 16,
     alignItems: 'center',
@@ -371,7 +368,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
     shadowColor: Theme.colors.success,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.4,
@@ -392,7 +389,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   floatingCartCount: { fontFamily: Theme.fonts.bodyMedium, fontSize: 12, color: '#FFF', letterSpacing: 1 },
-  floatingCartText:  { fontFamily: Theme.fonts.bodyBold,   fontSize: 14, color: '#FFF', letterSpacing: 1 },
+  floatingCartText:  { flex: 1, textAlign: 'center', fontFamily: Theme.fonts.bodyBold, fontSize: 14, color: '#FFF', letterSpacing: 1 },
   floatingCartPrice: { fontFamily: Theme.fonts.bodyBold,   fontSize: 14, color: '#FFF' },
   // Search
   searchBar: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 16, marginBottom: 10, backgroundColor: Theme.colors.surface, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, borderWidth: StyleSheet.hairlineWidth, borderColor: Theme.colors.border },

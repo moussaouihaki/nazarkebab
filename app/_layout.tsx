@@ -1,7 +1,7 @@
 import { Stack, useSegments } from 'expo-router';
 import Head from 'expo-router/head';
 import { StatusBar } from 'expo-status-bar';
-import { View, Text, StyleSheet, Platform, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Platform, ActivityIndicator, LogBox } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts, BebasNeue_400Regular } from '@expo-google-fonts/bebas-neue';
 import { Inter_400Regular, Inter_500Medium, Inter_700Bold } from '@expo-google-fonts/inter';
@@ -9,8 +9,10 @@ import React, { useEffect, useRef } from 'react';
 import { Image } from 'expo-image';
 import * as SplashScreen from 'expo-splash-screen';
 import * as Notifications from 'expo-notifications';
+import { Ionicons } from '@expo/vector-icons';
 import { Theme } from '../constants/theme';
 import DesktopHeader from '../components/DesktopHeader';
+import { GlobalBanners } from '../components/GlobalBanners';
 import { auth, db } from '../lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
@@ -35,19 +37,41 @@ if (Platform.OS !== 'web') {
   });
 }
 
-try {
-  SplashScreen.preventAutoHideAsync();
-} catch (e) {}
+
+LogBox.ignoreLogs([
+  '@firebase/firestore: Firestore',
+  'FirebaseError: [code=permission-denied]',
+  'Uncaught Error in snapshot listener',
+  'No native splash screen registered',
+  'Missing or insufficient permissions'
+]);
+
+SplashScreen.preventAutoHideAsync().catch(() => {});
+
+if (Platform.OS === 'web') {
+  const style = document.createElement('style');
+  style.type = 'text/css';
+  style.appendChild(
+    document.createTextNode(
+      `@font-face {
+        font-family: 'Ionicons';
+        src: url('/fonts/Ionicons.ttf') format('truetype');
+      }`
+    )
+  );
+  document.head.appendChild(style);
+}
 
 export default function RootLayout() {
   const segments = useSegments();
-  const hideHeader = segments[0] === 'admin' || segments[0] === 'cart' || segments[0] === 'auth' || segments[0] === 'profile';
+  const hideHeader = segments[0] === 'admin';
 
   const [loaded, error] = useFonts({
     BebasNeue_400Regular,
     Inter_400Regular,
     Inter_500Medium,
     Inter_700Bold,
+    ...Ionicons.font,
   });
 
   const { setUser, user: currentUser } = useAuthStore();
@@ -179,11 +203,7 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (loaded || error) {
-      try {
-        SplashScreen.hideAsync();
-      } catch (e) {
-        console.warn('Splash hide error:', e);
-      }
+      SplashScreen.hideAsync().catch(() => {});
     }
   }, [loaded, error]);
 
@@ -217,10 +237,12 @@ export default function RootLayout() {
       <ThemeProvider value={DefaultTheme}>
         <View style={styles.webWrapper}>
           {!hideHeader && <DesktopHeader />}
+          <GlobalBanners />
           <SafeAreaProvider style={styles.container}>
             <StatusBar style="dark" />
             <Stack screenOptions={{ 
               headerShown: false, 
+              animation: 'fade',
               contentStyle: { backgroundColor: Theme.colors.background } 
             }}>
               <Stack.Screen name="index" />

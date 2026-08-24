@@ -30,14 +30,17 @@ export default function ProfileScreen() {
   const [firstName, setFirstName] = useState(user?.firstName || '');
   const [lastName, setLastName] = useState(user?.lastName || '');
   const [phone, setPhone] = useState(user?.phone || '');
-  const [address, setAddress] = useState(user?.address || '');
+  const [street, setStreet] = useState(user?.street || user?.address?.split(',')[0] || '');
+  const [postalCode, setPostalCode] = useState(user?.postalCode || user?.address?.match(/\d{4}/)?.[0] || '');
+  const [city, setCity] = useState(user?.city || user?.address?.split(/ \d{4} /)[1] || user?.address?.split(',').pop()?.trim() || '');
 
   const myOrders = user?.id ? orders.filter(o => o.userId === user.id) : orders;
   const deliveredOrders = myOrders.filter(o => o.status === 'delivered');
   const totalSpent = deliveredOrders.reduce((acc, o) => acc + o.total, 0);
 
   const handleSave = () => {
-    updateProfile({ firstName, lastName, phone, address });
+    const combinedAddress = `${street}${postalCode ? `, ${postalCode}` : ''}${city ? ` ${city}` : ''}`.trim().replace(/^, |, $/g, '');
+    updateProfile({ firstName, lastName, phone, address: combinedAddress, street, postalCode, city });
     setEditing(false);
   };
 
@@ -254,9 +257,17 @@ export default function ProfileScreen() {
             <View style={styles.fieldDivider} />
 
             <Text style={styles.fieldLabel}>ADRESSE DE LIVRAISON FAVORITE</Text>
-            {editing
-              ? <TextInput style={styles.fieldInput} value={address} onChangeText={setAddress} placeholder="Ex: Rue du Moulin 5, 2900 Porrentruy" placeholderTextColor={Theme.colors.textSecondary} />
-              : <Text style={styles.fieldValue}>{user.address || '—'}</Text>}
+            {editing ? (
+              <View style={{ gap: 10 }}>
+                <TextInput style={styles.fieldInput} value={street} onChangeText={setStreet} placeholder="Rue et numéro" placeholderTextColor={Theme.colors.textSecondary} autoCapitalize="words" />
+                <View style={{ flexDirection: 'row', gap: 10 }}>
+                  <TextInput style={[styles.fieldInput, { flex: 1 }]} value={postalCode} onChangeText={setPostalCode} placeholder="Code postal" placeholderTextColor={Theme.colors.textSecondary} keyboardType="numeric" maxLength={4} />
+                  <TextInput style={[styles.fieldInput, { flex: 2 }]} value={city} onChangeText={setCity} placeholder="Ville" placeholderTextColor={Theme.colors.textSecondary} autoCapitalize="words" />
+                </View>
+              </View>
+            ) : (
+              <Text style={styles.fieldValue}>{user.address || '—'}</Text>
+            )}
           </View>
 
           {/* NOTIFICATIONS */}

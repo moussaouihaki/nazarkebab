@@ -9,8 +9,11 @@ service cloud.firestore {
     }
     
     function isAdmin() {
-      return isAuthenticated() && 
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      // Sécurité absolue : on vérifie l'email certifié par le token Auth
+      return isAuthenticated() && (
+        request.auth.token.email == 'admin@pokemoons.ch' || 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+      );
     }
 
     // -- Règles par Collection --
@@ -39,16 +42,34 @@ service cloud.firestore {
     // Profils Utilisateurs (Soi-même ou Admin)
     match /users/{userId} {
       allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
-      allow create: if isAuthenticated();
-      allow update: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      
+      // Sécurité : Un client ne peut pas se créer un compte avec le rôle 'admin'
+      allow create: if isAuthenticated() && (
+        request.resource.data.role == 'client' || isAdmin()
+      );
+      
+      // Sécurité : Le client ne peut pas se donner le rôle admin, ni augmenter ses points de fidélité lui-même
+      allow update: if isAuthenticated() && (
+        isAdmin() || (
+          request.auth.uid == userId 
+          && request.resource.data.role != 'admin'
+          // Empêche le client d'ajouter des points (il peut seulement les déduire lors d'une commande)
+          && (!("loyaltyPoints" in request.resource.data) || request.resource.data.loyaltyPoints <= resource.data.loyaltyPoints)
+        )
+      );
     }
 
     // Commandes
     match /orders/{orderId} {
-      // Autoriser la création même en invité pour tester
+      // Création publique (pour autoriser les commandes invités)
       allow create: if true;
-      // Autoriser la lecture par ID (pour que le suivi fonctionne sans compte)
-      allow read: if true;
+      
+      // get : permet de lire 1 seule commande si on connait l'ID (Tracking invité)
+      allow get: if true;
+      
+      // list : bloque le téléchargement massif de toutes les commandes (Sécurité RGPD)
+      allow list: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      
       // Seul l'admin ou le propriétaire peut mettre à jour
       allow update: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
     }

@@ -1,7 +1,9 @@
-import React, { useRef } from 'react';
-import { View, Text, StyleSheet, Dimensions, TouchableOpacity, SafeAreaView, Platform, useWindowDimensions } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { View, Text, StyleSheet, Dimensions, TouchableOpacity, SafeAreaView, Platform, useWindowDimensions, Modal } from 'react-native';
 import Animated, { useAnimatedScrollHandler, useSharedValue, useAnimatedStyle, interpolate, Extrapolation, FadeInDown } from 'react-native-reanimated';
 import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Theme } from '../constants/theme';
 import { PRODUCTS, CATEGORIES, IMAGES_MAP, getImageSource } from '../constants/data';
 import { Image } from 'expo-image';
@@ -55,9 +57,10 @@ export default function HomeScreen() {
   };
 
   const { width } = useWindowDimensions();
-  const isDesktop = Platform.OS === 'web' && width >= 768;
+  const isDesktop = width >= 1024;
+  const isTablet = width >= 768 && width < 1024;
 
-  const scrollY = useSharedValue(0);
+    const scrollY = useSharedValue(0);
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
       scrollY.value = event.contentOffset.y;
@@ -66,7 +69,7 @@ export default function HomeScreen() {
 
   const headerAnimatedStyle = useAnimatedStyle(() => {
     return {
-      opacity: interpolate(scrollY.value, [0, 100], [0, 1], Extrapolation.CLAMP),
+      opacity: 1, // Always visible to show notification bell
     };
   });
 
@@ -93,15 +96,9 @@ export default function HomeScreen() {
                    </View>
                  )}
                </TouchableOpacity>
-               <View style={[styles.logoWrapper, { flexDirection: 'row', alignItems: 'center' }]}>
-                 <Image 
-                   source={require('../assets/images/logo.png')} 
-                   style={{ width: 30, height: 30, borderRadius: 15, marginRight: 10 }}
-                   contentFit="contain"
-                 />
-                 <View>
-                   <Text style={styles.logoNazar}>POKÉMOONS</Text>
-                 </View>
+               <View style={styles.logoWrapper}>
+                 <Text style={styles.logoPoke}>POKÉ</Text>
+                 <Text style={styles.logoMoons}>MOONS</Text>
                </View>
                <TouchableOpacity style={styles.cartButton} onPress={() => router.push('/cart')}>
                  <Ionicons name="bag-handle-outline" size={24} color={Theme.colors.text} />
@@ -116,7 +113,9 @@ export default function HomeScreen() {
         </Animated.View>
       )}
 
+
       <Animated.ScrollView 
+        style={{ flex: 1 }}
         contentContainerStyle={styles.scrollContent} 
         showsVerticalScrollIndicator={false}
         onScroll={scrollHandler}
@@ -126,131 +125,204 @@ export default function HomeScreen() {
         {/* EDITORIAL HERO BANNER (Bleed Edge with Parallax) */}
         <View style={styles.heroContainer}>
            <Animated.View style={[StyleSheet.absoluteFillObject, heroAnimatedStyle]}>
-             <Image 
-               source={{ uri: content.heroImage }} 
-               style={StyleSheet.absoluteFillObject} 
-               contentFit="cover" 
-             />
-           </Animated.View>
-           <View style={styles.heroOverlay} />
-           <View style={styles.heroContent}>
-            <View style={styles.statusRow}>
+              <Image 
+                source={content.heroImage ? { uri: content.heroImage } : require('../assets/images/hero-white.jpg')} 
+                style={[StyleSheet.absoluteFillObject, { backgroundColor: '#FFFFFF' }]} 
+                contentFit={Platform.OS === 'web' ? 'cover' : 'contain'}
+                contentPosition={Platform.OS === 'web' ? 'center' : 'top'}
+              />
+            </Animated.View>
+           <LinearGradient 
+              colors={['rgba(255,255,255,0.9)', 'rgba(255,255,255,0.7)', 'rgba(255,255,255,0.1)']} 
+              style={StyleSheet.absoluteFillObject} 
+           />
+           <View style={[styles.heroContent, { gap: 12 }]}>
+            
+            {/* Status Pill */}
+            <View style={[styles.statusRow, { 
+              backgroundColor: checkIsRestaurantOpen(settings) ? '#E8F5E9' : '#FFEBEE', 
+              paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, marginBottom: 0 
+            }]}>
               <View style={[styles.statusIndicator, { backgroundColor: checkIsRestaurantOpen(settings) ? Theme.colors.success : Theme.colors.danger }]} />
-              <Text style={styles.statusText}>{checkIsRestaurantOpen(settings) ? 'ACTUELLEMENT OUVERT' : 'FERMÉ ACTUELLEMENT'}</Text>
+              <Text style={[styles.statusText, { color: checkIsRestaurantOpen(settings) ? '#2E7D32' : '#C62828', fontSize: 11 }]}>
+                {checkIsRestaurantOpen(settings) ? 'ACTUELLEMENT OUVERT' : 'FERMÉ ACTUELLEMENT'}
+              </Text>
             </View>
-              <Text style={styles.heroGolden}>{content.heroSubtitle}</Text>
-              <Text style={styles.heroTitle}>{content.heroTitle}</Text>
-              <TouchableOpacity style={styles.heroBtn} onPress={() => router.push('/menu')} activeOpacity={0.8}>
-                 <Text style={styles.heroBtnText}>{content.heroButtonText}</Text>
+
+            {/* Title Section */}
+            <View style={{ alignItems: 'center', gap: 4 }}>
+              <Text style={[styles.heroTitle, { textShadowColor: 'rgba(255,255,255,0.8)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 10, marginBottom: 0 }]}>L'ART DU POKÉ BOWL</Text>
+              <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 14, color: '#000', letterSpacing: 4, textAlign: 'center' }}>DEPUIS 2022</Text>
+            </View>
+
+            {/* CTA & Delivery Times */}
+            <View style={{ alignItems: 'center', gap: 16, marginTop: 4 }}>
+              <TouchableOpacity style={[styles.heroBtn, { backgroundColor: '#1B5E20' }]} onPress={() => router.push('/menu')} activeOpacity={0.8}>
+                 <Text style={[styles.heroBtnText, { color: '#FFF' }]}>{content.heroButtonText}</Text>
               </TouchableOpacity>
 
-              <View style={styles.timeBanner}>
-                <View style={styles.timeItem}>
-                  <Ionicons name="bicycle" size={16} color={Theme.colors.success} />
-                  <Text style={styles.timeText}>{settings.deliveryTime} MIN</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 24 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Ionicons name="bicycle" size={16} color={Theme.colors.textSecondary} />
+                  <Text style={{ fontFamily: Theme.fonts.bodyMedium, fontSize: 12, color: Theme.colors.textSecondary }}>Livraison {settings.deliveryTime} min</Text>
                 </View>
-                <View style={styles.timeItem}>
-                  <Ionicons name="bag-handle" size={16} color={Theme.colors.success} />
-                  <Text style={styles.timeText}>{settings.takeAwayTime} MIN</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Ionicons name="bag-handle" size={16} color={Theme.colors.textSecondary} />
+                  <Text style={{ fontFamily: Theme.fonts.bodyMedium, fontSize: 12, color: Theme.colors.textSecondary }}>À l'emporter {settings.takeAwayTime} min</Text>
                 </View>
               </View>
+            </View>
+
            </View>
         </View>
 
         <View style={styles.innerContainer}>
         {/* CONCEPT & VALUES */}
-        <View style={[styles.valuesContainer, isDesktop && { flexDirection: 'row' }]}>
+        <BlurView intensity={80} tint="light" style={[styles.valuesContainer, isDesktop && { flexDirection: 'row' }]}>
           {content.values.map(val => (
             <View key={val.id} style={styles.valueItem}>
-              <Ionicons name={val.icon as any} size={32} color={val.color || Theme.colors.success} />
+              <Ionicons name={val.icon as any} size={32} color="#000" />
               <Text style={styles.valueTitle}>{val.title}</Text>
               <Text style={styles.valueDesc}>{val.description}</Text>
             </View>
           ))}
-        </View>
+        </BlurView>
 
         {/* SHARP CATEGORIES (Chic, zero border radius) */}
         <View style={styles.sectionHeader}>
            <Text style={styles.sectionTitle}>NOTRE CARTE</Text>
-           <View style={styles.goldLine} />
         </View>
 
         <Animated.ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoriesScroll}>
           {CATEGORIES.map((cat, index) => (
              <Animated.View key={cat} entering={FadeInDown.delay(index * 100).springify()}>
                <TouchableOpacity style={styles.categoryCard} onPress={() => router.push({ pathname: '/menu', params: { category: cat } })}>
-                  <Image 
-                    source={getImageSource(getCategoryImage(cat))} 
-                    style={StyleSheet.absoluteFillObject} 
-                    contentFit="cover" 
-                  />
-                  <View style={styles.cardOverlay} />
-                  <View style={styles.cardContent}>
-                    <Text style={styles.cardNumber}>0{index + 1}</Text>
-                    <Text style={styles.categoryText} numberOfLines={1}>{cat}</Text>
+                  <View style={styles.categoryImgWrapper}>
+                    <Image 
+                      source={getImageSource(getCategoryImage(cat))} 
+                      style={styles.categoryImage} 
+                      contentFit="cover" 
+                    />
                   </View>
+                  <Text style={styles.categoryText} numberOfLines={1}>{cat}</Text>
                </TouchableOpacity>
              </Animated.View>
           ))}
         </Animated.ScrollView>
 
+        {/* COMPOSE TON POKÉ BANNER */}
+        <View style={styles.composeSection}>
+           <TouchableOpacity 
+             style={styles.composeBanner}
+             activeOpacity={0.9}
+             onPress={() => router.push({ pathname: '/product/[id]', params: { id: 'poke-custom' } })}
+           >
+             <Image source={require('../assets/images/compose-white.jpg')} style={StyleSheet.absoluteFillObject} contentFit="cover" />
+             <View style={[styles.composeOverlay, { backgroundColor: 'rgba(255,255,255,0.6)' }]} />
+             <View style={styles.composeContent}>
+               <Text style={[styles.composeTitle, { color: '#1B5E20' }]}>CRÉE TON POKÉ SUR-MESURE</Text>
+               <Text style={[styles.composeDesc, { color: Theme.colors.textSecondary }]}>Choisis ta base, tes protéines et tes toppings.</Text>
+               <View style={[styles.composeBtn, { backgroundColor: '#1B5E20' }]}>
+                  <Text style={[styles.composeBtnText, { color: '#FFF' }]}>COMPOSER</Text>
+                  <Ionicons name="arrow-forward" size={16} color="#FFF" />
+               </View>
+             </View>
+           </TouchableOpacity>
+        </View>
+
+        {/* GOOGLE REVIEWS SECTION */}
+        <View style={styles.reviewsContainer}>
+          <View style={styles.reviewsHeader}>
+             <View style={{ alignItems: 'center' }}>
+               <Text style={styles.reviewsScore}>4.8</Text>
+               <View style={styles.starsRow}>
+                  {[1,2,3,4,5].map(i => <Ionicons key={i} name="star" size={14} color="#FFD700" />)}
+               </View>
+             </View>
+             <View style={styles.reviewsTextInfo}>
+                <Text style={styles.reviewsTitle}>Excellence reconnue</Text>
+                <Text style={styles.reviewsSubtitle}>Plus de 50 avis sur Google</Text>
+             </View>
+             <Image source={{ uri: 'https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg' }} style={{ width: 24, height: 24, marginLeft: 'auto' }} />
+          </View>
+          
+          <BlurView intensity={80} tint="light" style={styles.reviewCard}>
+             <Text style={styles.reviewText}>"Une très belle découverte ! Les produits sont frais et de qualité, avec un large choix qui permet de composer son bowl exactement selon ses envies. 🥑🍚 Mention spéciale pour la sauce maison 🌶️🔥"</Text>
+             <View style={styles.reviewAuthorRow}>
+                <View style={styles.reviewAuthorAvatar}>
+                   <Text style={styles.reviewAuthorInitials}>A</Text>
+                </View>
+                <View>
+                   <Text style={styles.reviewAuthorName}>Alex varto</Text>
+                   <Text style={styles.reviewAuthorDate}>Local Guide</Text>
+                </View>
+             </View>
+          </BlurView>
+        </View>
+
         {/* FEED: INCONTOURNABLES (Fine Dining Gallery) */}
         <View style={[styles.sectionHeader, { marginTop: 40 }]}>
            <Text style={styles.sectionTitle}>NOS SIGNATURES</Text>
-           <View style={styles.goldLine} />
         </View>
         
-        <View style={styles.feedWrapper}>
+        <View style={[styles.listContainer, isDesktop && { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', paddingHorizontal: 16 }]}>
           {populars.map((product, index) => (
-            <Animated.View key={product.id} entering={FadeInDown.delay(300 + index * 100).springify()} style={[styles.feedCard, isDesktop && { width: '47%' }]}>
+            <Animated.View key={product.id} entering={FadeInDown.delay(300 + index * 50).springify()} style={[isDesktop && { width: '48%' }]}>
               <TouchableOpacity 
-                style={{ width: '100%', alignItems: 'center' }}
-                activeOpacity={0.9}
+                style={styles.listItem}
+                activeOpacity={0.7}
                 onPress={() => router.push({ pathname: '/product/[id]', params: { id: product.id } })}
               >
-                <View style={styles.feedImageWrapper}>
+                <View style={styles.listImgWrapper}>
                   <Image 
                     source={getImageSource(product.image)} 
-                    style={styles.feedImage} 
+                    style={styles.listImage} 
                     contentFit="cover" 
-                    transition={500}
                   />
-                  {/* Gold tag for popular items */}
                   <View style={styles.feedTag}>
-                     <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFill} />
                      <Text style={styles.feedTagText}>Maison</Text>
                   </View>
                 </View>
                 
-                <View style={styles.feedInfo}>
-                  <View style={styles.feedTitleRow}>
-                    <Text style={styles.feedItemTitle}>{product.name}</Text>
-                    <Text style={styles.feedPrice}>{product.price.toFixed(2)} CHF</Text>
-                  </View>
-                  <Text style={styles.feedDesc} numberOfLines={2}>{product.description || product.category}</Text>
+                <View style={styles.listInfo}>
+                  <Text style={styles.listTitle}>{product.name}</Text>
+                  <Text style={styles.listDesc} numberOfLines={2}>
+                    {product.description || `Dégustez notre ${product.name.toLowerCase()} préparé avec la plus grande attention.`}
+                  </Text>
+                  <Text style={styles.listPrice}>{product.price.toFixed(2)}  <Text style={styles.listCurrency}>CHF</Text></Text>
                 </View>
+
+                <TouchableOpacity style={styles.quickAddBtn} onPress={() => router.push({ pathname: '/product/[id]', params: { id: product.id } })}>
+                   <Ionicons name="add" size={16} color={Theme.colors.text} />
+                </TouchableOpacity>
               </TouchableOpacity>
             </Animated.View>
           ))}
         </View>
         
         {/* PREMIUM FOOTER */}
-        <View style={styles.footerInfo}>
-          <Text style={styles.logoNazar}>POKÉMOONS</Text>
-          <Text style={styles.footerMeta}>{content.footerCity}</Text>
-          <Text style={styles.footerMeta}>RESERVATIONS: {content.footerPhone}</Text>
-          
-          {Platform.OS === 'web' && (
-            <View style={styles.webFooter}>
-               <View style={styles.webFooterRow}>
-                 <TouchableOpacity><Text style={styles.webFooterLink}>Conditions Générales de Vente</Text></TouchableOpacity>
-                 <TouchableOpacity><Text style={styles.webFooterLink}>Mentions Légales</Text></TouchableOpacity>
-                 <TouchableOpacity><Text style={styles.webFooterLink}>Politique de Confidentialité</Text></TouchableOpacity>
-                 <TouchableOpacity><Text style={styles.webFooterLink}>Contact</Text></TouchableOpacity>
-               </View>
-               <Text style={styles.webFooterCopyright}>© {new Date().getFullYear()} {content.footerCopyright}</Text>
+        <View style={{ marginTop: 60, marginHorizontal: 16, borderRadius: 24, borderWidth: 1, borderColor: '#E0E0E0', marginBottom: 24, backgroundColor: '#FFF' }}>
+          <View style={[styles.footerInfo, { marginTop: 0, borderTopWidth: 0, backgroundColor: 'transparent' }]}>
+            <View style={[styles.logoWrapper, { marginBottom: 12 }]}>
+              <Text style={styles.logoPoke}>POKÉ</Text>
+              <Text style={styles.logoMoons}>MOONS</Text>
             </View>
-          )}
+            <Text style={styles.footerMeta}>{content.footerCity}</Text>
+            <Text style={styles.footerMeta}>RESERVATIONS: {content.footerPhone}</Text>
+            
+            {Platform.OS === 'web' && (
+              <View style={styles.webFooter}>
+                 <View style={styles.webFooterRow}>
+                   <TouchableOpacity onPress={() => router.push('/cgv')}><Text style={styles.webFooterLink}>Conditions Générales de Vente</Text></TouchableOpacity>
+                   <TouchableOpacity onPress={() => router.push('/mentions')}><Text style={styles.webFooterLink}>Mentions Légales</Text></TouchableOpacity>
+                   <TouchableOpacity onPress={() => router.push('/privacy')}><Text style={styles.webFooterLink}>Politique de Confidentialité</Text></TouchableOpacity>
+                   <TouchableOpacity onPress={() => router.push('/provenance')}><Text style={styles.webFooterLink}>Provenance des viandes</Text></TouchableOpacity>
+                   <TouchableOpacity onPress={() => router.push('/contact')}><Text style={styles.webFooterLink}>Contact</Text></TouchableOpacity>
+                 </View>
+                 <Text style={styles.webFooterCopyright}>© {new Date().getFullYear()} {content.footerCopyright}</Text>
+              </View>
+            )}
+          </View>
         </View>
 
         <View style={{ height: 100 }} />
@@ -285,14 +357,37 @@ const styles = StyleSheet.create({
   logoWrapper: {
     alignItems: 'center',
     justifyContent: 'center',
+    flexDirection: 'column',
   },
-  logoNazar: {
+  logoPoke: {
     fontFamily: Theme.fonts.logo,
     fontSize: 28,
-    color: Theme.colors.text,
-    letterSpacing: 4,
+    color: '#1B5E20', // Dark green matching the brand
+    letterSpacing: 2,
+    lineHeight: 28,
   },
-  logoKebab: { fontFamily: Theme.fonts.bodyBold, fontSize: 10, color: Theme.colors.success, letterSpacing: 4 },
+  logoMoons: {
+    fontFamily: Theme.fonts.logo,
+    fontSize: 28,
+    color: 'transparent',
+    letterSpacing: 2,
+    lineHeight: 28,
+    marginTop: -8, // Tightly stack them like the original logo
+    ...Platform.select({
+      web: {
+        color: '#FFFFFF',
+        textShadowColor: '#1B5E20',
+        textShadowOffset: { width: 1, height: 1 },
+        textShadowRadius: 1,
+      },
+      default: {
+        color: '#FFFFFF',
+        textShadowColor: '#1B5E20',
+        textShadowOffset: { width: 1, height: 1 },
+        textShadowRadius: 1,
+      }
+    })
+  },
   notifBadge: { 
     position: 'absolute', 
     top: -2, 
@@ -306,9 +401,14 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: Theme.colors.background,
   },
-  notifBadgeText: { color: '#fff', fontSize: 7, fontFamily: Theme.fonts.bodyBold },
+  notifBadgeText: {
+    color: '#FFF',
+    fontSize: 9,
+    fontFamily: Theme.fonts.bodyBold,
+  },
   iconButton: {
     padding: 8,
+    position: 'relative',
   },
   cartButton: {
     padding: 8,
@@ -318,7 +418,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -2,
     right: -2,
-    backgroundColor: Theme.colors.success, // Gold badge
+    backgroundColor: Theme.colors.success,
     minWidth: 16,
     height: 16,
     borderRadius: 8,
@@ -327,6 +427,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: Theme.colors.background,
   },
+
   badgeText: {
     color: '#FFF',
     fontSize: 7,
@@ -334,51 +435,51 @@ const styles = StyleSheet.create({
   },
   heroContainer: {
     width: '100%',
-    height: Platform.OS === 'web' ? 400 : 350,
-    justifyContent: 'center',
+    height: Platform.OS === 'web' ? 480 : 600, // Increase height to prevent overlap with valuesContainer
     alignItems: 'center',
     position: 'relative',
   },
   heroOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.6)', // Deep mood
+    backgroundColor: 'rgba(0,0,0,0.6)', // Deep mood (will be overridden by inline if needed)
   },
   heroContent: {
     zIndex: 1,
     alignItems: 'center',
+    paddingTop: Platform.OS === 'ios' ? 150 : (Platform.OS === 'web' ? 100 : 80), // Push content down explicitly from the top
   },
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 },
   statusIndicator: { width: 6, height: 6, borderRadius: 3 },
   statusText: { fontFamily: Theme.fonts.bodyBold, fontSize: 10, color: '#FFF', letterSpacing: 1 },
   heroGolden: {
     fontFamily: Theme.fonts.bodyBold,
-    color: Theme.colors.success, 
+    color: '#FFF', 
     fontSize: 13,
     letterSpacing: 4,
     marginBottom: 8,
   },
   heroTitle: {
     fontFamily: Theme.fonts.title,
-    color: '#FFF',
+    color: '#1B5E20',
     fontSize: width < 380 ? 42 : 54, // Dynamic font size to avoid wrapping
     letterSpacing: width < 380 ? 4 : 6,
     textAlign: 'center',
-    textShadowColor: 'rgba(0,0,0,0.8)',
-    textShadowOffset: { width: 0, height: 4 },
+    textShadowColor: 'rgba(255,255,255,0.8)',
+    textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 10,
   },
   heroBtn: {
     marginTop: 30,
-    borderWidth: 1.5,
-    borderColor: Theme.colors.success,
-    backgroundColor: Theme.colors.success + '22', // Slight red transparent background
+    borderWidth: 1,
+    borderColor: '#FFF',
+    backgroundColor: '#FFF',
     paddingVertical: 14,
     paddingHorizontal: 32,
     borderRadius: 100,
   },
   heroBtnText: {
     fontFamily: Theme.fonts.bodyBold,
-    color: Theme.colors.success,
+    color: '#000',
     fontSize: 14,
     letterSpacing: 2,
     textTransform: 'uppercase',
@@ -420,126 +521,173 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   categoryCard: {
-    width: Platform.OS === 'web' ? 160 : 140,
-    height: Platform.OS === 'web' ? 220 : 180,
+    alignItems: 'center',
+    width: 120,
+  },
+  categoryImgWrapper: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
     backgroundColor: Theme.colors.surface,
-    position: 'relative',
-    overflow: 'hidden', // Sharp edges! No border radius
-    borderRadius: 12,
-  },
-  cardOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-  },
-  cardContent: {
-    ...StyleSheet.absoluteFillObject,
-    padding: 16,
-    justifyContent: 'flex-end',
-    alignItems: 'flex-start',
-  },
-  cardNumber: {
-    fontFamily: Theme.fonts.logo,
-    fontSize: 24,
-    color: Theme.colors.success,
-    position: 'absolute',
-    top: 12,
-    right: 12,
-  },
-  categoryText: {
-    fontFamily: Theme.fonts.title,
-    fontSize: 24,
-    color: '#FFFFFF',
-    letterSpacing: 1,
-    textShadowColor: 'rgba(0, 0, 0, 0.75)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
-  },
-  feedWrapper: {
-    paddingHorizontal: 16,
-    gap: 40,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-  },
-  feedCard: {
-    width: '100%',
-    alignItems: 'center', // center product info
-  },
-  feedImageWrapper: {
-    width: '100%',
-    height: Platform.OS === 'web' ? 300 : 250,
     overflow: 'hidden',
-    position: 'relative',
-    marginBottom: 16,
-    backgroundColor: Theme.colors.surface,
-    borderRadius: 20,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: Theme.colors.border,
   },
-  feedImage: {
+  categoryImage: {
     width: '100%',
     height: '100%',
   },
-  feedTag: {
-    position: 'absolute',
-    bottom: 12,
-    left: '50%',
-    transform: [{ translateX: -40 }],
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 100,
-    zIndex: 2,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-  },
-  feedTagText: {
-    fontFamily: Theme.fonts.bodyMedium,
-    fontSize: 10,
-    color: '#FFF',
-    letterSpacing: 2,
+  categoryText: {
+    fontFamily: Theme.fonts.bodyBold,
+    fontSize: 13,
+    color: Theme.colors.text,
+    textAlign: 'center',
     textTransform: 'uppercase',
   },
-  feedInfo: {
+  listContainer: {
+    paddingTop: 16,
+  },
+  listItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Theme.colors.border,
+    alignItems: 'center',
+    gap: 16,
+  },
+  listImgWrapper: {
+    width: 110,
+    height: 110,
+    borderRadius: 16,
+    backgroundColor: Theme.colors.surface,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: Theme.colors.border,
+    flexShrink: 0,
+    position: 'relative',
+  },
+  listImage: {
     width: '100%',
-    alignItems: 'center',
-    paddingTop: 10,
+    height: '100%',
   },
-  feedTitleRow: {
-    alignItems: 'center',
-    marginBottom: 8,
+  listInfo: {
+    flex: 1,
+    minWidth: 0,
+    justifyContent: 'center',
   },
-  feedItemTitle: {
+  listTitle: {
     fontFamily: Theme.fonts.title,
-    fontSize: 26,
+    fontSize: 20,
     color: Theme.colors.text,
-    letterSpacing: 1,
-    textAlign: 'center',
+    marginBottom: 4,
   },
-  feedPrice: {
-    fontFamily: Theme.fonts.bodyMedium,
-    fontSize: 16,
-    color: Theme.colors.primary,
-    marginTop: 4,
-  },
-  feedDesc: {
+  listDesc: {
     fontFamily: Theme.fonts.body,
     fontSize: 13,
     color: Theme.colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 20,
-    maxWidth: '80%',
+    lineHeight: 18,
+    marginBottom: 8,
+  },
+  listPrice: {
+    fontFamily: Theme.fonts.bodyBold,
+    fontSize: 16,
+    color: Theme.colors.text,
+  },
+  listCurrency: {
+    fontSize: 11,
+    color: Theme.colors.textSecondary,
+  },
+  quickAddBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Theme.colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FAFAFA',
+  },
+  feedTag: {
+    position: 'absolute',
+    bottom: -1,
+    left: 0,
+    right: 0,
+    paddingVertical: 2,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    alignItems: 'center',
+  },
+  feedTagText: {
+    fontFamily: Theme.fonts.bodyBold,
+    fontSize: 8,
+    color: '#FFF',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  composeSection: {
+    paddingHorizontal: 16,
+    marginTop: 40,
+  },
+  composeBanner: {
+    width: '100%',
+    height: 180,
+    borderRadius: 16,
+    overflow: 'hidden',
+    position: 'relative',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  composeOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+  },
+  composeContent: {
+    zIndex: 1,
+    alignItems: 'flex-start',
+  },
+  composeTitle: {
+    fontFamily: Theme.fonts.title,
+    color: '#FFF',
+    fontSize: 24,
+    letterSpacing: 1,
+    marginBottom: 4,
+  },
+  composeDesc: {
+    fontFamily: Theme.fonts.body,
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 13,
+    marginBottom: 16,
+  },
+  composeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 100,
+    gap: 8,
+  },
+  composeBtnText: {
+    fontFamily: Theme.fonts.bodyBold,
+    color: '#000',
+    fontSize: 12,
+    letterSpacing: 1,
   },
   footerInfo: {
-    marginTop: 60,
-    padding: Theme.spacing.xl,
-    backgroundColor: Theme.colors.surface,
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+    paddingTop: 60,
+    paddingBottom: 40,
+    paddingHorizontal: 24,
     alignItems: 'center',
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderColor: Theme.colors.border,
+    borderTopWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.8)',
   },
   footerMeta: {
     fontFamily: Theme.fonts.bodyMedium,
     fontSize: 10,
-    color: Theme.colors.textSecondary,
+    color: '#000',
     letterSpacing: 2,
     marginTop: 10,
   },
@@ -561,13 +709,13 @@ const styles = StyleSheet.create({
   webFooterLink: {
     fontFamily: Theme.fonts.body,
     fontSize: 12,
-    color: Theme.colors.textSecondary,
+    color: '#000',
     textDecorationLine: 'underline',
   },
   webFooterCopyright: {
     fontFamily: Theme.fonts.body,
     fontSize: 11,
-    color: Theme.colors.textSecondary,
+    color: '#000',
   },
   timeBanner: {
     flexDirection: 'row',
@@ -597,20 +745,23 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   valuesContainer: {
-    padding: 24,
-    backgroundColor: Theme.colors.surface,
-    marginTop: -20,
+    padding: 32,
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+    marginTop: -30,
     marginHorizontal: 16,
-    borderRadius: 16,
+    borderRadius: 24,
     gap: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.8)',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 15 },
     shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 5,
+    shadowRadius: 30,
+    elevation: 8,
     zIndex: 10,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
   },
   valueItem: {
     alignItems: 'center',
@@ -633,4 +784,145 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 18,
   },
+  reviewsContainer: {
+    paddingHorizontal: 16,
+    marginTop: 40,
+  },
+  reviewsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    gap: 16,
+    paddingHorizontal: 8,
+  },
+  reviewsScore: {
+    fontFamily: Theme.fonts.title,
+    fontSize: 28,
+    color: Theme.colors.text,
+    lineHeight: 30,
+  },
+  starsRow: {
+    flexDirection: 'row',
+    gap: 2,
+    marginTop: 2,
+  },
+  reviewsTextInfo: {
+    flex: 1,
+  },
+  reviewsTitle: {
+    fontFamily: Theme.fonts.title,
+    fontSize: 16,
+    color: Theme.colors.text,
+  },
+  reviewsSubtitle: {
+    fontFamily: Theme.fonts.body,
+    fontSize: 13,
+    color: Theme.colors.textSecondary,
+    marginTop: 2,
+  },
+  reviewCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+    padding: 24,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.8)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 10,
+    overflow: 'hidden',
+  },
+  reviewText: {
+    fontFamily: Theme.fonts.body,
+    fontSize: 15,
+    color: Theme.colors.text,
+    lineHeight: 24,
+    fontStyle: 'italic',
+    marginBottom: 20,
+  },
+  reviewAuthorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  reviewAuthorAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#007AFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reviewAuthorInitials: {
+    color: '#FFF',
+    fontFamily: Theme.fonts.bodyBold,
+    fontSize: 14,
+  },
+  reviewAuthorName: {
+    fontFamily: Theme.fonts.bodyBold,
+    fontSize: 14,
+    color: Theme.colors.text,
+  },
+  reviewAuthorDate: {
+    fontFamily: Theme.fonts.body,
+    fontSize: 12,
+    color: Theme.colors.textSecondary,
+  },
+  // Modales
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#FFF',
+    borderRadius: 16,
+    padding: 30,
+    width: '100%',
+    maxWidth: 400,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  modalTitle: {
+    fontFamily: 'Inter_700Bold', // using string instead of Theme to be safe
+    fontSize: 24,
+    color: '#1c1c1e',
+    marginTop: 16,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  modalMessage: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: 16,
+    color: '#ff3b30',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  modalSubMessage: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 14,
+    color: '#8e8e93',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  modalButton: {
+    backgroundColor: '#007AFF', // using a safe color
+    paddingVertical: 14,
+    paddingHorizontal: 30,
+    borderRadius: 30,
+    width: '100%',
+  },
+  modalButtonText: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: 16,
+    color: '#FFF',
+    textAlign: 'center',
+  }
 });

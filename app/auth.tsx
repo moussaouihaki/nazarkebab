@@ -46,7 +46,9 @@ export default function AuthScreen() {
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
-  const [address, setAddress] = useState('');
+  const [street, setStreet] = useState('');
+  const [postalCode, setPostalCode] = useState('');
+  const [city, setCity] = useState('');
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
   const [localError, setLocalError] = useState('');
@@ -93,7 +95,8 @@ export default function AuthScreen() {
     } else {
       if (!firstName || !lastName || !email || !password) { setLocalError('Veuillez remplir tous les champs obligatoires.'); return; }
       if (password.length < 6) { setLocalError('Le mot de passe doit contenir au moins 6 caractères.'); return; }
-      const ok = await register({ firstName, lastName, email: email.trim(), password, phone, address });
+      const combinedAddress = `${street}${postalCode ? `, ${postalCode}` : ''}${city ? ` ${city}` : ''}`.trim().replace(/^, |, $/g, '');
+      const ok = await register({ firstName, lastName, email: email.trim(), password, phone, address: combinedAddress, street, postalCode, city });
       if (ok) router.replace('/');
     }
   };
@@ -208,8 +211,12 @@ export default function AuthScreen() {
 
             {mode === 'register' && (
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>ADRESSE (Livraison)</Text>
-                <TextInput style={styles.input} value={address} onChangeText={setAddress} placeholder="Rue, NPA Ville" placeholderTextColor={Theme.colors.textSecondary} autoCapitalize="words" />
+                <Text style={styles.label}>ADRESSE DE LIVRAISON</Text>
+                <TextInput style={[styles.input, { marginBottom: 10 }]} value={street} onChangeText={setStreet} placeholder="Rue et numéro" placeholderTextColor={Theme.colors.textSecondary} autoCapitalize="words" />
+                <View style={{ flexDirection: 'row', gap: 10 }}>
+                  <TextInput style={[styles.input, { flex: 1 }]} value={postalCode} onChangeText={setPostalCode} placeholder="Code postal" placeholderTextColor={Theme.colors.textSecondary} keyboardType="numeric" maxLength={4} />
+                  <TextInput style={[styles.input, { flex: 2 }]} value={city} onChangeText={setCity} placeholder="Ville" placeholderTextColor={Theme.colors.textSecondary} autoCapitalize="words" />
+                </View>
               </View>
             )}
 

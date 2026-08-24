@@ -14,10 +14,11 @@ const { height } = Dimensions.get('window');
 
 
 export default function ProductDetailScreen() {
-  const { id } = useLocalSearchParams();
+  const { id, editCartItemId } = useLocalSearchParams();
   const { products, settings } = useRestaurantStore();
   const product = products.find((p) => p.id === id) || PRODUCTS.find((p) => p.id === id);
   const addItem = useCartStore((state) => state.addItem);
+  const removeAllOfItem = useCartStore((state) => state.removeAllOfItem);
   const cartItems = useCartStore((state) => state.items);
   const SAUCES = settings?.sauces || [];
   const DRINKS = settings?.drinks || [];
@@ -27,8 +28,32 @@ export default function ProductDetailScreen() {
   const [selectedDrink, setSelectedDrink] = useState<string | null>(null);
 
   const [selectedCustomOptions, setSelectedCustomOptions] = useState<Record<string, string[]>>({});
+  const [selectedExtras, setSelectedExtras] = useState<Record<string, number>>({});
 
   const inCart = cartItems.find(i => i.id.startsWith(id as string));
+
+  React.useEffect(() => {
+    if (editCartItemId) {
+      const editItem = cartItems.find(i => i.id === editCartItemId);
+      if (editItem) {
+        setQuantity(editItem.quantity);
+        if (editItem.selectedOptions) {
+          setSelectedCustomOptions(editItem.selectedOptions);
+        }
+        if (editItem.note) {
+          const parts = editItem.note.split(' | ');
+          parts.forEach(p => {
+             if (p.startsWith('Sauce(s): ')) {
+                setSelectedSauces(p.replace('Sauce(s): ', '').split(' & '));
+             }
+             if (p.startsWith('Boisson: ')) {
+                setSelectedDrink(p.replace('Boisson: ', ''));
+             }
+          });
+        }
+      }
+    }
+  }, [editCartItemId, cartItems]);
 
   if (!product) {
     return (
@@ -53,6 +78,32 @@ export default function ProductDetailScreen() {
         setSelectedSauces(prev => [...prev, sauce]);
       }
     }
+  };
+
+  const addCustomOption = (sectionTitle: string, choiceName: string, maxChoices: number) => {
+    setSelectedCustomOptions(prev => {
+      const currentSelected = prev[sectionTitle] || [];
+      if (maxChoices === 1) {
+        return { ...prev, [sectionTitle]: [choiceName] }; // Replace
+      }
+      if (currentSelected.length < maxChoices) {
+        return { ...prev, [sectionTitle]: [...currentSelected, choiceName] };
+      }
+      return prev; // Max reached
+    });
+  };
+
+  const removeCustomOption = (sectionTitle: string, choiceName: string) => {
+    setSelectedCustomOptions(prev => {
+      const currentSelected = prev[sectionTitle] || [];
+      const index = currentSelected.lastIndexOf(choiceName);
+      if (index > -1) {
+        const newSelected = [...currentSelected];
+        newSelected.splice(index, 1);
+        return { ...prev, [sectionTitle]: newSelected };
+      }
+      return prev;
+    });
   };
 
   const toggleCustomOption = (sectionTitle: string, choiceName: string, maxChoices: number) => {
@@ -84,12 +135,25 @@ export default function ProductDetailScreen() {
     });
   }
 
-  const basePrice = product.price + supplementTotal + customTotal;
-  const lineTotal = (basePrice * quantity).toFixed(2);
+  let extrasTotal = 0;
+  Object.keys(selectedExtras).forEach(extraId => {
+    const qty = selectedExtras[extraId];
+    if (qty > 0) {
+      const extraProd = products.find(p => p.id === extraId);
+      if (extraProd) {
+        extrasTotal += extraProd.price * qty;
+      }
+    }
+  });
 
-  const missingRequiredSections = product.customizationSections?.filter(sec => 
-    sec.required && (!selectedCustomOptions[sec.title] || selectedCustomOptions[sec.title].length === 0)
-  ) || [];
+  const basePrice = product.price + supplementTotal + customTotal;
+  const lineTotal = (basePrice * quantity + extrasTotal).toFixed(2);
+
+  const missingRequiredSections = product.customizationSections?.filter(sec => {
+    const title = sec.title.toLowerCase();
+    if (title.includes('boisson') || title.includes('dessert')) return false;
+    return sec.required && (!selectedCustomOptions[sec.title] || selectedCustomOptions[sec.title].length === 0);
+  }) || [];
   const isAddDisabled = missingRequiredSections.length > 0;
 
   const handleAddToCart = () => {
@@ -98,19 +162,33 @@ export default function ProductDetailScreen() {
     if (selectedSauces.length > 0) parts.push(`Sauce(s): ${selectedSauces.join(' & ')}`);
     if (selectedDrink) parts.push(`Boisson: ${selectedDrink}`);
 
-    
     const note = parts.length > 0 ? parts.join(' | ') : undefined;
     const customProduct = { ...product, price: basePrice };
 
-    // Clean up selectedOptions to only include non-empty ones
-    const finalOptions: Record<string, string[]> = {};
+    const cleanSelectedOptions: Record<string, string[]> = {};
     Object.keys(selectedCustomOptions).forEach(k => {
       if (selectedCustomOptions[k] && selectedCustomOptions[k].length > 0) {
-        finalOptions[k] = selectedCustomOptions[k];
+        cleanSelectedOptions[k] = selectedCustomOptions[k];
       }
     });
 
-    addItem(customProduct, note, quantity, Object.keys(finalOptions).length > 0 ? finalOptions : undefined);
+    if (editCartItemId) {
+      removeAllOfItem(editCartItemId as string);
+    }
+
+    addItem(customProduct, note, quantity, Object.keys(cleanSelectedOptions).length > 0 ? cleanSelectedOptions : undefined);
+
+    // Add selected extras to cart separately
+    Object.keys(selectedExtras).forEach(extraId => {
+      const qty = selectedExtras[extraId];
+      if (qty > 0) {
+        const extraProd = products.find(p => p.id === extraId);
+        if (extraProd) {
+          addItem(extraProd, undefined, qty, undefined);
+        }
+      }
+    });
+
     router.back();
   };
 
@@ -126,19 +204,26 @@ export default function ProductDetailScreen() {
           contentFit="cover" 
         />
         <View style={styles.imageOverlay} />
-        <TouchableOpacity style={styles.closeBtn} onPress={() => router.back()}>
-          <Ionicons name="close" size={22} color={Theme.colors.text} />
-        </TouchableOpacity>
-        {product.highlighted && (
-          <View style={styles.maison}>
-            <Text style={styles.maisonText}>MAISON</Text>
-          </View>
-        )}
+        
+        <SafeAreaView style={styles.headerControls}>
+          <TouchableOpacity style={styles.headerBtn} onPress={() => router.back()}>
+            <Ionicons name="chevron-back" size={24} color={Theme.colors.text} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.headerBtn} onPress={() => router.push('/cart')}>
+            <Ionicons name="bag-handle-outline" size={22} color={Theme.colors.text} />
+            {cartItems.length > 0 && (
+              <View style={styles.headerBadge}>
+                 <Text style={styles.headerBadgeText}>{cartItems.length}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </SafeAreaView>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* CATEGORY TAG */}
-        <Text style={styles.categoryTag}>{product.category?.toUpperCase()}</Text>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} bounces={false}>
+        <View style={styles.sheetContent}>
+          {/* CATEGORY TAG */}
+          <Text style={styles.categoryTag}>{product.category?.toUpperCase()}</Text>
 
         {/* TITLE & PRICE */}
         <View style={styles.titleRow}>
@@ -151,8 +236,20 @@ export default function ProductDetailScreen() {
 
         {/* DESCRIPTION */}
         <Text style={styles.description}>
-          {product.description || `Un délicieux ${product.name} préparé avec des ingrédients frais sélectionnés chaque matin. Servi chaud, à déguster sur place ou à emporter.`}
+          {product.description || `Un délicieux ${product.name} préparé avec des ingrédients frais sélectionnés chaque matin.`}
         </Text>
+
+        {/* MOCK ALLERGENS SECTION */}
+        <View style={{ marginVertical: 24 }}>
+           <Text style={styles.sectionTitleBlack}>Allergènes</Text>
+           <View style={styles.allergensList}>
+              {['leaf-outline', 'fish-outline', 'nutrition-outline', 'water-outline'].map((icon, idx) => (
+                 <View key={idx} style={styles.allergenIconWrapper}>
+                    <Ionicons name={icon as any} size={18} color="#FFF" />
+                 </View>
+              ))}
+           </View>
+        </View>
 
         {/* DYNAMIC CUSTOMIZATION SECTIONS */}
         {product.customizationSections?.map((section) => {
@@ -161,38 +258,65 @@ export default function ProductDetailScreen() {
             <React.Fragment key={section.title}>
               <View style={styles.divider} />
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                <Text style={[styles.optionsLabel, { marginBottom: 0 }]}>{section.title.toUpperCase()}</Text>
+                <Text style={[styles.sectionTitleBlack, { marginBottom: 0 }]}>{section.title}</Text>
                 {section.required && selected.length === 0 && (
                   <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 10, color: Theme.colors.danger }}>OBLIGATOIRE</Text>
                 )}
               </View>
-              {section.choices.map(choice => {
-                const isActive = selected.includes(choice.name);
-                const isMaxedOut = !isActive && selected.length >= section.maxChoices;
-                return (
-                  <TouchableOpacity 
-                    key={choice.name} 
-                    style={[styles.optionRow, isMaxedOut && { opacity: 0.5 }]} 
-                    onPress={() => !isMaxedOut && toggleCustomOption(section.title, choice.name, section.maxChoices)}
-                    activeOpacity={isMaxedOut ? 1 : 0.7}
-                  >
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.optionLabel}>{choice.name}</Text>
-                      {choice.priceOffset > 0 && <Text style={{ fontSize: 11, color: Theme.colors.success }}>+{choice.priceOffset.toFixed(2)} CHF</Text>}
-                      {choice.priceOffset < 0 && <Text style={{ fontSize: 11, color: Theme.colors.textSecondary }}>{choice.priceOffset.toFixed(2)} CHF</Text>}
-                    </View>
-                    {section.maxChoices === 1 ? (
-                      <View style={[styles.radio, isActive && styles.radioSelected]}>
-                        {isActive && <View style={styles.radioDot} />}
+              
+              {section.maxChoices === 1 ? (
+                // Single Choice -> Pills
+                <View style={styles.pillsContainer}>
+                  {section.choices.map(choice => {
+                    const isActive = selected.includes(choice.name);
+                    return (
+                      <TouchableOpacity 
+                        key={choice.name} 
+                        style={[styles.pillBtn, isActive && styles.pillBtnActive]}
+                        onPress={() => toggleCustomOption(section.title, choice.name, section.maxChoices)}
+                      >
+                         <Text style={[styles.pillText, isActive && styles.pillTextActive]}>{choice.name}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              ) : (
+                // Multi Choice -> List with Steppers
+                <View style={styles.extrasContainer}>
+                  {section.choices.map(choice => {
+                    const count = selected.filter(x => x === choice.name).length;
+                    const isMaxedOut = selected.length >= section.maxChoices;
+                    return (
+                      <View key={choice.name} style={[styles.extraRow, isMaxedOut && count === 0 && { opacity: 0.5 }]}>
+                         <View style={{ flex: 1 }}>
+                            <Text style={styles.extraName}>{choice.name}</Text>
+                            <Text style={styles.extraPrice}>{choice.priceOffset > 0 ? '+' : ''}{choice.priceOffset.toFixed(2)} CHF</Text>
+                         </View>
+                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                            {count > 0 && (
+                              <TouchableOpacity 
+                                style={[styles.extraAddBtn, { backgroundColor: Theme.colors.surface }]}
+                                onPress={() => removeCustomOption(section.title, choice.name)}
+                              >
+                                <Ionicons name="remove" size={16} color={Theme.colors.text} />
+                              </TouchableOpacity>
+                            )}
+                            {count > 0 && (
+                              <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 14 }}>{count}</Text>
+                            )}
+                            <TouchableOpacity 
+                               style={[styles.extraAddBtn, isMaxedOut && { opacity: 0.5 }]}
+                               onPress={() => !isMaxedOut && addCustomOption(section.title, choice.name, section.maxChoices)}
+                               activeOpacity={isMaxedOut ? 1 : 0.7}
+                            >
+                               <Ionicons name="add" size={16} color={Theme.colors.text} />
+                            </TouchableOpacity>
+                         </View>
                       </View>
-                    ) : (
-                      <View style={[styles.checkbox, isActive && styles.checkboxSelected]}>
-                        {isActive && <Ionicons name="checkmark" size={14} color="#FFF" />}
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                );
-              })}
+                    );
+                  })}
+                </View>
+              )}
             </React.Fragment>
           );
         })}
@@ -201,73 +325,103 @@ export default function ProductDetailScreen() {
         {product.hasSauces && !product.customizationSections && (
           <>
             <View style={styles.divider} />
-            <Text style={styles.optionsLabel}>CHOISISSEZ VOS SAUCES (MAX 2)</Text>
-            <View style={{ marginBottom: 10 }}>
-               {selectedSauces.length === 2 && <Text style={{ color: Theme.colors.primary, fontSize: 12, fontFamily: Theme.fonts.bodyMedium }}>Limite atteinte (2 sauces max)</Text>}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <Text style={[styles.sectionTitleBlack, { marginBottom: 0 }]}>SAUCES (MAX 2)</Text>
+              {selectedSauces.length === 2 && (
+                 <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 10, color: Theme.colors.textSecondary }}>LIMITE ATTEINTE</Text>
+              )}
             </View>
-            {SAUCES.map((sauce) => {
-              const isActive = selectedSauces.includes(sauce);
-              return (
-                <TouchableOpacity key={sauce} style={styles.optionRow} onPress={() => toggleSauce(sauce)}>
-                  <Text style={styles.optionLabel}>{sauce}</Text>
-                  <View style={[styles.checkbox, isActive && styles.checkboxSelected]}>
-                    {isActive && <Ionicons name="checkmark" size={14} color="#FFF" />}
-                  </View>
-                </TouchableOpacity>
-              )
-            })}
+            <View style={styles.pillsContainer}>
+               {SAUCES.map((sauce) => {
+                 const isActive = selectedSauces.includes(sauce);
+                 return (
+                   <TouchableOpacity 
+                     key={sauce} 
+                     style={[styles.pillBtn, isActive && styles.pillBtnActive]} 
+                     onPress={() => toggleSauce(sauce)}
+                   >
+                     <Text style={[styles.pillText, isActive && styles.pillTextActive]}>{sauce}</Text>
+                   </TouchableOpacity>
+                 )
+               })}
+            </View>
           </>
         )}
 
         {product.hasDrinkSelection && !product.customizationSections && (
           <>
             <View style={styles.divider} />
-            <Text style={styles.optionsLabel}>CHOISISSEZ VOTRE BOISSON (33CL)</Text>
-            {DRINKS.filter(d => {
-              if (typeof d === 'string') return true;
-              if (d.outOfStock) return false;
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <Text style={[styles.sectionTitleBlack, { marginBottom: 0 }]}>BOISSON</Text>
+            </View>
+            <View style={styles.pillsContainer}>
+            {products.filter(d => d.category === 'BOISSONS' && !d.outOfStock).map((drink) => {
+              const name = drink.name;
               
-              const productName = product.name.toLowerCase();
-              const isMenu = productName.includes('menu') || productName.includes('etudiant') || (product.category && product.category.toLowerCase().includes('menu'));
-              
-              if (isMenu) {
-                 const sizeNum = parseInt(d.size) || 0;
-                 return sizeNum <= 33 || d.size.toLowerCase().includes('33');
-              }
-              
-              if (productName.includes('33cl') || productName.includes('canne')) {
-                return d.size.toLowerCase().includes('33') || d.size.toLowerCase().includes('25');
-              }
-              if (productName.includes('50cl') || productName.includes('0,5') || productName.includes('0.5')) {
-                return d.size.toLowerCase().includes('50') || d.size.toLowerCase().includes('0,5') || d.size.toLowerCase().includes('0.5');
-              }
-              if (productName.includes('1.5l') || productName.includes('1,5')) {
-                return d.size.toLowerCase().includes('1.5') || d.size.toLowerCase().includes('1,5');
-              }
-
-              return true;
-            }).map((drink) => {
-              const name = typeof drink === 'string' ? drink : drink.name;
-              const size = typeof drink === 'string' ? '' : drink.size;
+              // Extract size from description or assume empty if not provided for now
+              const size = drink.description?.includes('cl') || drink.description?.includes('L') 
+                ? drink.description 
+                : '';
+                
+              const isActive = selectedDrink === name;
               return (
-                <TouchableOpacity 
-                  key={name} 
-                  style={styles.optionRow} 
-                  onPress={() => setSelectedDrink(name)}
-                >
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.optionLabel}>{name}</Text>
-                    {size ? <Text style={{ fontSize: 10, color: Theme.colors.textSecondary }}>{size}</Text> : null}
-                  </View>
-                  <View style={[styles.radio, selectedDrink === name && styles.radioSelected]}>
-                    {selectedDrink === name && <View style={styles.radioDot} />}
-                  </View>
-                </TouchableOpacity>
+                 <TouchableOpacity 
+                   key={name} 
+                   style={[styles.pillBtn, isActive && styles.pillBtnActive]} 
+                   onPress={() => setSelectedDrink(name)}
+                 >
+                   <Text style={[styles.pillText, isActive && styles.pillTextActive]}>{name} {size}</Text>
+                 </TouchableOpacity>
               );
             })}
+            </View>
           </>
         )}
 
+
+
+        {/* CROSS SELL / EXTRAS */}
+        {isCustomizable && (
+           <>
+             <View style={styles.divider} />
+             <Text style={styles.sectionTitleBlack}>ENVIE D'UN EXTRA ?</Text>
+             <View style={styles.extrasList}>
+               {products.filter(p => ['DESSERTS', 'BOISSONS'].includes(p.category)).map(extra => {
+                 const qty = selectedExtras[extra.id] || 0;
+                 return (
+                   <View key={extra.id} style={styles.crossSellRow}>
+                      <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                         <Image source={getImageSource(extra.image)} style={styles.crossSellImg} contentFit="cover" />
+                         <View style={{ flex: 1, paddingRight: 8 }}>
+                            <Text style={styles.extraName} numberOfLines={1}>{extra.name}</Text>
+                            <Text style={styles.extraPrice}>+ {extra.price.toFixed(2)} CHF</Text>
+                         </View>
+                      </View>
+                      
+                      {qty === 0 ? (
+                        <TouchableOpacity 
+                           style={styles.extraAddBtn}
+                           onPress={() => setSelectedExtras(prev => ({ ...prev, [extra.id]: 1 }))}
+                        >
+                           <Ionicons name="add" size={16} color={Theme.colors.text} />
+                        </TouchableOpacity>
+                      ) : (
+                        <View style={styles.crossSellQtyRow}>
+                           <TouchableOpacity style={styles.crossSellQtyBtn} onPress={() => setSelectedExtras(prev => ({ ...prev, [extra.id]: qty - 1 }))}>
+                              <Ionicons name="remove" size={14} color={Theme.colors.text} />
+                           </TouchableOpacity>
+                           <Text style={styles.crossSellQtyText}>{qty}</Text>
+                           <TouchableOpacity style={styles.crossSellQtyBtn} onPress={() => setSelectedExtras(prev => ({ ...prev, [extra.id]: qty + 1 }))}>
+                              <Ionicons name="add" size={14} color={Theme.colors.text} />
+                           </TouchableOpacity>
+                        </View>
+                      )}
+                   </View>
+                 );
+               })}
+             </View>
+           </>
+        )}
 
 
         <View style={styles.divider} />
@@ -285,6 +439,7 @@ export default function ProductDetailScreen() {
         </View>
 
         <View style={{ height: 100 }} />
+        </View>
       </ScrollView>
 
       {/* STICKY FOOTER */}
@@ -295,7 +450,7 @@ export default function ProductDetailScreen() {
           </Text>
         )}
         <TouchableOpacity style={[styles.addBtn, isAddDisabled && { opacity: 0.5 }]} onPress={handleAddToCart} activeOpacity={0.85} disabled={isAddDisabled}>
-          <Text style={styles.addBtnText} numberOfLines={1}>{isAddDisabled ? 'REMPLISSEZ LES OPTIONS' : 'AJOUTER AU PANIER'}</Text>
+          <Text style={styles.addBtnText} numberOfLines={1}>{editCartItemId ? 'METTRE À JOUR' : 'AJOUTER AU PANIER'}</Text>
           <View style={styles.addBtnPriceBox}>
              <Text style={styles.addBtnPrice}>{lineTotal}</Text>
              <Text style={styles.addBtnCurrency}>CHF</Text>
@@ -323,23 +478,47 @@ const styles = StyleSheet.create({
   },
   imageOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.15)',
+    backgroundColor: 'rgba(0,0,0,0.05)',
   },
-  closeBtn: {
+  headerControls: {
     position: 'absolute',
-    top: 50,
+    top: 20,
+    left: 20,
     right: 20,
-    width: 40,
-    height: 40,
-    backgroundColor: Theme.colors.background,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  headerBtn: {
+    width: 44,
+    height: 44,
+    backgroundColor: '#FFF',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 20,
+    borderRadius: 22,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
     elevation: 4,
+    position: 'relative',
+  },
+  headerBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: '#000',
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerBadgeText: {
+    color: '#FFF',
+    fontSize: 9,
+    fontFamily: Theme.fonts.bodyBold,
   },
   maison: {
     position: 'absolute',
@@ -356,8 +535,15 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
   },
   scrollContent: {
-    padding: 20,
-    paddingTop: 24,
+    paddingBottom: 0,
+    marginTop: -40, // Pulls the sheet up over the image
+  },
+  sheetContent: {
+    backgroundColor: '#FFF',
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    padding: 24,
+    minHeight: height * 0.6,
   },
   categoryTag: {
     fontFamily: Theme.fonts.bodyMedium,
@@ -411,50 +597,80 @@ const styles = StyleSheet.create({
     backgroundColor: Theme.colors.border,
     marginVertical: 24,
   },
-  optionsLabel: {
-    fontFamily: Theme.fonts.bodyMedium,
-    fontSize: 10,
-    color: Theme.colors.textSecondary,
-    letterSpacing: 2,
-    marginBottom: 16,
-  },
-  optionRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Theme.colors.border,
-  },
-  optionLabel: {
-    fontFamily: Theme.fonts.bodyMedium,
-    fontSize: 16,
+  sectionTitleBlack: {
+    fontFamily: Theme.fonts.title,
+    fontSize: 18,
     color: Theme.colors.text,
+    marginBottom: 12,
   },
-  radio: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    borderWidth: 2,
-    borderColor: Theme.colors.border,
+  allergensList: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  allergenIconWrapper: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#000',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  radioSelected: {
-    borderColor: Theme.colors.success,
+  pillsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginBottom: 16,
   },
-  radioDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: Theme.colors.success,
+  pillBtn: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 100,
+    borderWidth: 1,
+    borderColor: Theme.colors.border,
+    backgroundColor: '#FFF',
   },
-  checkbox: { 
-    width: 22, height: 22, borderRadius: 6, borderWidth: 2, 
-    borderColor: Theme.colors.border, alignItems: 'center', justifyContent: 'center' 
+  pillBtnActive: {
+    backgroundColor: '#000',
+    borderColor: '#000',
   },
-  checkboxSelected: { 
-    backgroundColor: Theme.colors.success, borderColor: Theme.colors.success 
+  pillText: {
+    fontFamily: Theme.fonts.bodyBold,
+    fontSize: 13,
+    color: Theme.colors.textSecondary,
+  },
+  pillTextActive: {
+    color: '#FFF',
+  },
+  extrasContainer: {
+    marginBottom: 16,
+    gap: 12,
+  },
+  extraRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+  },
+  extraName: {
+    fontFamily: Theme.fonts.bodyMedium,
+    fontSize: 15,
+    color: Theme.colors.text,
+    marginBottom: 4,
+  },
+  extraPrice: {
+    fontFamily: Theme.fonts.body,
+    fontSize: 12,
+    color: Theme.colors.textSecondary,
+  },
+  extraAddBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Theme.colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FAFAFA',
   },
   qtyRow: {
     flexDirection: 'row',
@@ -495,17 +711,17 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   addBtn: {
-    backgroundColor: Theme.colors.success,
+    backgroundColor: '#000',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 24,
     paddingVertical: 18,
     borderRadius: 100,
-    shadowColor: Theme.colors.success,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
     elevation: 8,
   },
   addBtnText: {
@@ -550,5 +766,95 @@ const styles = StyleSheet.create({
   },
   backBtnFallback: {
     padding: 12,
+  },
+  optionsLabel: {
+    fontFamily: Theme.fonts.title,
+    fontSize: 16,
+    color: Theme.colors.text,
+    marginBottom: 12,
+  },
+  optionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: Theme.colors.border,
+  },
+  optionLabel: {
+    fontFamily: Theme.fonts.bodyMedium,
+    fontSize: 14,
+    color: Theme.colors.text,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: Theme.colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxSelected: {
+    backgroundColor: '#000',
+    borderColor: '#000',
+  },
+  radio: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Theme.colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  radioSelected: {
+    borderColor: '#000',
+  },
+  radioDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#000',
+  },
+  extrasList: {
+    gap: 12,
+  },
+  crossSellRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FAFAFA',
+    padding: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Theme.colors.border,
+  },
+  crossSellImg: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: Theme.colors.surface,
+    borderWidth: 1,
+    borderColor: Theme.colors.border,
+  },
+  crossSellQtyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#FFF',
+    borderRadius: 100,
+    borderWidth: 1,
+    borderColor: Theme.colors.border,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  crossSellQtyBtn: {
+    padding: 4,
+  },
+  crossSellQtyText: {
+    fontFamily: Theme.fonts.title,
+    fontSize: 16,
+    color: Theme.colors.text,
   },
 });

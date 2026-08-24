@@ -1,6 +1,6 @@
 export const Theme = {
   colors: {
-    primary: '#297f3a', // Pokémoons Green
+    primary: '#000000', // Minimalist Black
     background: '#FFFFFF', // Pure White
     surface: '#F5F5F5', // Light grey surface
     text: '#121212', // Near black for readability

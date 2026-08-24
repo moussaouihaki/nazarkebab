@@ -27,49 +27,23 @@ interface DeliveryZoneState {
   getZoneForAddress: (address: string) => DeliveryZone | null;
 }
 
-// ─── Zones par défaut (région Porrentruy) ────────────────────────────────────
-
 const DEFAULT_ZONES: Omit<DeliveryZone, 'id'>[] = [
   {
-    name: 'ZONE 1 - Porrentruy',
-    postalCodes: ['2900'],
+    name: 'ZONE 1 - La Chaux-de-Fonds et environs',
+    postalCodes: ['2300', '2301', '2302', '2303', '2304'],
     minOrder: 20,
     deliveryFee: 0,
     estimatedTime: 20,
     active: true,
   },
   {
-    name: 'ZONE 2 - Environs Proches',
-    postalCodes: ['2905', '2902', '2922', '2942', '2950'], // Courtedoux, Fontenais, Courchavon, Alle, Courgenay
-    minOrder: 30,
+    name: 'ZONE 2 - Le Locle',
+    postalCodes: ['2400', '2402', '2403'],
+    minOrder: 40,
     deliveryFee: 0,
     estimatedTime: 30,
     active: true,
-  },
-  {
-    name: 'ZONE 3 - Ajoie Centre',
-    postalCodes: ['2943', '2906', '2932', '2923', '2952', '2946', '2915', '2947', '2925'], // Vendlincourt, Chevenez, Coeuve, Courtemaîche, Cornol, Miécourt, Bure, Charmoille, Buix
-    minOrder: 40,
-    deliveryFee: 0,
-    estimatedTime: 40,
-    active: true,
-  },
-  {
-    name: 'ZONE 4 - Ajoie Périphérie',
-    postalCodes: ['2944', '2935', '2933', '2924', '2926', '2882', '2916', '2907', '2912', '2904', '2954'], // Bonfol, Beurnevésin, Damphreux, Lugnez, Montignez, Boncourt, St-Ursanne, Fahy, Rocourt, Réclère, Bressaucourt, Asuel
-    minOrder: 50,
-    deliveryFee: 0,
-    estimatedTime: 50,
-    active: true,
-  },
-  {
-    name: 'ZONE 5 - Vallée / Delémont',
-    postalCodes: ['2856', '2855', '2854'], // Boécourt, Glovelier, Bassecourt
-    minOrder: 50,
-    deliveryFee: 0,
-    estimatedTime: 60,
-    active: true,
-  },
+  }
 ];
 
 // ─── Extraction du code postal depuis une adresse ────────────────────────────
@@ -90,35 +64,25 @@ export const useDeliveryZoneStore = create<DeliveryZoneState>((set, get) => ({
 
   fetchZones: async () => {
     try {
-      // 1. Détecter si on doit injecter les zones par défaut
       const colRef = collection(db, 'deliveryZones');
-      const existing = await getDocs(colRef);
-
-      if (existing.empty) {
-        set({ isLoading: true });
-        const injected: DeliveryZone[] = [];
-        for (const zoneData of DEFAULT_ZONES) {
-          const ref = doc(colRef);
-          await setDoc(ref, zoneData);
-          injected.push({ id: ref.id, ...zoneData } as DeliveryZone);
-        }
-        set({ zones: injected, isLoading: false });
-      }
 
       // 2. Écouter en temps réel
-      return onSnapshot(colRef, (snapshot) => {
-        const zones: DeliveryZone[] = [];
+      return onSnapshot(colRef, async (snapshot) => {
+        let zones: DeliveryZone[] = [];
         snapshot.forEach(d => zones.push({ id: d.id, ...d.data() } as DeliveryZone));
+
+
+
+
+
         set({ zones, isLoading: false });
       }, (error) => {
         console.error('Erreur Snapshot Zones:', error);
-        // Fallback local si permission refusée
         const localZones = DEFAULT_ZONES.map((z, idx) => ({ id: `local-${idx}`, ...z } as DeliveryZone));
         set({ zones: localZones, isLoading: false });
       });
     } catch (err) {
       console.error('Erreur Initialisation Zones:', err);
-      // Fallback local direct
       const localZones = DEFAULT_ZONES.map((z, idx) => ({ id: `local-${idx}`, ...z } as DeliveryZone));
       set({ zones: localZones, isLoading: false });
     }

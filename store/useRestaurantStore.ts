@@ -17,7 +17,10 @@ export interface OpeningHours {
   day: string;
   isOpen: boolean;
   open: string;  // "11:00"
-  close: string; // "23:00"
+  close: string; // "14:00"
+  hasSplitShift?: boolean;
+  open2?: string;  // "18:00"
+  close2?: string; // "23:00"
 }
 
 export interface Drink {
@@ -31,6 +34,7 @@ export interface RestaurantSettings {
   name: string;
   slogan: string;
   address: string;
+  tva?: string;
   phone: string;
   email: string;
   website: string;
@@ -41,12 +45,16 @@ export interface RestaurantSettings {
   acceptsPickup: boolean;
   isOpen: boolean; // force open/close override
   openOverrideMessage: string;
+  closedFrom?: string; // e.g. "2026-08-05"
+  closedTo?: string;   // e.g. "2026-08-25"
   sauces: string[];
   drinks: Drink[];
   deliveryTime: string; // e.g. "30-45"
   takeAwayTime: string; // e.g. "15-20"
-  loyaltyEnabled: boolean; // Nouveau : carte de fidélité
-  loyaltyMinPoints: number; // Nouveau : points requis (ex: 10)
+  loyaltyEnabled: boolean;
+  loyaltyMinPoints: number;
+  announcementEnabled: boolean;   // Afficher ou non la bannière
+  announcementMessage: string;    // Texte du message (ex: "Fermé du 1 au 15 août")
 }
 
 interface RestaurantState {
@@ -75,20 +83,21 @@ interface RestaurantState {
 }
 
 const DEFAULT_HOURS: OpeningHours[] = [
-  { day: 'Lundi',    isOpen: true,  open: '11:00', close: '23:00' },
-  { day: 'Mardi',    isOpen: true,  open: '11:00', close: '23:00' },
-  { day: 'Mercredi', isOpen: true,  open: '11:00', close: '23:00' },
-  { day: 'Jeudi',    isOpen: true,  open: '11:00', close: '23:00' },
-  { day: 'Vendredi', isOpen: true,  open: '11:00', close: '00:00' },
-  { day: 'Samedi',   isOpen: true,  open: '11:00', close: '00:00' },
-  { day: 'Dimanche', isOpen: true,  open: '11:00', close: '00:00' },
+  { day: 'Lundi',    isOpen: true,  open: '11:00', close: '14:00' },
+  { day: 'Mardi',    isOpen: true,  open: '11:00', close: '14:00', hasSplitShift: true, open2: '18:00', close2: '22:00' },
+  { day: 'Mercredi', isOpen: true,  open: '11:00', close: '14:00', hasSplitShift: true, open2: '18:00', close2: '22:00' },
+  { day: 'Jeudi',    isOpen: true,  open: '11:00', close: '14:00', hasSplitShift: true, open2: '18:00', close2: '22:00' },
+  { day: 'Vendredi', isOpen: true,  open: '11:00', close: '14:00', hasSplitShift: true, open2: '18:00', close2: '23:00' },
+  { day: 'Samedi',   isOpen: true,  open: '11:00', close: '14:00', hasSplitShift: true, open2: '18:00', close2: '23:00' },
+  { day: 'Dimanche', isOpen: true,  open: '18:00', close: '22:00' },
 ];
 
 const DEFAULT_SETTINGS: RestaurantSettings = {
-  name: 'Pokémoons',
+  name: 'Pokémoons Sàrl',
   slogan: 'Poké Bowls | Desserts | Boissons',
-  address: 'La Chaux-de-Fonds',
-  phone: '000 000 00 00',
+  address: 'Place du Marché 6, 2300 La Chaux-de-Fonds, NE',
+  tva: 'CHE-166.128.890',
+  phone: '032 757 44 44',
   email: 'contact@pokemoons.ch',
   website: 'www.pokemoons.ch',
   instagram: '@pokemoons.ch',
@@ -98,7 +107,16 @@ const DEFAULT_SETTINGS: RestaurantSettings = {
   acceptsPickup: true,
   isOpen: true,
   openOverrideMessage: '',
-  sauces: ['Sauce Soja Sucrée', 'Sauce Soja Salée', 'Spicy Mayo', 'Vinaigrette Sésame', 'Sans Sauce'],
+  closedFrom: '',
+  closedTo: '',
+  sauces: [
+    "Sauce spéciale maison",
+    "Soja",
+    "Teriyaki",
+    "Huile d'olive citron maison",
+    "Spicy mayo maison",
+    "Teriyaki à l'ail"
+  ],
   drinks: [
     { name: 'Coca-Cola', price: 3.50, size: '33cl' },
     { name: 'Coca-Cola Zero', price: 3.50, size: '33cl' },
@@ -113,6 +131,8 @@ const DEFAULT_SETTINGS: RestaurantSettings = {
   takeAwayTime: '15-20',
   loyaltyEnabled: true,
   loyaltyMinPoints: 10,
+  announcementEnabled: false,
+  announcementMessage: '',
 };
 
 export const useRestaurantStore = create<RestaurantState>((set, get) => ({
@@ -128,6 +148,23 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
       const settingsDoc = await getDoc(doc(db, 'settings', 'pokemoons_restaurant'));
       if (settingsDoc.exists()) {
         const data = settingsDoc.data();
+        
+        // AUTO-REPAIR SAUCES (local only)
+        if (!data.sauces || data.sauces.length === 0) {
+           data.sauces = DEFAULT_SETTINGS.sauces;
+        }
+
+        // AUTO-REPAIR ADDRESS, TVA, NAME (local only)
+        if (!data.address) data.address = DEFAULT_SETTINGS.address;
+        if (!data.tva) data.tva = DEFAULT_SETTINGS.tva;
+        if (!data.name) data.name = DEFAULT_SETTINGS.name;
+        if (!data.phone) data.phone = DEFAULT_SETTINGS.phone;
+
+        // AUTO-REPAIR HOURS (local only)
+        if (!data.hours || data.hours.length === 0) {
+           data.hours = DEFAULT_HOURS;
+        }
+
         set({ settings: { ...DEFAULT_SETTINGS, ...data } as RestaurantSettings });
       } else {
         // First initialization
@@ -150,38 +187,14 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
           prodList.push({ id: docSnap.id, ...docSnap.data() } as Product);
         });
         
-        // AUTO-REPAIR: If any product has a broken image (number), fix it from local data
-        prodList.forEach(async (p) => {
-          if (typeof p.image === 'number') {
-            const initial = INITIAL_PRODUCTS.find(ip => ip.id === p.id);
-            const imageKey = typeof initial?.image === 'string' ? initial.image : 'poke';
-            await updateDoc(doc(db, 'pokemoons_products', p.id), { image: imageKey });
-          }
+        // Merge local missing products to ensure UI always has the defaults
+        const mergedProducts = [...prodList];
+        INITIAL_PRODUCTS.forEach(initialP => {
+           if (!mergedProducts.find(p => p.id === initialP.id)) {
+              mergedProducts.push(initialP);
+           }
         });
-
-        // Seed initial products if collection is empty
-        if (prodList.length === 0 && INITIAL_PRODUCTS.length > 0) {
-          INITIAL_PRODUCTS.forEach(async (p) => {
-            const { id, ...rest } = p;
-            try { await setDoc(doc(db, 'pokemoons_products', id), rest); } catch(e) {}
-          });
-          set({ products: INITIAL_PRODUCTS });
-        } else {
-          // FORCE UPDATE: push hardcoded PRODUCTS to firebase so the new Compose Ton Poké is available
-          INITIAL_PRODUCTS.forEach(async (p) => {
-            const { id, ...rest } = p;
-            try { await setDoc(doc(db, 'pokemoons_products', id), rest, { merge: true }); } catch(e) {}
-          });
-          
-          // Merge local missing products in case Firebase write fails
-          const mergedProducts = [...prodList];
-          INITIAL_PRODUCTS.forEach(initialP => {
-             if (!mergedProducts.find(p => p.id === initialP.id)) {
-                mergedProducts.push(initialP);
-             }
-          });
-          set({ products: mergedProducts });
-        }
+        set({ products: mergedProducts });
       });
 
     } catch (err) {
@@ -284,10 +297,23 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
   },
 }));
 
-export const checkIsRestaurantOpen = (settings: RestaurantSettings): boolean => {
+export const checkIsRestaurantOpen = (settings: RestaurantSettings, targetDate?: Date): boolean => {
   if (!settings.isOpen) return false; // Master override
 
-  const now = new Date();
+  const now = targetDate || new Date();
+
+  // Check vacation dates
+  if (settings.closedFrom && settings.closedTo) {
+    const closedFromDate = new Date(settings.closedFrom);
+    closedFromDate.setHours(0, 0, 0, 0);
+    const closedToDate = new Date(settings.closedTo);
+    closedToDate.setHours(23, 59, 59, 999);
+    
+    if (now >= closedFromDate && now <= closedToDate) {
+      return false;
+    }
+  }
+
   const days = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
   const todayName = days[now.getDay()];
 
@@ -302,18 +328,39 @@ export const checkIsRestaurantOpen = (settings: RestaurantSettings): boolean => 
   };
 
   const openMinutes = parseTime(todayHours.open);
-  let closeMinutes = parseTime(todayHours.close);
+  const closeMinutes = parseTime(todayHours.close);
 
-  if (closeMinutes <= openMinutes) {
-    // Closes past midnight (e.g., "00:00" or "02:00")
-    closeMinutes += 24 * 60;
+  let isOpenNow = (currentMinutes >= openMinutes && currentMinutes <= closeMinutes);
+
+  if (!isOpenNow && todayHours.hasSplitShift && todayHours.open2 && todayHours.close2) {
+    const open2Minutes = parseTime(todayHours.open2);
+    const close2Minutes = parseTime(todayHours.close2);
+    isOpenNow = (currentMinutes >= open2Minutes && currentMinutes <= close2Minutes);
   }
 
-  let currentCompare = currentMinutes;
-  // If it's early morning (e.g. 01:00) and the store closed past midnight
-  if (currentMinutes < openMinutes && closeMinutes > 24 * 60) {
-    currentCompare += 24 * 60;
+  return isOpenNow;
+};
+
+export const isRestaurantOpenOnDate = (settings: RestaurantSettings, date: Date): boolean => {
+  if (!settings.isOpen) return false; // Master override
+
+  // Check vacation dates
+  if (settings.closedFrom && settings.closedTo) {
+    const closedFromDate = new Date(settings.closedFrom);
+    closedFromDate.setHours(0, 0, 0, 0);
+    const closedToDate = new Date(settings.closedTo);
+    closedToDate.setHours(23, 59, 59, 999);
+    
+    if (date >= closedFromDate && date <= closedToDate) {
+      return false;
+    }
   }
 
-  return currentCompare >= openMinutes && currentCompare < closeMinutes;
+  const days = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
+  const todayName = days[date.getDay()];
+  const todayHours = settings.hours.find(h => h.day === todayName);
+  
+  if (!todayHours || !todayHours.isOpen) return false;
+
+  return true;
 };

@@ -8,9 +8,50 @@ import { useDeliveryZoneStore, DeliveryZone } from '../store/useDeliveryZoneStor
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { getImageSource } from '../constants/data';
-import { useRestaurantStore, checkIsRestaurantOpen } from '../store/useRestaurantStore';
+import { useRestaurantStore, checkIsRestaurantOpen, isRestaurantOpenOnDate } from '../store/useRestaurantStore';
 
 type Step = 'cart' | 'info' | 'confirmation';
+
+const styles2 = StyleSheet.create({
+  chip: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: '#f0f0f0',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  chipActive: {
+    backgroundColor: Theme.colors.primary,
+    borderColor: Theme.colors.primary,
+  },
+  chipText: {
+    fontFamily: Theme.fonts.bodyBold,
+    color: Theme.colors.textSecondary,
+  },
+  chipTextActive: {
+    color: '#FFF',
+  },
+  timeChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: '#f8f8f8',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  timeChipActive: {
+    backgroundColor: Theme.colors.text,
+    borderColor: Theme.colors.text,
+  },
+  timeChipText: {
+    fontFamily: Theme.fonts.bodyBold,
+    color: Theme.colors.text,
+  },
+  timeChipTextActive: {
+    color: '#FFF',
+  },
+});
 
 export default function CartScreen() {
   const { 
@@ -29,13 +70,102 @@ export default function CartScreen() {
   // Pre-fill from user profile if fields are empty
   const [name, setName] = useState(customerName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim());
   const [phone, setPhone] = useState(customerPhone || user?.phone || '');
-  const [address, setAddress] = useState(customerAddress || user?.address || '');
+  const [street, setStreet] = useState(customerAddress ? customerAddress.split(',')[0] : (user?.street || user?.address?.split(',')[0] || ''));
+  const [postalCode, setPostalCode] = useState(customerAddress ? customerAddress.match(/\d{4}/)?.[0] || '' : (user?.postalCode || user?.address?.match(/\d{4}/)?.[0] || ''));
+  const [city, setCity] = useState(customerAddress ? customerAddress.split(/ \d{4} /)[1] || customerAddress.split(',').pop()?.trim() || '' : (user?.city || user?.address?.split(/ \d{4} /)[1] || user?.address?.split(',').pop()?.trim() || ''));
+  const [saveAddress, setSaveAddress] = useState(false);
+
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedTime, setSelectedTime] = useState<string>('ASAP');
+  const [availableDates, setAvailableDates] = useState<Date[]>([]);
+  const [availableTimes, setAvailableTimes] = useState<string[]>([]);
+
+  // Generate available dates based on vacations and opening hours
+  useEffect(() => {
+    if (!settings) return;
+    const dates = [];
+    const now = new Date();
+    for (let i = 0; i < 14; i++) {
+      const d = new Date(now);
+      d.setDate(now.getDate() + i);
+      if (isRestaurantOpenOnDate(settings, d)) {
+        dates.push(d);
+      }
+    }
+    setAvailableDates(dates);
+    if (dates.length > 0 && (!selectedDate || !dates.find(d => d.toDateString() === selectedDate.toDateString()))) {
+      setSelectedDate(dates[0]);
+    }
+  }, [settings]);
+
+  // Generate times for selected date
+  useEffect(() => {
+    if (!settings || !selectedDate) return;
+    
+    const days = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
+    const todayName = days[selectedDate.getDay()];
+    const todayHours = settings.hours.find(h => h.day === todayName);
+    
+    if (!todayHours || !todayHours.isOpen) {
+      setAvailableTimes([]);
+      setSelectedTime('');
+      return;
+    }
+
+    const times = [];
+    const parseTime = (timeStr) => {
+      const [h, m] = timeStr.split(':').map(Number);
+      return h * 60 + m;
+    };
+
+    const formatTime = (mins) => {
+      const h = Math.floor(mins / 60);
+      const m = mins % 60;
+      return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+    };
+
+    const isToday = selectedDate.toDateString() === new Date().toDateString();
+    let currentMins = 0;
+
+    if (isToday) {
+      const now = new Date();
+      currentMins = now.getHours() * 60 + now.getMinutes() + 30; // 30 mins buffer
+      // Round to next 15 mins
+      currentMins = Math.ceil(currentMins / 15) * 15;
+    }
+
+    const generateSlots = (openMins, closeMins) => {
+      let start = Math.max(openMins, isToday ? currentMins : openMins);
+      for (let m = start; m <= closeMins; m += 15) {
+        times.push(formatTime(m));
+      }
+    };
+
+    generateSlots(parseTime(todayHours.open), parseTime(todayHours.close));
+    if (todayHours.hasSplitShift && todayHours.open2 && todayHours.close2) {
+      generateSlots(parseTime(todayHours.open2), parseTime(todayHours.close2));
+    }
+
+    if (isToday && times.length > 0) {
+      times.unshift('ASAP');
+    }
+
+    setAvailableTimes(times);
+    if (!times.includes(selectedTime) && times.length > 0) {
+      setSelectedTime(times[0]);
+    } else if (times.length === 0) {
+      setSelectedTime('');
+    }
+  }, [selectedDate, settings]);
+
   const [step, setStep] = useState<Step>('cart');
   const [note, setNote] = useState(orderNote);
   const [placedOrder, setPlacedOrder] = useState<any>(null);
   const [detectedZone, setDetectedZone] = useState<DeliveryZone | null>(null);
   const [zoneError, setZoneError] = useState('');
   const [useLoyalty, setUseLoyalty] = useState(false);
+
+  const address = `${street}, ${postalCode} ${city}`;
 
   const checkZone = (currentAddress: string, currentTotal: number, type: string) => {
     if (type === 'delivery' && currentAddress.length > 4) {
@@ -58,17 +188,27 @@ export default function CartScreen() {
     }
   };
 
-  const handleAddressChange = (val: string) => {
-    setAddress(val);
-    checkZone(val, total, deliveryType);
-  };
-
   // Sync with user profile if address changes and customer has no custom address set
   useEffect(() => {
-    if (user?.address && !customerAddress) {
-      setAddress(user.address);
+    if ((user?.street || user?.address) && !customerAddress) {
+      if (user.street) {
+        setStreet(user.street);
+        setPostalCode(user.postalCode || '');
+        setCity(user.city || '');
+      } else if (user.address) {
+        const addr = user.address;
+        const m = addr.match(/\b(2[0-9]{3})\b/);
+        if (m) {
+           setPostalCode(m[1]);
+           const parts = addr.split(m[1]);
+           setStreet(parts[0].replace(/, $/, '').trim());
+           setCity(parts[1]?.trim() || '');
+        } else {
+           setStreet(addr);
+        }
+      }
     }
-  }, [user?.address]);
+  }, [user?.address, user?.street, user?.postalCode, user?.city]);
 
   // Recalculate zone when address, total, deliveryType or zones list changes
   useEffect(() => {
@@ -89,20 +229,38 @@ export default function CartScreen() {
   };
 
   const handlePlaceOrder = async () => {
-    if (!settings.isOpen || !checkIsRestaurantOpen(settings)) {
-      alert("Désolé, le restaurant est actuellement fermé. Vous ne pouvez pas passer commande pour le moment.");
+    if (!settings.isOpen || availableDates.length === 0 || !selectedTime) {
+      alert("Désolé, il n'y a aucun créneau disponible pour passer commande.");
       return;
     }
 
     setCustomerInfo(name, phone, address);
     setOrderNote(note);
     
-    // Déduire les points si consommés
-    if (useLoyalty && user) {
-      await updateProfile({ loyaltyPoints: (user.loyaltyPoints || 0) - 10 });
+    // Si l'utilisateur veut sauvegarder cette adresse pour la prochaine fois
+    if (saveAddress && user) {
+      updateProfile({ address, street, postalCode, city });
+    }
+    
+    // Gérer les points de fidélité
+    if (user) {
+      if (useLoyalty) {
+        // Déduire 10 points si utilisés (l'utilisateur gagne tout de même 1 point pour cette commande)
+        await updateProfile({ loyaltyPoints: Math.max(0, (user.loyaltyPoints || 0) - 9) });
+      } else {
+        // Ajouter 1 point pour la commande
+        await updateProfile({ loyaltyPoints: (user.loyaltyPoints || 0) + 1 });
+      }
     }
 
-    placeOrder(user?.id);
+    
+    let finalRequestedTime = selectedTime;
+    if (selectedDate && selectedDate.toDateString() !== new Date().toDateString()) {
+       const dateStr = selectedDate.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
+       finalRequestedTime = `${dateStr} à ${selectedTime}`;
+    }
+    placeOrder(user?.id, finalRequestedTime, loyaltyDiscount);
+  
     router.replace('/tracking');
   };
 
@@ -186,6 +344,52 @@ export default function CartScreen() {
               </TouchableOpacity>
             </View>
 
+            
+            {/* SCHEDULE ORDER */}
+            {availableDates.length > 0 && (
+              <View style={{ marginBottom: 20 }}>
+                <Text style={styles.fieldLabel}>QUAND SOUHAITEZ-VOUS VOTRE COMMANDE ?</Text>
+                
+                {/* DATES */}
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, marginBottom: 12 }}>
+                  {availableDates.map((d, i) => {
+                    const isSelected = selectedDate?.toDateString() === d.toDateString();
+                    const isToday = d.toDateString() === new Date().toDateString();
+                    const label = isToday ? "Aujourd'hui" : d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
+                    return (
+                      <TouchableOpacity 
+                        key={i} 
+                        style={[styles2.chip, isSelected && styles2.chipActive]} 
+                        onPress={() => setSelectedDate(d)}
+                      >
+                        <Text style={[styles2.chipText, isSelected && styles2.chipTextActive]}>{label}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+
+                {/* TIMES */}
+                {availableTimes.length > 0 ? (
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
+                    {availableTimes.map((t, i) => {
+                      const isSelected = selectedTime === t;
+                      return (
+                        <TouchableOpacity 
+                          key={i} 
+                          style={[styles2.timeChip, isSelected && styles2.timeChipActive]} 
+                          onPress={() => setSelectedTime(t)}
+                        >
+                          <Text style={[styles2.timeChipText, isSelected && styles2.timeChipTextActive]}>{t === 'ASAP' ? 'Dès que possible' : t}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                ) : (
+                  <Text style={{ color: Theme.colors.danger, fontSize: 13 }}>Aucun créneau disponible pour cette date.</Text>
+                )}
+              </View>
+            )}
+
             <Text style={styles.fieldLabel}>NOM & PRÉNOM</Text>
             <TextInput style={styles.input} placeholder="Ex: Mohammed Ali" placeholderTextColor={Theme.colors.textSecondary} value={name} onChangeText={setName} />
             
@@ -195,16 +399,14 @@ export default function CartScreen() {
             {deliveryType === 'delivery' && (
               <>
                 <Text style={styles.fieldLabel}>ADRESSE DE LIVRAISON</Text>
-                <TextInput 
-                  style={styles.input} 
-                  placeholder="Ex: Rue du Moulin 5, 2900 Porrentruy" 
-                  placeholderTextColor={Theme.colors.textSecondary} 
-                  value={address} 
-                  onChangeText={handleAddressChange}
-                />
+                <TextInput style={[styles.input, { marginBottom: 10 }]} value={street} onChangeText={setStreet} placeholder="Rue et numéro" placeholderTextColor={Theme.colors.textSecondary} autoCapitalize="words" />
+                <View style={{ flexDirection: 'row', gap: 10 }}>
+                  <TextInput style={[styles.input, { flex: 1 }]} value={postalCode} onChangeText={setPostalCode} placeholder="Code postal" placeholderTextColor={Theme.colors.textSecondary} keyboardType="numeric" maxLength={4} />
+                  <TextInput style={[styles.input, { flex: 2 }]} value={city} onChangeText={setCity} placeholder="Ville" placeholderTextColor={Theme.colors.textSecondary} autoCapitalize="words" />
+                </View>
 
                 {/* ZONE DETECTED */}
-                {detectedZone && zoneError === '' && (
+                {detectedZone && !zoneError && (
                   <View style={[styles.zoneBanner, { borderColor: Theme.colors.success }]}>
                     <Ionicons name="checkmark-circle" size={16} color={Theme.colors.success} />
                     <View style={{ flex: 1 }}>
@@ -234,12 +436,19 @@ export default function CartScreen() {
 
                 {/* OUT OF ZONE */}
                 {address.length > 4 && zoneError === 'out_of_zone' && (
-                  <View style={[styles.zoneBanner, { borderColor: Theme.colors.danger }]}>
-                    <Ionicons name="close-circle" size={16} color={Theme.colors.danger} />
-                    <Text style={[styles.zoneText, { color: Theme.colors.danger, flex: 1 }]}>
-                      Adresse hors de notre zone de livraison.
+                  <Text style={styles.errorText}>Désolé, nous ne livrons pas à cette adresse.</Text>
+                )}
+                {address.length > 4 && !zoneError && zoneError === 'min_not_met' && (
+                  <Text style={styles.warningText}>Minimum de commande de CHF {detectedZone?.minOrder.toFixed(2)} non atteint pour cette zone.</Text>
+                )}
+
+                {user && deliveryType === 'delivery' && (
+                  <TouchableOpacity onPress={() => setSaveAddress(!saveAddress)} style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10, marginBottom: 10 }}>
+                    <Ionicons name={saveAddress ? 'checkbox' : 'square-outline'} size={24} color={saveAddress ? Theme.colors.success : Theme.colors.textSecondary} />
+                    <Text style={{ marginLeft: 10, color: Theme.colors.text, fontSize: 14, fontFamily: 'Inter_400Regular' }}>
+                      Sauvegarder comme adresse par défaut
                     </Text>
-                  </View>
+                  </TouchableOpacity>
                 )}
               </>
             )}
@@ -338,11 +547,16 @@ export default function CartScreen() {
                         {choices.join(', ')}
                       </Text>
                     ))}
-                    <Text style={styles.itemPrice}>{item.price.toFixed(2)} CHF / u</Text>
+                    <Text style={styles.itemPrice}>{item.price.toFixed(2)} CHF</Text>
                   </View>
                   
                   <View style={styles.itemRight}>
                     <View style={styles.qtyControl}>
+                      {item.selectedOptions && Object.keys(item.selectedOptions).length > 0 && (
+                        <TouchableOpacity style={[styles.qtyBtn, { marginRight: 8, backgroundColor: Theme.colors.surface }]} onPress={() => router.push({ pathname: '/product/[id]', params: { id: item.id, editCartItemId: item.cartItemId || item.id } })}>
+                          <Ionicons name="pencil" size={16} color={Theme.colors.primary} />
+                        </TouchableOpacity>
+                      )}
                       <TouchableOpacity style={styles.qtyBtn} onPress={() => updateQuantity(item.id, -1)}>
                         <Ionicons name={item.quantity === 1 ? 'trash-outline' : 'remove'} size={16} color={item.quantity === 1 ? Theme.colors.danger : Theme.colors.text} />
                       </TouchableOpacity>

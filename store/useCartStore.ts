@@ -56,6 +56,8 @@ export interface Order {
   paymentMethod: string;
   subTotal: number;
   taxAmount: number;
+  requestedTime: string;
+  loyaltyDiscount?: number;
   userId?: string;
   pushToken?: string;
 }
@@ -71,6 +73,7 @@ interface CartState {
   orderNote: string;
   orders: Order[];
   activeOrder: Order | null;
+  autoPrintOrder: Order | null;
   isLoading: boolean;
   addItem: (product: Product, note?: string, quantity?: number, selectedOptions?: Record<string, string[]>) => void;
   updateQuantity: (cartItemId: string, delta: number) => void;
@@ -82,14 +85,15 @@ interface CartState {
   setCustomerInfo: (name: string, phone: string, address: string) => void;
   setOrderNote: (note: string) => void;
   listenToOrders: (userId?: string, isAdmin?: boolean, specificOrderId?: string) => () => void;
-  placeOrder: (userId?: string) => Promise<Order>;
+  placeOrder: (userId?: string, requestedTime?: string, loyaltyDiscount?: number) => Promise<Order>;
   updateOrderStatus: (orderId: string, status: OrderStatus) => Promise<void>;
   cancelOrder: (orderId: string) => Promise<void>;
   markAsPaid: (orderId: string, method: string) => Promise<void>;
   setActiveOrderById: (orderId: string) => Promise<void>;
+  setAutoPrintOrder: (order: Order | null) => void;
 }
 
-const generateOrderId = () => `NZ-${Math.floor(Math.random() * 9000) + 1000}`;
+const generateOrderId = () => `PM-${Math.floor(Math.random() * 9000) + 1000}`;
 
 const hashNote = (note: string) => {
   let hash = 0;
@@ -126,7 +130,10 @@ export const useCartStore = create<CartState>()(
   orderNote: '',
   orders: [],
   activeOrder: null,
+  autoPrintOrder: null,
   isLoading: false,
+
+  setAutoPrintOrder: (order) => set({ autoPrintOrder: order }),
 
   addItem: (product, note, quantity = 1, selectedOptions) => {
     const currentItems = get().items;
@@ -185,7 +192,7 @@ export const useCartStore = create<CartState>()(
     set({ items: newItems, total: newItems.reduce((acc, item) => acc + item.price * item.quantity, 0) });
   },
 
-  clearCart: () => set({ items: [], total: 0, orderNote: '' }),
+  clearCart: () => set({ items: [], total: 0, orderNote: '', customerName: '', customerPhone: '', customerAddress: '' }),
   setDeliveryType: (type) => set({ deliveryType: type }),
   setDeliveryFee: (fee) => set({ deliveryFee: fee }),
   setCustomerInfo: (name, phone, address) => set({ customerName: name, customerPhone: phone, customerAddress: address }),
@@ -215,7 +222,25 @@ export const useCartStore = create<CartState>()(
     } else if (userId) {
       q = query(collection(db, 'orders'), where('userId', '==', userId), orderBy('createdAt', 'desc'));
     } else if (specificOrderId) {
-      q = query(collection(db, 'orders'), where('__name__', '==', specificOrderId));
+      // Use doc() directly to bypass "list" permission issues for guests
+      return onSnapshot(doc(db, 'orders', specificOrderId), (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          const orderId = docSnap.id;
+          
+          set({ activeOrder: { ...data, id: orderId } as Order });
+          
+          const currentOrders = get().orders;
+          const exists = currentOrders.some(o => o.id === orderId);
+          if (!exists) {
+            set({ orders: [ { ...data, id: orderId } as Order, ...currentOrders ] });
+          } else {
+            set({ orders: currentOrders.map(o => o.id === orderId ? { ...data, id: orderId } as Order : o) });
+          }
+        }
+      }, (error) => {
+        console.log('Error listening to specific order:', error);
+      });
     } else { return () => {}; }
 
     let isFirstLoad = true;
@@ -226,16 +251,26 @@ export const useCartStore = create<CartState>()(
           if (change.type === 'added') {
             const data = change.doc.data();
             const orderId = change.doc.id;
-            useNotificationStore.getState().addNotification(
-              "🔔 Nouvelle Commande !",
-              `N° ${orderId} de ${data.customerName || 'Client'} (${data.total?.toFixed(2)} CHF)`
-            );
-            if (Platform.OS === 'web' && typeof window !== 'undefined' && 'Notification' in window) {
-              if (Notification.permission === 'granted') {
-                new Notification("POKÉMOONS 🗞️", {
-                  body: `Nouvelle commande #${orderId} - ${data.total} CHF`,
-                  icon: '/favicon.ico'
-                });
+            
+            // Set autoPrintOrder so the PrintSpooler in admin.tsx prints it
+            set({ autoPrintOrder: { ...data, id: orderId } as Order });
+            
+            // Only trigger "Nouvelle Commande" notification if the order was created in the last 2 minutes
+            const createdAt = data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt);
+            const isTrulyNew = Date.now() - createdAt.getTime() < 2 * 60 * 1000;
+
+            if (isTrulyNew) {
+              useNotificationStore.getState().addNotification(
+                "🔔 Nouvelle Commande !",
+                `N° ${orderId} de ${data.customerName || 'Client'} (${data.total?.toFixed(2)} CHF)`
+              );
+              if (Platform.OS === 'web' && typeof window !== 'undefined' && 'Notification' in window) {
+                if (Notification.permission === 'granted') {
+                  new Notification("POKÉMOONS 🗞️", {
+                    body: `Nouvelle commande #${orderId} - ${data.total} CHF`,
+                    icon: '/favicon.ico'
+                  });
+                }
               }
             }
           }
@@ -257,7 +292,11 @@ export const useCartStore = create<CartState>()(
             if (change.type === 'modified') {
               const after = change.doc.data();
               const msg = clientStatusMessages[after.status];
-              if (msg) {
+              
+              const updatedAt = after.updatedAt?.toDate ? after.updatedAt.toDate() : new Date(after.updatedAt || after.createdAt);
+              const isRecentUpdate = Date.now() - updatedAt.getTime() < 2 * 60 * 1000;
+
+              if (msg && isRecentUpdate) {
                 // 1. Bell notification (always works)
                 useNotificationStore.getState().addNotification(msg.title, msg.body);
                 
@@ -299,13 +338,15 @@ export const useCartStore = create<CartState>()(
           set({ activeOrder: matching });
         }
       }
+    }, (error) => {
+      console.log('Error listening to orders:', error);
     });
   },
 
-  placeOrder: async (userId) => {
+  placeOrder: async (userId?: string, requestedTime: string = 'ASAP', loyaltyDiscount: number = 0) => {
     const state = get();
     const orderId = generateOrderId();
-    const grandTotal = state.total + state.deliveryFee;
+    const grandTotal = Math.max(0, state.total + state.deliveryFee - loyaltyDiscount);
     const taxRate = 0.026;
     const subTotal = grandTotal / (1 + taxRate);
     const taxAmount = grandTotal - subTotal;
@@ -334,6 +375,8 @@ export const useCartStore = create<CartState>()(
       paymentMethod: 'À la livraison',
       subTotal,
       taxAmount,
+      requestedTime,
+      loyaltyDiscount,
       userId: userId || useAuthStore.getState().user?.id || null,
       pushToken: freshPushToken
     };
@@ -398,8 +441,8 @@ export const useCartStore = create<CartState>()(
         ).catch(e => console.error("Error sending push from admin:", e));
       }
 
-      // NOUVEAU : Points de fidélité lors de la livraison
-      if (status === 'delivered' && orderData.userId) {
+      // NOUVEAU : Points de fidélité lors de la livraison (minimum 20 CHF)
+      if (status === 'delivered' && orderData.userId && orderData.total >= 20) {
         const userDoc = await getDoc(doc(db, 'users', orderData.userId));
         if (userDoc.exists()) {
           const userData = userDoc.data();
@@ -413,7 +456,26 @@ export const useCartStore = create<CartState>()(
   },
 
   cancelOrder: async (orderId) => {
-    await updateDoc(doc(db, 'orders', orderId), { status: 'cancelled', updatedAt: Timestamp.now() });
+    try {
+      const orderDoc = await getDoc(doc(db, 'orders', orderId));
+      if (orderDoc.exists()) {
+        const orderData = orderDoc.data();
+        if (orderData.loyaltyDiscount && orderData.loyaltyDiscount > 0 && orderData.userId) {
+          const userDoc = await getDoc(doc(db, 'users', orderData.userId));
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            const currentPoints = userData.loyaltyPoints || 0;
+            // Restore 10 points
+            await updateDoc(doc(db, 'users', orderData.userId), { 
+              loyaltyPoints: currentPoints + 10 
+            });
+          }
+        }
+      }
+      await updateDoc(doc(db, 'orders', orderId), { status: 'cancelled', updatedAt: Timestamp.now() });
+    } catch (err) {
+      console.error('Error cancelling order:', err);
+    }
   },
 
   markAsPaid: async (orderId, method) => {

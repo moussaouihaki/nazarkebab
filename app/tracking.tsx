@@ -80,6 +80,7 @@ export default function TrackingScreen() {
     return (
       <View style={styles.container}>
         <SafeAreaView style={{ flex: 1 }}>
+          {isDesktop && <View style={{ height: 90 }} />}
           <View style={styles.emptyContainer}>
             <Ionicons name="bicycle-outline" size={72} color={Theme.colors.textSecondary} />
             <Text style={styles.emptyTitle}>Aucune commande active</Text>
@@ -102,6 +103,7 @@ export default function TrackingScreen() {
   return (
     <View style={styles.container}>
       <SafeAreaView style={{ flex: 1 }}>
+        {isDesktop && <View style={{ height: 90 }} />}
         {/* MULTI-ORDER TABS */}
         {activeOrders.length > 1 && (
           <View style={styles.tabsContainer}>
@@ -221,9 +223,20 @@ export default function TrackingScreen() {
           <View style={styles.detailCard}>
             {orderToTrack.items.map((item, i) => (
               <View key={`${item.id}-${i}`} style={[styles.itemRow, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Theme.colors.border, paddingTop: 12, marginTop: 12 }]}>
-                <Text style={styles.itemQty}>{item.quantity}×</Text>
-                <Text style={styles.itemName}>{item.name}</Text>
-                <Text style={styles.itemPrice}>{(item.price * item.quantity).toFixed(2)} CHF</Text>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <Text style={styles.itemQty}>{item.quantity}×</Text>
+                  <View style={{ flex: 1, paddingHorizontal: 12 }}>
+                    <Text style={styles.itemName}>{item.name}</Text>
+                    {item.note && <Text style={{ fontSize: 13, color: Theme.colors.textSecondary, fontFamily: Theme.fonts.bodyItalic, marginTop: 2 }}>Note: {item.note}</Text>}
+                    {item.selectedOptions && Object.entries(item.selectedOptions).map(([sectionTitle, choices]: [string, any]) => (
+                      <Text key={sectionTitle} style={{ fontSize: 13, color: Theme.colors.textSecondary, fontFamily: Theme.fonts.body, marginTop: 2 }}>
+                        <Text style={{ fontFamily: Theme.fonts.bodyBold }}>{sectionTitle.split(' (')[0]}: </Text>
+                        {choices.join(', ')}
+                      </Text>
+                    ))}
+                  </View>
+                  <Text style={styles.itemPrice}>{(item.price * item.quantity).toFixed(2)} CHF</Text>
+                </View>
               </View>
             ))}
 
@@ -261,7 +274,7 @@ export default function TrackingScreen() {
             {orderToTrack.deliveryType === 'pickup' && (
               <View style={styles.infoRow}>
                 <Ionicons name="storefront-outline" size={16} color={Theme.colors.textSecondary} />
-                <Text style={styles.infoValue}>À emporter — Grand-Rue 9, 2900 Porrentruy</Text>
+                <Text style={styles.infoValue}>À emporter — {settings?.address || 'La Chaux-de-Fonds'}</Text>
               </View>
             )}
             {orderToTrack.note && (
