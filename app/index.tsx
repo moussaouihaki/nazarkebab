@@ -163,12 +163,12 @@ export default function HomeScreen() {
 
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 24 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Ionicons name="bicycle" size={16} color={Theme.colors.textSecondary} />
-                  <Text style={{ fontFamily: Theme.fonts.bodyMedium, fontSize: 12, color: Theme.colors.textSecondary }}>Livraison {settings.deliveryTime} min</Text>
+                  <Ionicons name="bicycle" size={16} color="#000" />
+                  <Text style={{ fontFamily: Theme.fonts.bodyMedium, fontSize: 12, color: '#000' }}>Livraison {settings.deliveryTime} min</Text>
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Ionicons name="bag-handle" size={16} color={Theme.colors.textSecondary} />
-                  <Text style={{ fontFamily: Theme.fonts.bodyMedium, fontSize: 12, color: Theme.colors.textSecondary }}>À l'emporter {settings.takeAwayTime} min</Text>
+                  <Ionicons name="bag-handle" size={16} color="#000" />
+                  <Text style={{ fontFamily: Theme.fonts.bodyMedium, fontSize: 12, color: '#000' }}>À l'emporter {settings.takeAwayTime} min</Text>
                 </View>
               </View>
             </View>
