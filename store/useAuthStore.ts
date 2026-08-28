@@ -11,7 +11,7 @@ import {
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { useNotificationStore } from './useNotificationStore';
-import { useCartStore } from './useCartStore';
+
 import { auth, db } from '../lib/firebase';
 
 export type UserRole = 'client' | 'admin';
@@ -223,7 +223,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       await signOut(auth);
       set({ user: null, isLoggedIn: false, error: null });
       useNotificationStore.getState().clearAll();
-      useCartStore.getState().clearCart();
+      require('./useCartStore').useCartStore.getState().clearCart();
+      require('./useCartStore').useCartStore.getState().clearOrders();
     } catch (err) {
       console.error('Erreur de déconnexion:', err);
     }

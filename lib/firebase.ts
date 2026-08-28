@@ -6,8 +6,7 @@ import { getStorage } from 'firebase/storage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
-// Firebase config — Pokémoons (nazarkebab-d7b25)
-// Firebase config — Pokémoons
+// Firebase config — Pokemoons
 const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY || (Platform.OS === 'android'
     ? "AIzaSyAlby0kABaxPaW0A2px1m6AgqE1940YDjI"

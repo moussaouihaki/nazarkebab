@@ -27,7 +27,7 @@ export default function MenuScreen() {
   }, [params.category]);
 
   const filteredProducts = useMemo(() => {
-    const byCategory = products.filter(p => p.category?.toUpperCase() === activeCategory?.toUpperCase());
+    const byCategory = products.filter(p => p.category?.toUpperCase() === activeCategory?.toUpperCase() && !p.outOfStock);
     if (!search.trim()) return byCategory;
     const q = search.toLowerCase();
     return byCategory.filter(p =>
@@ -38,8 +38,11 @@ export default function MenuScreen() {
   const allSearchResults = useMemo(() => {
     if (!search.trim()) return [];
     const q = search.toLowerCase();
-    return products.filter(p =>
-      p.name.toLowerCase().includes(q) || p.description?.toLowerCase().includes(q)
+    return products.filter(p => 
+      (!p.outOfStock) && (
+        p.name.toLowerCase().includes(q) || 
+        p.description?.toLowerCase().includes(q)
+      )
     );
   }, [products, search]);
 

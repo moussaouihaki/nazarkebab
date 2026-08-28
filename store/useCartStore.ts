@@ -13,7 +13,8 @@ import {
   where,
   orderBy,
   Timestamp,
-  getDoc
+  getDoc,
+  runTransaction
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuthStore } from './useAuthStore';
@@ -37,6 +38,7 @@ export interface CartItem extends Product {
   quantity: number;
   note?: string;
   selectedOptions?: Record<string, string[]>;
+  productId?: string;
 }
 
 export interface Order {
@@ -80,12 +82,13 @@ interface CartState {
   removeItem: (cartItemId: string) => void;
   removeAllOfItem: (cartItemId: string) => void;
   clearCart: () => void;
+  clearOrders: () => void;
   setDeliveryType: (type: 'delivery' | 'pickup') => void;
   setDeliveryFee: (fee: number) => void;
   setCustomerInfo: (name: string, phone: string, address: string) => void;
   setOrderNote: (note: string) => void;
   listenToOrders: (userId?: string, isAdmin?: boolean, specificOrderId?: string) => () => void;
-  placeOrder: (userId?: string, requestedTime?: string, loyaltyDiscount?: number) => Promise<Order>;
+  placeOrder: (userId?: string, requestedTime?: string, loyaltyDiscount?: number, paymentMethod?: 'card' | 'cash') => Promise<Order>;
   updateOrderStatus: (orderId: string, status: OrderStatus) => Promise<void>;
   cancelOrder: (orderId: string) => Promise<void>;
   markAsPaid: (orderId: string, method: string) => Promise<void>;
@@ -93,7 +96,7 @@ interface CartState {
   setAutoPrintOrder: (order: Order | null) => void;
 }
 
-const generateOrderId = () => `PM-${Math.floor(Math.random() * 9000) + 1000}`;
+
 
 const hashNote = (note: string) => {
   let hash = 0;
@@ -155,7 +158,7 @@ export const useCartStore = create<CartState>()(
         item.id === uniqueId ? { ...item, quantity: item.quantity + quantity } : item
       );
     } else {
-      newItems = [...currentItems, { ...product, id: uniqueId, quantity, note, selectedOptions }];
+      newItems = [...currentItems, { ...product, id: uniqueId, productId: product.id, quantity, note, selectedOptions }];
     }
     set({ items: newItems, total: newItems.reduce((acc, item) => acc + item.price * item.quantity, 0) });
   },
@@ -193,6 +196,7 @@ export const useCartStore = create<CartState>()(
   },
 
   clearCart: () => set({ items: [], total: 0, orderNote: '', customerName: '', customerPhone: '', customerAddress: '' }),
+  clearOrders: () => set({ activeOrder: null, orders: [] }),
   setDeliveryType: (type) => set({ deliveryType: type }),
   setDeliveryFee: (fee) => set({ deliveryFee: fee }),
   setCustomerInfo: (name, phone, address) => set({ customerName: name, customerPhone: phone, customerAddress: address }),
@@ -343,9 +347,8 @@ export const useCartStore = create<CartState>()(
     });
   },
 
-  placeOrder: async (userId?: string, requestedTime: string = 'ASAP', loyaltyDiscount: number = 0) => {
+  placeOrder: async (userId?: string, requestedTime: string = 'ASAP', loyaltyDiscount: number = 0, paymentMethod: 'card' | 'cash' = 'cash') => {
     const state = get();
-    const orderId = generateOrderId();
     const grandTotal = Math.max(0, state.total + state.deliveryFee - loyaltyDiscount);
     const taxRate = 0.026;
     const subTotal = grandTotal / (1 + taxRate);
@@ -372,7 +375,7 @@ export const useCartStore = create<CartState>()(
       estimatedTime: state.deliveryType === 'delivery' ? 30 : 15,
       note: state.orderNote || null,
       isPaid: false,
-      paymentMethod: 'À la livraison',
+      paymentMethod: paymentMethod,
       subTotal,
       taxAmount,
       requestedTime,
@@ -381,8 +384,29 @@ export const useCartStore = create<CartState>()(
       pushToken: freshPushToken
     };
 
-    await setDoc(doc(db, 'orders', orderId), cleanForFirebase(orderData));
-    const order = { ...orderData, id: orderId, createdAt: new Date(), updatedAt: new Date() } as Order;
+    // Transaction to safely get a sequential ID (PM1, PM2...)
+    const counterDocRef = doc(db, 'counters', 'orders');
+    
+    const finalOrderId = await runTransaction(db, async (transaction) => {
+      const counterDoc = await transaction.get(counterDocRef);
+      let nextSeq = 1;
+      
+      if (counterDoc.exists()) {
+        nextSeq = (counterDoc.data().lastOrderId || 0) + 1;
+        transaction.update(counterDocRef, { lastOrderId: nextSeq });
+      } else {
+        transaction.set(counterDocRef, { lastOrderId: 1 });
+      }
+      
+      const orderId = `PM${nextSeq}`;
+      const orderDocRef = doc(db, 'orders', orderId);
+      
+      transaction.set(orderDocRef, cleanForFirebase(orderData));
+      
+      return orderId;
+    });
+
+    const order = { ...orderData, id: finalOrderId, createdAt: new Date(), updatedAt: new Date() } as Order;
     set({ activeOrder: order, items: [], total: 0, orderNote: '' });
     return order;
   },

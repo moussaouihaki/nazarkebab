@@ -239,17 +239,25 @@ export default function ProductDetailScreen() {
           {product.description || `Un délicieux ${product.name} préparé avec des ingrédients frais sélectionnés chaque matin.`}
         </Text>
 
-        {/* MOCK ALLERGENS SECTION */}
-        <View style={{ marginVertical: 24 }}>
-           <Text style={styles.sectionTitleBlack}>Allergènes</Text>
-           <View style={styles.allergensList}>
-              {['leaf-outline', 'fish-outline', 'nutrition-outline', 'water-outline'].map((icon, idx) => (
-                 <View key={idx} style={styles.allergenIconWrapper}>
-                    <Ionicons name={icon as any} size={18} color="#FFF" />
-                 </View>
-              ))}
-           </View>
-        </View>
+
+        {/* DYNAMIC ALLERGENS SECTION */}
+        {product.allergens && product.allergens.length > 0 && (
+          <View style={{ marginVertical: 24 }}>
+             <Text style={styles.sectionTitleBlack}>Allergènes</Text>
+             <View style={styles.allergensList}>
+                {product.allergens.map((al, idx) => (
+                   <View key={idx} style={{ alignItems: 'center', marginRight: 16 }}>
+                     <View style={[styles.allergenIconWrapper, { marginBottom: 6 }]}>
+                        <Ionicons name="warning-outline" size={18} color="#FFF" />
+                     </View>
+                     <Text style={{ fontFamily: Theme.fonts.bodyMedium, fontSize: 10, color: Theme.colors.textSecondary, textTransform: 'uppercase' }}>
+                       {al}
+                     </Text>
+                   </View>
+                ))}
+             </View>
+          </View>
+        )}
 
         {/* DYNAMIC CUSTOMIZATION SECTIONS */}
         {product.customizationSections?.map((section) => {

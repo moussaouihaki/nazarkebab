@@ -1,9 +1,9 @@
 import React, { useRef, useState } from 'react';
-import { View, Text, StyleSheet, Dimensions, TouchableOpacity, SafeAreaView, Platform, useWindowDimensions, Modal } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, TouchableOpacity, Platform, useWindowDimensions, Modal } from 'react-native';
 import Animated, { useAnimatedScrollHandler, useSharedValue, useAnimatedStyle, interpolate, Extrapolation, FadeInDown } from 'react-native-reanimated';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context';
 import { Theme } from '../constants/theme';
 import { PRODUCTS, CATEGORIES, IMAGES_MAP, getImageSource } from '../constants/data';
 import { Image } from 'expo-image';
@@ -44,7 +44,7 @@ export default function HomeScreen() {
     fetchContent();
   }, []);
 
-  const populars = products.filter(p => p.highlighted);
+  const populars = products.filter(p => p.highlighted && !p.outOfStock);
   const getCategoryImage = (cat: string) => {
     const prod = products.find(p => p.category === cat);
     if (prod) return getImageSource(prod.image);
@@ -128,7 +128,7 @@ export default function HomeScreen() {
               <Image 
                 source={require('../assets/images/hero-white.jpg')} 
                 style={[StyleSheet.absoluteFillObject, { backgroundColor: '#FFFFFF' }]} 
-                contentFit={Platform.OS === 'web' ? 'cover' : 'contain'}
+                contentFit="cover"
                 contentPosition="center"
               />
             </Animated.View>
@@ -178,15 +178,17 @@ export default function HomeScreen() {
 
         <View style={styles.innerContainer}>
         {/* CONCEPT & VALUES */}
-        <BlurView intensity={80} tint="light" style={[styles.valuesContainer, isDesktop && { flexDirection: 'row' }]}>
+        <View style={[styles.valuesContainer, isDesktop && { flexDirection: 'row' }]}>
           {content.values.map(val => (
-            <View key={val.id} style={styles.valueItem}>
-              <Ionicons name={val.icon as any} size={32} color="#000" />
-              <Text style={styles.valueTitle}>{val.title}</Text>
-              <Text style={styles.valueDesc}>{val.description}</Text>
+            <View key={val.id} style={styles.valueItemWrapper}>
+              <BlurView intensity={80} tint="light" style={styles.valueItem}>
+                <Ionicons name={val.icon as any} size={32} color="#000" />
+                <Text style={styles.valueTitle}>{val.title}</Text>
+                <Text style={styles.valueDesc}>{val.description}</Text>
+              </BlurView>
             </View>
           ))}
-        </BlurView>
+        </View>
 
         {/* SHARP CATEGORIES (Chic, zero border radius) */}
         <View style={styles.sectionHeader}>
@@ -435,7 +437,7 @@ const styles = StyleSheet.create({
   },
   heroContainer: {
     width: '100%',
-    height: Platform.OS === 'web' ? 480 : 600, // Increase height to prevent overlap with valuesContainer
+    height: Platform.OS === 'web' ? 480 : 460, // Increase height to prevent overlap with the glass cards below
     alignItems: 'center',
     position: 'relative',
   },
@@ -446,7 +448,7 @@ const styles = StyleSheet.create({
   heroContent: {
     zIndex: 1,
     alignItems: 'center',
-    paddingTop: Platform.OS === 'ios' ? 150 : (Platform.OS === 'web' ? 100 : 80), // Push content down explicitly from the top
+    paddingTop: Platform.OS === 'ios' ? 130 : (Platform.OS === 'web' ? 100 : 90), // Push content down to avoid header
   },
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 },
   statusIndicator: { width: 6, height: 6, borderRadius: 3 },
@@ -469,7 +471,7 @@ const styles = StyleSheet.create({
     textShadowRadius: 10,
   },
   heroBtn: {
-    marginTop: 30,
+    marginTop: 10,
     borderWidth: 1,
     borderColor: '#FFF',
     backgroundColor: '#FFF',
@@ -745,28 +747,31 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   valuesContainer: {
-    padding: 32,
-    backgroundColor: 'rgba(255, 255, 255, 0.4)',
-    marginTop: -30,
+    paddingVertical: 16,
+    marginTop: -40,
     marginHorizontal: 16,
-    borderRadius: 24,
-    gap: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.8)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 15 },
-    shadowOpacity: 0.1,
-    shadowRadius: 30,
-    elevation: 8,
+    gap: 16,
     zIndex: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
+  },
+  valueItemWrapper: {
+    flex: 1,
+    borderRadius: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 15,
+    elevation: 4,
+    backgroundColor: 'transparent',
   },
   valueItem: {
     alignItems: 'center',
     flex: 1,
-    paddingHorizontal: 12,
+    padding: 24,
+    borderRadius: 24,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255, 255, 255, 0.6)',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.05)',
   },
   valueTitle: {
     fontFamily: Theme.fonts.title,

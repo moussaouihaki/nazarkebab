@@ -188,7 +188,11 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
         });
         
         // Merge local missing products to ensure UI always has the defaults
-        const mergedProducts = [...prodList];
+        const mergedProducts = prodList.map(p => {
+           const initial = INITIAL_PRODUCTS.find(initP => initP.id === p.id);
+           return initial ? { ...initial, ...p } : p;
+        });
+        
         INITIAL_PRODUCTS.forEach(initialP => {
            if (!mergedProducts.find(p => p.id === initialP.id)) {
               mergedProducts.push(initialP);
@@ -217,9 +221,10 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
 
   updateProduct: async (id, data) => {
     try {
-      await updateDoc(doc(db, 'pokemoons_products', id), data);
-    } catch (err) {
+      await setDoc(doc(db, 'pokemoons_products', id), data, { merge: true });
+    } catch (err: any) {
       console.error('Erreur MAJ produit:', err);
+      import('react-native').then(({ Alert }) => Alert.alert('Erreur', err.message));
     }
   },
 

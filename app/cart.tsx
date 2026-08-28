@@ -164,6 +164,7 @@ export default function CartScreen() {
   const [detectedZone, setDetectedZone] = useState<DeliveryZone | null>(null);
   const [zoneError, setZoneError] = useState('');
   const [useLoyalty, setUseLoyalty] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<'card' | 'cash'>('card');
 
   const address = `${street}, ${postalCode} ${city}`;
 
@@ -259,8 +260,7 @@ export default function CartScreen() {
        const dateStr = selectedDate.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
        finalRequestedTime = `${dateStr} à ${selectedTime}`;
     }
-    placeOrder(user?.id, finalRequestedTime, loyaltyDiscount);
-  
+    placeOrder(user?.id, finalRequestedTime, loyaltyDiscount, paymentMethod);
     router.replace('/tracking');
   };
 
@@ -453,6 +453,24 @@ export default function CartScreen() {
               </>
             )}
 
+            <Text style={[styles.fieldLabel, { marginTop: 20 }]}>MÉTHODE DE PAIEMENT (À LA LIVRAISON)</Text>
+            <View style={styles.toggleRow}>
+              <TouchableOpacity 
+                style={[styles.toggleBtn, paymentMethod === 'card' && styles.toggleBtnActive]} 
+                onPress={() => setPaymentMethod('card')}
+              >
+                <Ionicons name="card-outline" size={20} color={paymentMethod === 'card' ? '#fff' : Theme.colors.text} />
+                <Text style={[styles.toggleText, paymentMethod === 'card' && styles.toggleTextActive]}>Carte (Machine)</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.toggleBtn, paymentMethod === 'cash' && styles.toggleBtnActive]} 
+                onPress={() => setPaymentMethod('cash')}
+              >
+                <Ionicons name="cash-outline" size={20} color={paymentMethod === 'cash' ? '#fff' : Theme.colors.text} />
+                <Text style={[styles.toggleText, paymentMethod === 'cash' && styles.toggleTextActive]}>Cash</Text>
+              </TouchableOpacity>
+            </View>
+
             <Text style={styles.fieldLabel}>NOTE POUR LA CUISINE (facultatif)</Text>
             <TextInput 
               style={[styles.input, { height: 100, textAlignVertical: 'top' }]} 
@@ -552,11 +570,12 @@ export default function CartScreen() {
                   
                   <View style={styles.itemRight}>
                     <View style={styles.qtyControl}>
-                      {item.selectedOptions && Object.keys(item.selectedOptions).length > 0 && (
-                        <TouchableOpacity style={[styles.qtyBtn, { marginRight: 8, backgroundColor: Theme.colors.surface }]} onPress={() => router.push({ pathname: '/product/[id]', params: { id: item.id, editCartItemId: item.cartItemId || item.id } })}>
-                          <Ionicons name="pencil" size={16} color={Theme.colors.primary} />
-                        </TouchableOpacity>
-                      )}
+                      <TouchableOpacity 
+                        style={[styles.qtyBtn, { marginRight: 8, backgroundColor: Theme.colors.surface }]} 
+                        onPress={() => router.push({ pathname: '/product/[id]', params: { id: item.productId || item.id.split('-')[0], editCartItemId: item.id } })}
+                      >
+                        <Ionicons name="pencil" size={16} color={Theme.colors.primary} />
+                      </TouchableOpacity>
                       <TouchableOpacity style={styles.qtyBtn} onPress={() => updateQuantity(item.id, -1)}>
                         <Ionicons name={item.quantity === 1 ? 'trash-outline' : 'remove'} size={16} color={item.quantity === 1 ? Theme.colors.danger : Theme.colors.text} />
                       </TouchableOpacity>

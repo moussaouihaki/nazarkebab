@@ -21,7 +21,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function ProfileScreen() {
   const { user, logout, updateProfile, isLoggedIn, deleteAccount } = useAuthStore();
-  const { orders, clearCart } = useCartStore();
+  const { orders, clearCart, clearOrders } = useCartStore();
   const { settings } = useRestaurantStore();
   const { width } = useWindowDimensions();
   const isDesktop = Platform.OS === 'web' && width >= 768;
@@ -68,6 +68,7 @@ export default function ProfileScreen() {
       const success = await deleteAccount();
       if (success) {
         clearCart();
+        clearOrders();
         router.replace('/');
       }
     };

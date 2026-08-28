@@ -244,6 +244,9 @@ export default function TrackingScreen() {
               <Text style={[styles.itemName, { fontFamily: Theme.fonts.logo, fontSize: 18, flex: 1 }]}>TOTAL</Text>
               <View style={{ alignItems: 'flex-end' }}>
                 <Text style={[styles.itemPrice, { color: Theme.colors.success, fontSize: 20, fontFamily: Theme.fonts.logo }]}>{orderToTrack.total.toFixed(2)} CHF</Text>
+                <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 13, color: '#000', marginTop: 4 }}>
+                  Paiement: {orderToTrack.paymentMethod === 'card' ? '💳 Carte (Livreur)' : '💵 Cash'}
+                </Text>
                 <TouchableOpacity onPress={() => router.push({ pathname: '/receipt', params: { id: orderToTrack.id } })} style={{ marginTop: 8, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                   <Ionicons name="receipt-outline" size={14} color={Theme.colors.textSecondary} />
                   <Text style={{ fontFamily: Theme.fonts.bodyMedium, fontSize: 12, color: Theme.colors.textSecondary }}>

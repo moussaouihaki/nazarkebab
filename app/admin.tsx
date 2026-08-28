@@ -461,6 +461,9 @@ function OrdersTab() {
                 <View style={{ flex: 1 }}>
                   <Text style={styles.tdTitle}>{order.deliveryType === 'delivery' ? '🛵 Livr.' : '🥡 Emp.'}</Text>
                   {order.deliveryType === 'delivery' && <Text style={styles.tdSub}>{order.customerAddress}</Text>}
+                  <Text style={[styles.tdSub, { marginTop: 4, fontFamily: Theme.fonts.bodyBold, color: '#000' }]}>
+                    {order.paymentMethod === 'card' ? '💳 Carte' : '💵 Cash'}
+                  </Text>
                 </View>
                 <View style={{ flex: 2 }}>
                   {order.items.map((i, idx) => (
@@ -522,8 +525,11 @@ function OrdersTab() {
             <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6}}>
               <View>
                 <Text style={styles.orderCustomer}>{order.customerName}</Text>
-                <Text style={[styles.orderMeta, {marginBottom: 0}]}>
+                <Text style={[styles.orderMeta, {marginBottom: 2}]}>
                   {order.deliveryType === 'delivery' ? `🛵  📍 ${order.customerAddress}` : '🥡 À emporter'}
+                </Text>
+                <Text style={[styles.orderMeta, {marginBottom: 0, fontFamily: Theme.fonts.bodyBold, color: '#000'}]}>
+                  {order.paymentMethod === 'card' ? '💳 Paiement: Carte' : '💵 Paiement: Cash'}
                 </Text>
               </View>
               <TouchableOpacity onPress={() => Linking.openURL(`tel:${order.customerPhone}`)} style={styles.callBtnLg}>
@@ -703,6 +709,9 @@ function KitchenTab() {
              <View style={{ marginTop: 12, padding: 8, backgroundColor: Theme.colors.background, borderRadius: 8 }}>
                 <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 12, color: Theme.colors.text }}>{o.customerName}</Text>
                 {o.deliveryType === 'delivery' && <Text style={{ fontFamily: Theme.fonts.body, fontSize: 11, color: Theme.colors.textSecondary }}>{o.customerAddress}</Text>}
+                <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 11, color: '#000', marginTop: 2 }}>
+                  {o.paymentMethod === 'card' ? '💳 Carte' : '💵 Cash'}
+                </Text>
              </View>
 
              {/* Action Button */}
@@ -1549,6 +1558,7 @@ function ProductModal({ visible, product, categories, defaultCategory, onClose, 
   const [highlighted, setHighlighted] = useState(false);
   const [hasSauces, setHasSauces] = useState(false);
   const [hasDrinkSelection, setHasDrinkSelection] = useState(false);
+  const [allergens, setAllergens] = useState<string[]>([]);
   const [customizationSections, setCustomizationSections] = useState<any[]>([]);
   const [pickingImage, setPickingImage] = useState(false);
 
@@ -1562,6 +1572,7 @@ function ProductModal({ visible, product, categories, defaultCategory, onClose, 
       setHighlighted(product?.highlighted || false);
       setHasSauces(product?.hasSauces || false);
       setHasDrinkSelection(product?.hasDrinkSelection || false);
+      setAllergens(product?.allergens || []);
       
       // Deep copy to avoid mutating store state directly on edit
       setCustomizationSections(product?.customizationSections ? JSON.parse(JSON.stringify(product.customizationSections)) : []);
@@ -1611,6 +1622,7 @@ function ProductModal({ visible, product, categories, defaultCategory, onClose, 
       highlighted,
       hasSauces,
       hasDrinkSelection,
+      allergens,
       ...(customizationSections.length > 0 ? { customizationSections } : {})
     });
   };
@@ -1724,6 +1736,36 @@ function ProductModal({ visible, product, categories, defaultCategory, onClose, 
                 trackColor={{ false: Theme.colors.surface, true: Theme.colors.success + '88' }}
                 thumbColor={hasDrinkSelection ? Theme.colors.success : Theme.colors.textSecondary}
               />
+            </View>
+
+
+            {/* ALLERGÈNES */}
+            <View style={{ marginTop: 24, borderTopWidth: StyleSheet.hairlineWidth, borderColor: Theme.colors.border, paddingTop: 20 }}>
+              <Text style={styles.fieldLabel}>ALLERGÈNES PRÉSENTS</Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+                {['Gluten', 'Lait', 'Poisson', 'Fruits de mer' , 'Œuf', 'Arachide', 'Soja', 'Fruits à coque', 'Sésame', 'Céleri', 'Moutarde'].map((al) => {
+                  const isSelected = allergens.includes(al);
+                  return (
+                    <TouchableOpacity
+                      key={al}
+                      style={{
+                        paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16,
+                        borderWidth: 1, borderColor: isSelected ? Theme.colors.success : Theme.colors.border,
+                        backgroundColor: isSelected ? Theme.colors.success + '22' : 'transparent'
+                      }}
+                      onPress={() => {
+                        if (isSelected) {
+                          setAllergens(allergens.filter(a => a !== al));
+                        } else {
+                          setAllergens([...allergens, al]);
+                        }
+                      }}
+                    >
+                      <Text style={{ fontFamily: Theme.fonts.body, fontSize: 12, color: isSelected ? Theme.colors.success : Theme.colors.text }}>{al}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
             </View>
 
             {/* CUSTOMIZATIONS EDITOR */}

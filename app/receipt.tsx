@@ -105,10 +105,10 @@ export default function ReceiptScreen() {
             {/* RESTAURANT INFO */}
             <View style={styles.receiptHeader}>
               <Text style={styles.logoTitle}>{settings.name.toUpperCase()}</Text>
-              <Text style={styles.receiptText}>{settings.address}</Text>
-              <Text style={styles.receiptText}>Tél: {settings.phone}</Text>
-              {settings.tva ? <Text style={styles.receiptText}>{settings.tva}</Text> : null}
-              <Text style={styles.receiptText}>www.pokemoons.ch</Text>
+              <Text style={[styles.receiptText, { textAlign: 'center' }]}>{settings.address}</Text>
+              <Text style={[styles.receiptText, { textAlign: 'center' }]}>Tél: {settings.phone}</Text>
+              {settings.tva ? <Text style={[styles.receiptText, { textAlign: 'center' }]}>{settings.tva}</Text> : null}
+              <Text style={[styles.receiptText, { textAlign: 'center' }]}>www.pokemoons.ch</Text>
             </View>
 
             <View style={styles.divider} />
@@ -124,9 +124,18 @@ export default function ReceiptScreen() {
                 <Text style={styles.receiptText}>Adresse: {order.customerAddress}</Text>
               )}
               
-              <View style={[styles.statusBadge, { marginTop: 12, paddingVertical: 4, transform: [] }]}>
+              <View style={[styles.statusBadge, { marginTop: 12, paddingVertical: 4, alignSelf: 'center', transform: [] }]}>
                 <Text style={[styles.statusBadgeText, { fontSize: 16, color: '#000' }]}>
                   {order.deliveryType === 'delivery' ? 'LIVRAISON 🛵' : 'À EMPORTER 🛍️'}
+                </Text>
+              </View>
+
+              <View style={{ marginTop: 12, padding: 8, borderWidth: 2, borderColor: '#000', borderStyle: 'dashed', alignSelf: 'center' }}>
+                <Text style={[styles.bold, { fontFamily: 'Courier', fontSize: 14, textAlign: 'center', color: '#000' }]}>
+                  MÉTHODE DE PAIEMENT
+                </Text>
+                <Text style={[styles.bold, { fontFamily: 'Courier', fontSize: 16, textAlign: 'center', color: '#000', marginTop: 4 }]}>
+                  {order.paymentMethod === 'card' ? '💳 CARTE (PRÉVOIR MACHINE)' : '💵 CASH'}
                 </Text>
               </View>
             </View>
