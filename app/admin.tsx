@@ -315,7 +315,33 @@ function DashboardTab() {
             <StatCard label="C.A. Aujourd'hui" value={`${dailyRevenue.toFixed(0)} CHF`} icon="cash" color={Theme.colors.success} />
             <StatCard label="C.A. Total" value={`${totalRevenue.toFixed(0)} CHF`} icon="receipt" color="#2196F3" />
             <StatCard label="Panier Moyen" value={`${avgOrder.toFixed(0)} CHF`} icon="cart" color="#FF9800" />
+            <StatCard label="Annulées" value={String(orders.filter(o => o.status === 'cancelled').length)} icon="close-circle" color={Theme.colors.danger} />
           </View>
+
+          {/* TOP PRODUITS DU JOUR */}
+          {todayOrders.length > 0 && (() => {
+            const productCounts: Record<string, number> = {};
+            todayOrders.forEach(o => o.items.forEach((i: any) => {
+              productCounts[i.name] = (productCounts[i.name] || 0) + (i.quantity || 1);
+            }));
+            const sorted = Object.entries(productCounts).sort((a, b) => b[1] - a[1]).slice(0, 3);
+            return (
+              <View style={[styles.recentActivityCard, { marginTop: 20 }]}>
+                <Text style={styles.sectionHeader}>TOP PRODUITS AUJOURD'HUI</Text>
+                {sorted.map(([name, count], i) => (
+                  <View key={name} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10, borderBottomWidth: i < sorted.length - 1 ? 1 : 0, borderColor: Theme.colors.border }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                      <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 16, color: Theme.colors.textSecondary }}>#{i+1}</Text>
+                      <Text style={{ fontFamily: Theme.fonts.bodyMedium, fontSize: 13, color: Theme.colors.text }}>{name}</Text>
+                    </View>
+                    <View style={{ backgroundColor: Theme.colors.success + '22', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4 }}>
+                      <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 13, color: Theme.colors.success }}>{count}x</Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            );
+          })()}
 
           {isDesktop && (
             <View style={styles.chartCard}>
@@ -893,10 +919,18 @@ function CrmTab() {
     return { name, phone, address, orderCount: userOrders.length, totalSpent: spent, loyaltyPoints, orders: sortedOrders, isVIP, lastOrderDate };
   }).filter(c => c.orderCount > 0).sort((a: any, b: any) => b.totalSpent - a.totalSpent);
 
-  const filteredCrmData = crmData.filter(client => 
-    client.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    client.phone.includes(searchQuery)
-  );
+  const [crmFilter, setCrmFilter] = useState<'tous' | 'vip' | 'recent'>('tous');
+
+  const filteredCrmData = crmData.filter(client => {
+    const matchesSearch = client.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      client.phone.includes(searchQuery);
+    const matchesFilter = 
+      crmFilter === 'tous' ? true :
+      crmFilter === 'vip' ? client.isVIP :
+      crmFilter === 'recent' ? (client.lastOrderDate && (Date.now() - client.lastOrderDate.getTime()) < 7 * 86400000) :
+      true;
+    return matchesSearch && matchesFilter;
+  });
 
   const [clientNotes, setClientNotes] = useState<Record<string,string>>({});
 
@@ -981,11 +1015,17 @@ function CrmTab() {
         </TouchableOpacity>
       </View>
 
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 16 }}>
-        <Text style={styles.sectionHeader}>BASE CLIENTS CRM ({filteredCrmData.length})</Text>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          {([['tous', 'Tous'], ['vip', '⭐ VIP'], ['recent', '🕐 7 derniers jours']] as [string, string][]).map(([key, label]) => (
+            <TouchableOpacity key={key} onPress={() => setCrmFilter(key as any)} style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backgroundColor: crmFilter === key ? Theme.colors.text : Theme.colors.surface, borderWidth: 1, borderColor: Theme.colors.border }}>
+              <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 12, color: crmFilter === key ? Theme.colors.background : Theme.colors.text }}>{label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
         <TextInput 
-          style={{ backgroundColor: Theme.colors.surface, borderRadius: 8, padding: 10, borderWidth: 1, borderColor: Theme.colors.border, width: 250, fontFamily: Theme.fonts.body, fontSize: 13 }}
-          placeholder="Rechercher un client (Nom, Tél...)"
+          style={{ backgroundColor: Theme.colors.surface, borderRadius: 8, padding: 10, borderWidth: 1, borderColor: Theme.colors.border, width: 200, fontFamily: Theme.fonts.body, fontSize: 13 }}
+          placeholder="Rechercher..."
           placeholderTextColor="#999"
           value={searchQuery}
           onChangeText={setSearchQuery}
@@ -1429,8 +1469,45 @@ function AccountingTab() {
         <StatCard label="Total Hors Taxe (HT)" value={`${totalHT.toFixed(2)}`} icon="calculator" color="#2196F3" />
         <StatCard label="Total TVA (2.6%)" value={`${totalVAT.toFixed(2)}`} icon="receipt" color="#FF9800" />
         <StatCard label="Chiffre d'Affaires (TTC)" value={`${totalRevenue.toFixed(2)}`} icon="cash" color={Theme.colors.success} />
-        <StatCard label="Nombre de Commandes" value={String(filteredOrders.length)} icon="cart" color="#888" />
+        <StatCard label="Nb Commandes" value={String(filteredOrders.length)} icon="cart" color="#888" />
+        <StatCard label="Panier Moyen" value={filteredOrders.length ? `${(totalRevenue / filteredOrders.length).toFixed(2)}` : '0'} icon="trending-up" color="#9C27B0" />
+        <StatCard label="Espèces" value={`${filteredOrders.filter(o => o.paymentMethod !== 'Carte').reduce((s, o) => s + o.total, 0).toFixed(2)}`} icon="cash-outline" color="#4CAF50" />
+        <StatCard label="Carte / Twint" value={`${filteredOrders.filter(o => o.paymentMethod === 'Carte').reduce((s, o) => s + o.total, 0).toFixed(2)}`} icon="card-outline" color="#007AFF" />
       </View>
+
+      {/* TOP PRODUITS DE LA PERIODE */}
+      {filteredOrders.length > 0 && (() => {
+        const productCounts: Record<string, { count: number; revenue: number }> = {};
+        filteredOrders.forEach(o => o.items.forEach((i: any) => {
+          if (!productCounts[i.name]) productCounts[i.name] = { count: 0, revenue: 0 };
+          productCounts[i.name].count += (i.quantity || 1);
+          productCounts[i.name].revenue += (i.price || 0) * (i.quantity || 1);
+        }));
+        const sorted = Object.entries(productCounts).sort((a, b) => b[1].count - a[1].count).slice(0, 5);
+        return (
+          <View style={{ marginBottom: 24 }}>
+            <Text style={styles.sectionHeader}>TOP PRODUITS DE LA PÉRIODE</Text>
+            <View style={styles.dataTableWrapper}>
+              <View style={styles.tableHeaderRow}>
+                <Text style={[styles.th, { flex: 0.5 }]}>#</Text>
+                <Text style={[styles.th, { flex: 3 }]}>PRODUIT</Text>
+                <Text style={[styles.th, { flex: 1, textAlign: 'center' }]}>QTÉ</Text>
+                <Text style={[styles.th, { flex: 1.5, textAlign: 'right' }]}>CA GÉNÉRÉ</Text>
+              </View>
+              {sorted.map(([name, data], i) => (
+                <View key={name} style={styles.tableRow}>
+                  <Text style={[styles.tdSub, { flex: 0.5 }]}>#{i + 1}</Text>
+                  <Text style={[styles.tdTitle, { flex: 3 }]}>{name}</Text>
+                  <View style={{ flex: 1, alignItems: 'center' }}>
+                    <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 13, color: Theme.colors.success }}>{data.count}x</Text>
+                  </View>
+                  <Text style={[styles.tdSub, { flex: 1.5, textAlign: 'right' }]}>{data.revenue.toFixed(2)} CHF</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        );
+      })()}
 
       {/* TABLE DATA */}
       <Text style={styles.sectionHeader}>HISTORIQUE DÉTAILLÉ DES VENTES</Text>
@@ -1605,6 +1682,26 @@ function MenuTab() {
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.editBtn} onPress={() => openEdit(product)}>
                   <Ionicons name="pencil" size={16} color={Theme.colors.success} />
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.editBtn, { borderColor: Theme.colors.primary + '55' }]} onPress={() => {
+                  const { id, ...rest } = product;
+                  const duplicated = { ...rest, name: rest.name + ' (COPIE)', displayOrder: (rest.displayOrder || 0) + 0.5 };
+                  if (Platform.OS === 'web') {
+                    if (window.confirm(`Dupliquer "${product.name}" ?`)) {
+                      // @ts-ignore
+                      useRestaurantStore.getState().addProduct(duplicated);
+                    }
+                  } else {
+                    Alert.alert('Dupliquer', `Dupliquer "${product.name}" ?`, [
+                      { text: 'Annuler', style: 'cancel' },
+                      { text: 'Dupliquer', onPress: () => {
+                        // @ts-ignore
+                        useRestaurantStore.getState().addProduct(duplicated);
+                      }},
+                    ]);
+                  }
+                }}>
+                  <Ionicons name="copy-outline" size={16} color={Theme.colors.primary} />
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDelete(product)}>
                   <Ionicons name="trash-outline" size={16} color={Theme.colors.danger} />
