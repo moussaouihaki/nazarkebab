@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
   SafeAreaView, TextInput, Switch, Platform, Alert, Modal, ActivityIndicator, Linking, useWindowDimensions
@@ -90,6 +90,15 @@ function PrintSpooler() {
   return null;
 }
 
+class ErrorBoundary extends React.Component<any, { error: Error | null }> {
+  constructor(props: any) { super(props); this.state = { error: null }; }
+  static getDerivedStateFromError(error: Error) { return { error }; }
+  render() { 
+    if (this.state.error) return <Text style={{color:'red', margin:20}}>{this.state.error.message}</Text>;
+    return this.props.children; 
+  }
+}
+
 // ──────────────────────────────────────────────
 // MAIN ADMIN SCREEN
 // ──────────────────────────────────────────────
@@ -137,7 +146,7 @@ export default function AdminScreen() {
     if (tab === 'orders') return <OrdersTab />;
     if (tab === 'kitchen') return <KitchenTab />;
     if (tab === 'crm') return <CrmTab />;
-    if (tab === 'menu') return <MenuTab />;
+    if (tab === 'menu') return <ErrorBoundary><MenuTab /></ErrorBoundary>;
     if (tab === 'accounting') return <AccountingTab />; // NEW
     if (tab === 'settings') return <SettingsTab />;
     return null;
