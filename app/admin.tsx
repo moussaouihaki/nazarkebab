@@ -410,19 +410,36 @@ function OrdersTab() {
   };
 
   const handleCancel = (orderId: string) => {
-    Alert.alert('Annuler', "Confirmer l'annulation de cette commande ?", [
-      { text: 'Non', style: 'cancel' },
-      { text: 'Oui', style: 'destructive', onPress: () => cancelOrder(orderId) },
-    ]);
+    if (Platform.OS === 'web') {
+      if (window.confirm('Annuler cette commande ?')) cancelOrder(orderId);
+    } else {
+      Alert.alert('Annuler', "Confirmer l'annulation de cette commande ?", [
+        { text: 'Non', style: 'cancel' },
+        { text: 'Oui', style: 'destructive', onPress: () => cancelOrder(orderId) },
+      ]);
+    }
   };
 
   const handlePay = (orderId: string) => {
-    Alert.alert('Encaisser', 'Sélectionnez la méthode de paiement', [
-      { text: 'Espèces', onPress: () => markAsPaid(orderId, 'Espèces') },
-      { text: 'Carte / Twint', onPress: () => markAsPaid(orderId, 'Carte') },
-      { text: 'Annuler', style: 'cancel' },
-    ]);
+    if (Platform.OS === 'web') {
+      const method = window.confirm('Paiement par Carte / Twint ?\n\nOK = Carte/Twint\nAnnuler = Espèces')
+        ? 'Carte' : 'Espèces';
+      markAsPaid(orderId, method);
+    } else {
+      Alert.alert('Encaisser', 'Sélectionnez la méthode de paiement', [
+        { text: 'Espèces', onPress: () => markAsPaid(orderId, 'Espèces') },
+        { text: 'Carte / Twint', onPress: () => markAsPaid(orderId, 'Carte') },
+        { text: 'Annuler', style: 'cancel' },
+      ]);
+    }
   };
+
+  // Sort by most recent first
+  const sortedDisplayed = [...displayed].sort((a, b) => {
+    const ta = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || 0);
+    const tb = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt || 0);
+    return tb.getTime() - ta.getTime();
+  });
 
   return (
     <View style={{ flex: 1 }}>
@@ -453,7 +470,7 @@ function OrdersTab() {
               <Text style={[styles.th, { flex: 1.5 }]}>TOTAL / STATUT</Text>
               <Text style={[styles.th, { flex: 1, textAlign: 'right' }]}>ACTIONS</Text>
             </View>
-            {displayed.map(order => (
+            {sortedDisplayed.map(order => {
               <View key={order.id} style={styles.tableRow}>
                 <View style={{ flex: 0.5 }}>
                   <Text style={styles.tdId}>#{order.id}</Text>
@@ -462,6 +479,11 @@ function OrdersTab() {
                   ) : (
                     <Text style={styles.tdTime}>ASAP (~{order.estimatedTime}m)</Text>
                   )}
+                  {(() => {
+                    const t = order.createdAt?.toDate ? order.createdAt.toDate() : new Date(order.createdAt || 0);
+                    const mins = Math.floor((Date.now() - t.getTime()) / 60000);
+                    return <Text style={[styles.tdTime, { color: mins > 20 ? Theme.colors.danger : Theme.colors.textSecondary }]}>⏱ {mins}m</Text>;
+                  })()}
                 </View>
                 <View style={{ flex: 1.5 }}>
                   <Text style={styles.tdTitle}>{order.customerName}</Text>
@@ -517,12 +539,12 @@ function OrdersTab() {
                     )}
                 </View>
               </View>
-            ))}
+            })}
           </View>
         )}
 
         {/* MOBILE CARDS */}
-        {!isDesktop && displayed.map(order => (
+        {!isDesktop && sortedDisplayed.map(order => (
           <View key={order.id} style={styles.orderCard}>
             <View style={styles.orderCardRow}>
               <Text style={styles.orderId}>#{order.id}</Text>
@@ -853,21 +875,56 @@ function CrmTab() {
   const uniqueNames = Array.from(new Set(orders.map(o => o.customerName)));
   
   const crmData = uniqueNames.map((name: string) => {
-    const userOrders = orders.filter(o => o.customerName === name && o.status !== 'cancelled');
+    const allUserOrders = orders.filter(o => o.customerName === name);
+    const userOrders = allUserOrders.filter(o => o.status !== 'cancelled');
     const spent = userOrders.reduce((acc, curr) => acc + curr.total, 0);
-    const phone = userOrders.length > 0 ? userOrders[0].customerPhone : '-';
-    // Retrieve the latest address if available (prefer non-empty addresses)
+    const phone = allUserOrders.length > 0 ? allUserOrders[0].customerPhone : '-';
     const ordersWithAddress = userOrders.filter(o => o.customerAddress && o.customerAddress.trim().length > 0);
     const address = ordersWithAddress.length > 0 ? ordersWithAddress[0].customerAddress : '';
-    // Loyalty points (mock logic: 1 CHF = 1 Point)
     const loyaltyPoints = userOrders.length;
-    return { name, phone, address, orderCount: userOrders.length, totalSpent: spent, loyaltyPoints, orders: userOrders };
+    const isVIP = userOrders.length >= 5 || spent >= 100;
+    // Last order date
+    const sortedOrders = [...allUserOrders].sort((a, b) => {
+      const ta = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || 0);
+      const tb = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt || 0);
+      return tb.getTime() - ta.getTime();
+    });
+    const lastOrderDate = sortedOrders.length > 0 ? (sortedOrders[0].createdAt?.toDate ? sortedOrders[0].createdAt.toDate() : new Date(sortedOrders[0].createdAt || 0)) : null;
+    return { name, phone, address, orderCount: userOrders.length, totalSpent: spent, loyaltyPoints, orders: sortedOrders, isVIP, lastOrderDate };
   }).filter(c => c.orderCount > 0).sort((a: any, b: any) => b.totalSpent - a.totalSpent);
 
   const filteredCrmData = crmData.filter(client => 
     client.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
     client.phone.includes(searchQuery)
   );
+
+  const [clientNotes, setClientNotes] = useState<Record<string,string>>({});
+
+  const saveNote = async (clientName: string, note: string) => {
+    const key = `crm_note_${clientName.replace(/\s+/g,'_')}`;
+    setClientNotes(prev => ({ ...prev, [clientName]: note }));
+    try {
+      const { doc, setDoc } = await import('firebase/firestore');
+      await setDoc(doc(db, 'crm_notes', key), { name: clientName, note, updatedAt: new Date().toISOString() }, { merge: true });
+      if (Platform.OS === 'web') window.alert('Note sauvegardée !');
+      else Alert.alert('Succès', 'Note sauvegardée !');
+    } catch(e) {
+      console.error(e);
+    }
+  };
+
+  React.useEffect(() => {
+    const loadNotes = async () => {
+      try {
+        const { getDocs, collection: col } = await import('firebase/firestore');
+        const snap = await getDocs(col(db, 'crm_notes'));
+        const notes: Record<string,string> = {};
+        snap.forEach(d => { notes[d.data().name] = d.data().note; });
+        setClientNotes(notes);
+      } catch(e) { console.error(e); }
+    };
+    loadNotes();
+  }, []);
 
   return (
     <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -980,14 +1037,24 @@ function CrmTab() {
               <>
                 <View style={{ padding: 20, backgroundColor: Theme.colors.surface, borderBottomWidth: 1, borderColor: Theme.colors.border, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                   <View>
-                    <Text style={{ fontFamily: Theme.fonts.title, fontSize: 24, color: Theme.colors.text }}>{selectedClient.name}</Text>
-                    <Text style={{ fontFamily: Theme.fonts.body, fontSize: 14, color: Theme.colors.textSecondary }}>{selectedClient.phone}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      <Text style={{ fontFamily: Theme.fonts.title, fontSize: 22, color: Theme.colors.text }}>{selectedClient.name}</Text>
+                      {selectedClient.isVIP && <View style={{ backgroundColor: '#FFD70033', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2 }}><Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 11, color: '#c9a800' }}>⭐ VIP</Text></View>}
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 }}>
+                      <Text style={{ fontFamily: Theme.fonts.body, fontSize: 14, color: Theme.colors.textSecondary }}>{selectedClient.phone}</Text>
+                      <TouchableOpacity onPress={() => Linking.openURL(`tel:${selectedClient.phone}`)} style={{ backgroundColor: Theme.colors.success + '22', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 2 }}>
+                        <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 12, color: Theme.colors.success }}>📞 Appeler</Text>
+                      </TouchableOpacity>
+                    </View>
                     {selectedClient.address ? (
-                      <Text style={{ fontFamily: Theme.fonts.body, fontSize: 14, color: Theme.colors.textSecondary, marginTop: 4 }}>
-                        <Ionicons name="location-outline" size={14} color={Theme.colors.primary} style={{ marginRight: 4 }} /> 
-                        {selectedClient.address}
+                      <Text style={{ fontFamily: Theme.fonts.body, fontSize: 13, color: Theme.colors.textSecondary, marginTop: 4 }}>
+                        📍 {selectedClient.address}
                       </Text>
                     ) : null}
+                    {selectedClient.lastOrderDate && <Text style={{ fontFamily: Theme.fonts.body, fontSize: 11, color: Theme.colors.textSecondary, marginTop: 4 }}>
+                      Dernière commande: {selectedClient.lastOrderDate.toLocaleDateString('fr-CH')}
+                    </Text>}
                   </View>
                   <TouchableOpacity onPress={() => setSelectedClient(null)}>
                     <Ionicons name="close" size={24} color={Theme.colors.textSecondary} />
@@ -1039,9 +1106,14 @@ function CrmTab() {
                     placeholder="Ajouter une note sur ce client (ex: Allergie arachide)..."
                     placeholderTextColor="#999"
                     multiline
+                    value={clientNotes[selectedClient.name] || ''}
+                    onChangeText={(t) => setClientNotes(prev => ({ ...prev, [selectedClient.name]: t }))}
                   />
                   
-                  <TouchableOpacity style={{ backgroundColor: Theme.colors.success, padding: 14, borderRadius: 100, alignItems: 'center', marginTop: 20 }}>
+                  <TouchableOpacity
+                    style={{ backgroundColor: Theme.colors.success, padding: 14, borderRadius: 100, alignItems: 'center', marginTop: 20 }}
+                    onPress={() => saveNote(selectedClient.name, clientNotes[selectedClient.name] || '')}
+                  >
                     <Text style={{ fontFamily: Theme.fonts.bodyBold, color: '#000', fontSize: 14 }}>SAUVEGARDER LA FICHE</Text>
                   </TouchableOpacity>
                 </View>
