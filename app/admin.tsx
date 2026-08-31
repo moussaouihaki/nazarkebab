@@ -496,7 +496,7 @@ function OrdersTab() {
               <Text style={[styles.th, { flex: 1.5 }]}>TOTAL / STATUT</Text>
               <Text style={[styles.th, { flex: 1, textAlign: 'right' }]}>ACTIONS</Text>
             </View>
-            {sortedDisplayed.map(order => {
+            {sortedDisplayed.map(order => (
               <View key={order.id} style={styles.tableRow}>
                 <View style={{ flex: 0.5 }}>
                   <Text style={styles.tdId}>#{order.id}</Text>
@@ -565,7 +565,7 @@ function OrdersTab() {
                     )}
                 </View>
               </View>
-            })}
+            ))}
           </View>
         )}
 
