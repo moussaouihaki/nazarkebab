@@ -179,7 +179,12 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
       // 2. Fetch Categories
       const categoriesDoc = await getDoc(doc(db, 'settings', 'pokemoons_categories'));
       if (categoriesDoc.exists()) {
-        set({ categories: categoriesDoc.data().list });
+        const savedCategories = categoriesDoc.data().list || [];
+        const mergedCategories = [...new Set([...INITIAL_CATEGORIES, ...savedCategories])];
+        if (mergedCategories.length > savedCategories.length) {
+          await setDoc(doc(db, 'settings', 'pokemoons_categories'), { list: mergedCategories });
+        }
+        set({ categories: mergedCategories });
       } else {
         await setDoc(doc(db, 'settings', 'pokemoons_categories'), { list: INITIAL_CATEGORIES });
         set({ categories: INITIAL_CATEGORIES });
@@ -189,7 +194,17 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
       onSnapshot(collection(db, 'pokemoons_products'), (snapshot) => {
         const prodList: Product[] = [];
         snapshot.forEach((docSnap) => {
-          prodList.push({ id: docSnap.id, ...docSnap.data() } as Product);
+          const data = docSnap.data() as Product;
+          
+          // Migration for Compose ton Poké
+          if (data.name === 'COMPOSE TON POKÉ' && data.category !== 'CRÉER TON POKÉBOWL') {
+            import('firebase/firestore').then(({ updateDoc }) => {
+              updateDoc(doc(db, 'pokemoons_products', docSnap.id), { category: 'CRÉER TON POKÉBOWL' });
+            });
+            data.category = 'CRÉER TON POKÉBOWL';
+          }
+          
+          prodList.push({ id: docSnap.id, ...data });
         });
         
         // Merge local missing products to ensure UI always has the defaults
