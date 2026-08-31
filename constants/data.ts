@@ -194,6 +194,7 @@ export const PRODUCTS: Product[] = [
           { name: 'Ciboulette', priceOffset: 1.00 },
           { name: 'Noix Écrasées', priceOffset: 1.00 }
         ]
+      }
     ]
   },
 
