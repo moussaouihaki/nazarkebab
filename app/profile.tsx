@@ -21,7 +21,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function ProfileScreen() {
   const { user, logout, updateProfile, isLoggedIn, deleteAccount } = useAuthStore();
-  const { orders, clearCart, clearOrders } = useCartStore();
+  const { orders, clearCart, clearOrders, addItem } = useCartStore();
   const { settings } = useRestaurantStore();
   const { width } = useWindowDimensions();
   const isDesktop = Platform.OS === 'web' && width >= 768;
@@ -42,6 +42,13 @@ export default function ProfileScreen() {
     const combinedAddress = `${street}${postalCode ? `, ${postalCode}` : ''}${city ? ` ${city}` : ''}`.trim().replace(/^, |, $/g, '');
     updateProfile({ firstName, lastName, phone, address: combinedAddress, street, postalCode, city });
     setEditing(false);
+  };
+
+  const handleReorder = (order: any) => {
+    order.items.forEach((item: any) => {
+      addItem(item, item.note, item.quantity, item.selectedOptions);
+    });
+    router.push('/cart');
   };
 
   const handleLogout = () => {
@@ -325,14 +332,22 @@ export default function ProfileScreen() {
                         <Text style={styles.orderDate}>
                           {new Date(order.createdAt).toLocaleDateString('fr-CH', { day: '2-digit', month: '2-digit' })}
                         </Text>
-                        <TouchableOpacity
-                          onPress={() => router.push({ pathname: '/receipt', params: { id: order.id } })}
-                          style={{ marginTop: 6 }}
-                        >
-                          <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 11, color: Theme.colors.success }}>
-                            {order.status === 'delivered' ? 'Voir ticket' : 'Bon de commande'}
-                          </Text>
-                        </TouchableOpacity>
+                        <View style={{ flexDirection: 'row', gap: 12, marginTop: 6 }}>
+                          <TouchableOpacity
+                            onPress={() => router.push({ pathname: '/receipt', params: { id: order.id } })}
+                          >
+                            <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 11, color: Theme.colors.success }}>
+                              {order.status === 'delivered' ? 'Voir ticket' : 'Bon de commande'}
+                            </Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            onPress={() => handleReorder(order)}
+                          >
+                            <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 11, color: Theme.colors.primary }}>
+                              Recommander
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
                       </View>
                     </View>
                     {i < myOrders.length - 1 && <View style={styles.fieldDivider} />}
