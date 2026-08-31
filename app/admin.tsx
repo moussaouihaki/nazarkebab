@@ -1011,11 +1011,24 @@ function CrmTab() {
                   </View>
 
                   <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 14, marginBottom: 10, color: Theme.colors.text }}>DERNIÈRES COMMANDES</Text>
-                  <ScrollView style={{ maxHeight: 150 }} nestedScrollEnabled>
+                  <ScrollView style={{ maxHeight: 250 }} nestedScrollEnabled>
                     {selectedClient.orders.map((o: any) => (
-                      <View key={o.id} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderColor: Theme.colors.border }}>
-                        <Text style={{ fontFamily: Theme.fonts.body, fontSize: 13, color: Theme.colors.text }}>{new Date(o.createdAt).toLocaleDateString('fr-CH')}</Text>
-                        <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 13, color: Theme.colors.text }}>{o.total.toFixed(2)} CHF</Text>
+                      <View key={o.id} style={{ paddingVertical: 12, borderBottomWidth: 1, borderColor: Theme.colors.border }}>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                          <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 13, color: Theme.colors.text }}>{new Date(o.createdAt).toLocaleDateString('fr-CH')} à {new Date(o.createdAt).toLocaleTimeString('fr-CH', {hour: '2-digit', minute:'2-digit'})}</Text>
+                          <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 13, color: Theme.colors.text }}>{o.total.toFixed(2)} CHF</Text>
+                        </View>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+                          <Text style={{ fontFamily: Theme.fonts.body, fontSize: 12, color: Theme.colors.textSecondary }}>{o.items?.length || 0} article(s) • {o.deliveryType === 'delivery' ? 'Livraison' : 'Emporter'}</Text>
+                          <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 12, color: o.status === 'cancelled' ? Theme.colors.danger : (o.isPaid ? Theme.colors.success : Theme.colors.warning) }}>
+                            {o.status === 'cancelled' ? 'Annulée' : (o.isPaid ? 'Payé' : 'Non payé')} ({o.paymentMethod || '?'})
+                          </Text>
+                        </View>
+                        {o.items?.map((item: any, i: number) => (
+                           <Text key={i} style={{ fontFamily: Theme.fonts.body, fontSize: 11, color: Theme.colors.textSecondary, marginBottom: 2 }}>
+                             - {item.quantity}x {item.product?.name || 'Produit'}
+                           </Text>
+                        ))}
                       </View>
                     ))}
                   </ScrollView>
