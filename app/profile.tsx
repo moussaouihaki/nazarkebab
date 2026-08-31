@@ -46,7 +46,9 @@ export default function ProfileScreen() {
 
   const handleReorder = (order: any) => {
     order.items.forEach((item: any) => {
-      addItem(item, item.note, item.quantity, item.selectedOptions);
+      // Restore the original product ID so addItem doesn't double-hash the CartItem's unique ID
+      const originalProduct = { ...item, id: item.productId || item.id.split('-')[0] };
+      addItem(originalProduct, item.note, item.quantity, item.selectedOptions);
     });
     router.push('/cart');
   };
@@ -96,6 +98,53 @@ export default function ProfileScreen() {
     }
   };
 
+  const renderOrderHistory = () => {
+    if (myOrders.length === 0) return null;
+    return (
+      <>
+        <Text style={[styles.sectionLabel, { marginTop: 24 }]}>MES COMMANDES RÉCENTES</Text>
+        <View style={styles.card}>
+          {myOrders.map((order, i) => (
+            <View key={order.id}>
+              <View style={styles.orderRow}>
+                <View style={{ flex: 1 }}>
+                  <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center', marginBottom: 4 }}>
+                    <Text style={styles.orderId}>#{order.id}</Text>
+                    <View style={[styles.microStatus, { backgroundColor: STATUS_COLORS[order.status] + '22', borderColor: STATUS_COLORS[order.status] }]}>
+                      <Text style={[styles.microStatusText, { color: STATUS_COLORS[order.status] }]}>{STATUS_LABELS[order.status]}</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.orderItems} numberOfLines={1}>
+                    {order.items.map(it => it.name).join(', ')}
+                  </Text>
+                </View>
+                <View style={{ alignItems: 'flex-end' }}>
+                  <Text style={styles.orderTotal}>{order.total.toFixed(2)} CHF</Text>
+                  <Text style={styles.orderDate}>
+                    {new Date(order.createdAt).toLocaleDateString('fr-CH', { day: '2-digit', month: '2-digit' })}
+                  </Text>
+                  <View style={{ flexDirection: 'row', gap: 12, marginTop: 6 }}>
+                    <TouchableOpacity onPress={() => router.push({ pathname: '/receipt', params: { id: order.id } })}>
+                      <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 11, color: Theme.colors.success }}>
+                        {order.status === 'delivered' ? 'Voir ticket' : 'Bon de commande'}
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => handleReorder(order)}>
+                      <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 11, color: Theme.colors.primary }}>
+                        Recommander
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+              {i < myOrders.length - 1 && <View style={styles.fieldDivider} />}
+            </View>
+          ))}
+        </View>
+      </>
+    );
+  };
+
   // ─── NOT LOGGED IN ───────────────────────────────────
   if (!isLoggedIn || !user) {
     return (
@@ -108,7 +157,7 @@ export default function ProfileScreen() {
             <Text style={styles.headerTitle}>MON PROFIL</Text>
             <View style={{ width: 40 }} />
           </View>
-          <View style={styles.notLoggedContainer}>
+          <ScrollView contentContainerStyle={styles.notLoggedContainer} showsVerticalScrollIndicator={false}>
             <View style={styles.bigIcon}>
               <Ionicons name="person-outline" size={44} color={Theme.colors.textSecondary} />
             </View>
@@ -132,7 +181,12 @@ export default function ProfileScreen() {
                 {checkIsRestaurantOpen(settings) ? '🟢 Actuellement ouvert' : '🔴 Actuellement fermé'}
               </Text>
             </View>
-          </View>
+
+            {/* ORDER HISTORY FOR GUESTS */}
+            <View style={{ width: '100%' }}>
+              {renderOrderHistory()}
+            </View>
+          </ScrollView>
         </SafeAreaView>
       </View>
     );
@@ -309,53 +363,7 @@ export default function ProfileScreen() {
           </View>
 
           {/* ORDER HISTORY */}
-          {myOrders.length > 0 && (
-            <>
-              <Text style={styles.sectionLabel}>MES COMMANDES</Text>
-              <View style={styles.card}>
-                {myOrders.map((order, i) => (
-                  <View key={order.id}>
-                    <View style={styles.orderRow}>
-                      <View style={{ flex: 1 }}>
-                        <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center', marginBottom: 4 }}>
-                          <Text style={styles.orderId}>#{order.id}</Text>
-                          <View style={[styles.microStatus, { backgroundColor: STATUS_COLORS[order.status] + '22', borderColor: STATUS_COLORS[order.status] }]}>
-                            <Text style={[styles.microStatusText, { color: STATUS_COLORS[order.status] }]}>{STATUS_LABELS[order.status]}</Text>
-                          </View>
-                        </View>
-                        <Text style={styles.orderItems} numberOfLines={1}>
-                          {order.items.map(it => it.name).join(', ')}
-                        </Text>
-                      </View>
-                      <View style={{ alignItems: 'flex-end' }}>
-                        <Text style={styles.orderTotal}>{order.total.toFixed(2)} CHF</Text>
-                        <Text style={styles.orderDate}>
-                          {new Date(order.createdAt).toLocaleDateString('fr-CH', { day: '2-digit', month: '2-digit' })}
-                        </Text>
-                        <View style={{ flexDirection: 'row', gap: 12, marginTop: 6 }}>
-                          <TouchableOpacity
-                            onPress={() => router.push({ pathname: '/receipt', params: { id: order.id } })}
-                          >
-                            <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 11, color: Theme.colors.success }}>
-                              {order.status === 'delivered' ? 'Voir ticket' : 'Bon de commande'}
-                            </Text>
-                          </TouchableOpacity>
-                          <TouchableOpacity
-                            onPress={() => handleReorder(order)}
-                          >
-                            <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 11, color: Theme.colors.primary }}>
-                              Recommander
-                            </Text>
-                          </TouchableOpacity>
-                        </View>
-                      </View>
-                    </View>
-                    {i < myOrders.length - 1 && <View style={styles.fieldDivider} />}
-                  </View>
-                ))}
-              </View>
-            </>
-          )}
+          {renderOrderHistory()}
 
           {/* RESTAURANT INFO */}
           <Text style={styles.sectionLabel}>RESTAURANT</Text>
