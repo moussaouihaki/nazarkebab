@@ -115,7 +115,7 @@ export const PRODUCTS: Product[] = [
   // --- LE SUR-MESURE ---
   {
     id: 'poke-custom',
-    category: 'POKÉ BOWL',
+    category: 'CRÉER TON POKÉBOWL',
     name: 'COMPOSE TON POKÉ',
     description: 'Crée ton propre Poké Bowl de A à Z avec tes ingrédients préférés.',
     price: 4.00,
