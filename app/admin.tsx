@@ -2408,17 +2408,17 @@ function IngredientsStockPanel() {
 // SAUCES & BOISSONS PANEL
 // ──────────────────────────────────
 function SaucesDrinksPanel() {
-  const { settings, updateSauces, updateDrinks } = useRestaurantStore();
+  const { sauces, updateSauces } = useRestaurantStore();
   const [newSauce, setNewSauce] = useState('');
 
   const addSauce = () => {
     if (!newSauce.trim()) return;
-    updateSauces([...settings.sauces, newSauce.trim()]);
+    updateSauces([...(sauces || []), newSauce.trim()]);
     setNewSauce('');
   };
 
   const removeSauce = (name: string) => {
-    updateSauces(settings.sauces.filter(s => s !== name));
+    updateSauces((sauces || []).filter(s => s !== name));
   };
 
   const panels = StyleSheet.create({
@@ -2449,7 +2449,7 @@ function SaucesDrinksPanel() {
           </TouchableOpacity>
         </View>
         <View style={panels.chipContainer}>
-          {settings.sauces.map(s => (
+          {sauces?.map(s => (
             <View key={s} style={panels.chip}>
               <Text style={panels.chipText}>{s}</Text>
               <TouchableOpacity onPress={() => removeSauce(s)}>
