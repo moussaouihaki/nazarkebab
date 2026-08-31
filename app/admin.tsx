@@ -1380,7 +1380,7 @@ function MenuTab() {
       const orderA = a.displayOrder ?? 0;
       const orderB = b.displayOrder ?? 0;
       if (orderA !== orderB) return orderA - orderB;
-      return a.name.localeCompare(b.name);
+      return (a.name || '').localeCompare(b.name || '');
     });
 
   const openAdd = () => { setEditingProduct(null); setShowModal(true); };
@@ -2358,9 +2358,11 @@ function IngredientsStockPanel() {
   
   const allIngredients = useMemo(() => {
     const ingredients = new Set<string>();
-    products.forEach(p => {
+    products?.forEach(p => {
       p.customizationSections?.forEach(sec => {
-        sec.choices.forEach(c => ingredients.add(c.name));
+        sec.choices?.forEach(c => {
+          if (c && c.name) ingredients.add(c.name);
+        });
       });
     });
     return Array.from(ingredients).sort();

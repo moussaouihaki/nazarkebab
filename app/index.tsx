@@ -50,7 +50,7 @@ export default function HomeScreen() {
       const orderA = a.displayOrder ?? 0;
       const orderB = b.displayOrder ?? 0;
       if (orderA !== orderB) return orderA - orderB;
-      return a.name.localeCompare(b.name);
+      return (a.name || '').localeCompare(b.name || '');
     });
   const getCategoryImage = (cat: string) => {
     const prod = products.find(p => p.category === cat);

@@ -33,7 +33,7 @@ export default function MenuScreen() {
         const orderA = a.displayOrder ?? 0;
         const orderB = b.displayOrder ?? 0;
         if (orderA !== orderB) return orderA - orderB;
-        return a.name.localeCompare(b.name);
+        return (a.name || '').localeCompare(b.name || '');
       });
     if (!search.trim()) return byCategory;
     const q = search.toLowerCase();
@@ -56,7 +56,7 @@ export default function MenuScreen() {
         const orderA = a.displayOrder ?? 0;
         const orderB = b.displayOrder ?? 0;
         if (orderA !== orderB) return orderA - orderB;
-        return a.name.localeCompare(b.name);
+        return (a.name || '').localeCompare(b.name || '');
       });
   }, [products, search]);
 
