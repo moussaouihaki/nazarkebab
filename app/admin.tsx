@@ -1396,10 +1396,16 @@ function MenuTab() {
   const openEdit = (p: Product) => { setEditingProduct(p); setShowModal(true); };
 
   const handleDelete = (p: Product) => {
-    Alert.alert('Supprimer', `Supprimer "${p.name}" du menu ?`, [
-      { text: 'Annuler', style: 'cancel' },
-      { text: 'Supprimer', style: 'destructive', onPress: () => deleteProduct(p.id) },
-    ]);
+    if (Platform.OS === 'web') {
+      if (window.confirm(`Supprimer "${p.name}" du menu ?`)) {
+        deleteProduct(p.id);
+      }
+    } else {
+      Alert.alert('Supprimer', `Supprimer "${p.name}" du menu ?`, [
+        { text: 'Annuler', style: 'cancel' },
+        { text: 'Supprimer', style: 'destructive', onPress: () => deleteProduct(p.id) },
+      ]);
+    }
   };
 
   const handleDeleteCat = (cat: string) => {
