@@ -1507,6 +1507,11 @@ function MenuTab() {
         )}
 
         <View style={{ marginTop: 40, borderTopWidth: 1, borderColor: Theme.colors.border, paddingTop: 24 }}>
+          <Text style={styles.sectionHeader}>GESTION DES STOCKS D'INGRÉDIENTS</Text>
+          <IngredientsStockPanel />
+        </View>
+
+        <View style={{ marginTop: 24, borderTopWidth: 1, borderColor: Theme.colors.border, paddingTop: 24 }}>
           <Text style={styles.sectionHeader}>SAUCES & BOISSONS (LISTE GLOBALE)</Text>
           <SaucesDrinksPanel />
         </View>
@@ -2323,6 +2328,58 @@ function DeliveryZonesPanel() {
           <Text style={{ fontFamily: Theme.fonts.bodyBold, color: Theme.colors.primary }}>+ Ajouter une zone de livraison</Text>
         </TouchableOpacity>
       )}
+    </View>
+  );
+}
+
+// ──────────────────────────────────
+// INGREDIENTS STOCK PANEL
+// ──────────────────────────────────
+function IngredientsStockPanel() {
+  const { products, settings, toggleIngredientStock } = useRestaurantStore();
+  
+  const allIngredients = useMemo(() => {
+    const ingredients = new Set<string>();
+    products.forEach(p => {
+      p.customizationSections?.forEach(sec => {
+        sec.choices.forEach(c => ingredients.add(c.name));
+      });
+    });
+    return Array.from(ingredients).sort();
+  }, [products]);
+
+  const panels = StyleSheet.create({
+    card: { backgroundColor: Theme.colors.surface, borderRadius: 16, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: Theme.colors.border },
+    label: { fontFamily: Theme.fonts.bodyBold, fontSize: 13, color: Theme.colors.text, marginBottom: 12, letterSpacing: 1 },
+    subtitle: { fontFamily: Theme.fonts.body, fontSize: 13, color: Theme.colors.textSecondary, marginBottom: 16 },
+    chipContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    chip: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: Theme.colors.background, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: Theme.colors.border },
+    chipOut: { backgroundColor: Theme.colors.danger + '15', borderColor: Theme.colors.danger },
+    chipText: { fontFamily: Theme.fonts.body, fontSize: 13, color: Theme.colors.text },
+    chipTextOut: { color: Theme.colors.danger, textDecorationLine: 'line-through' },
+  });
+
+  if (allIngredients.length === 0) return null;
+
+  return (
+    <View style={panels.card}>
+      <Text style={panels.label}>INGRÉDIENTS SUR-MESURE</Text>
+      <Text style={panels.subtitle}>Sélectionne les ingrédients actuellement en rupture. Ils seront bloqués dans la composition de Pokébowl.</Text>
+      <View style={panels.chipContainer}>
+        {allIngredients.map(ing => {
+          const isOut = settings.outOfStockIngredients?.includes(ing);
+          return (
+            <TouchableOpacity 
+              key={ing} 
+              style={[panels.chip, isOut && panels.chipOut]}
+              onPress={() => toggleIngredientStock(ing)}
+            >
+              <Text style={[panels.chipText, isOut && panels.chipTextOut]}>{ing}</Text>
+              {isOut && <Ionicons name="close-circle" size={16} color={Theme.colors.danger} />}
+            </TouchableOpacity>
+          );
+        })}
+      </View>
     </View>
   );
 }

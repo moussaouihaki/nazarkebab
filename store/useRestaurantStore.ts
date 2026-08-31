@@ -55,6 +55,7 @@ export interface RestaurantSettings {
   loyaltyMinPoints: number;
   announcementEnabled: boolean;   // Afficher ou non la bannière
   announcementMessage: string;    // Texte du message (ex: "Fermé du 1 au 15 août")
+  outOfStockIngredients?: string[]; // Liste des ingrédients en rupture
 }
 
 interface RestaurantState {
@@ -82,6 +83,7 @@ interface RestaurantState {
   updateHours: (day: string, data: Partial<OpeningHours>) => Promise<void>;
   updateSauces: (sauces: string[]) => Promise<void>;
   updateDrinks: (drinks: Drink[]) => Promise<void>;
+  toggleIngredientStock: (ingredient: string) => Promise<void>;
 }
 
 const DEFAULT_HOURS: OpeningHours[] = [
@@ -134,7 +136,8 @@ const DEFAULT_SETTINGS: RestaurantSettings = {
   loyaltyEnabled: true,
   loyaltyMinPoints: 10,
   announcementEnabled: false,
-  announcementMessage: ''
+  announcementMessage: '',
+  outOfStockIngredients: []
 };
 
 export const useRestaurantStore = create<RestaurantState>((set, get) => ({
@@ -326,7 +329,20 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
       await updateDoc(doc(db, 'settings', 'pokemoons_restaurant'), data);
       set({ settings: updated });
     } catch (err) {
-      console.error('Erreur MAJ réglages:', err);
+      console.error('Erreur update settings:', err);
+    }
+  },
+
+  toggleIngredientStock: async (ingredient) => {
+    try {
+      const currentList = get().settings.outOfStockIngredients || [];
+      const newList = currentList.includes(ingredient)
+        ? currentList.filter(i => i !== ingredient)
+        : [...currentList, ingredient];
+        
+      await get().updateSettings({ outOfStockIngredients: newList });
+    } catch (err) {
+      console.error('Erreur toggle ingredient:', err);
     }
   },
 

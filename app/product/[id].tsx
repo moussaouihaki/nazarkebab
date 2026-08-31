@@ -277,13 +277,17 @@ export default function ProductDetailScreen() {
                 <View style={styles.pillsContainer}>
                   {section.choices.map(choice => {
                     const isActive = selected.includes(choice.name);
+                    const isOut = settings.outOfStockIngredients?.includes(choice.name);
                     return (
                       <TouchableOpacity 
                         key={choice.name} 
-                        style={[styles.pillBtn, isActive && styles.pillBtnActive]}
-                        onPress={() => toggleCustomOption(section.title, choice.name, section.maxChoices)}
+                        style={[styles.pillBtn, isActive && styles.pillBtnActive, isOut && { opacity: 0.5, backgroundColor: Theme.colors.surface }]}
+                        onPress={() => !isOut && toggleCustomOption(section.title, choice.name, section.maxChoices)}
+                        disabled={isOut}
                       >
-                         <Text style={[styles.pillText, isActive && styles.pillTextActive]}>{choice.name}</Text>
+                         <Text style={[styles.pillText, isActive && styles.pillTextActive, isOut && { textDecorationLine: 'line-through' }]}>
+                           {choice.name} {isOut && <Text style={{ color: Theme.colors.danger, fontSize: 10 }}>(Rupture)</Text>}
+                         </Text>
                       </TouchableOpacity>
                     );
                   })}
@@ -294,10 +298,14 @@ export default function ProductDetailScreen() {
                   {section.choices.map(choice => {
                     const count = selected.filter(x => x === choice.name).length;
                     const isMaxedOut = selected.length >= section.maxChoices;
+                    const isOut = settings.outOfStockIngredients?.includes(choice.name);
+                    
                     return (
-                      <View key={choice.name} style={[styles.extraRow, isMaxedOut && count === 0 && { opacity: 0.5 }]}>
+                      <View key={choice.name} style={[styles.extraRow, (isOut || (isMaxedOut && count === 0)) && { opacity: 0.5 }]}>
                          <View style={{ flex: 1 }}>
-                            <Text style={styles.extraName}>{choice.name}</Text>
+                            <Text style={[styles.extraName, isOut && { textDecorationLine: 'line-through' }]}>
+                              {choice.name} {isOut && <Text style={{ color: Theme.colors.danger, fontSize: 10 }}>(Rupture)</Text>}
+                            </Text>
                             <Text style={styles.extraPrice}>{choice.priceOffset > 0 ? '+' : ''}{choice.priceOffset.toFixed(2)} CHF</Text>
                          </View>
                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
@@ -309,13 +317,11 @@ export default function ProductDetailScreen() {
                                 <Ionicons name="remove" size={16} color={Theme.colors.text} />
                               </TouchableOpacity>
                             )}
-                            {count > 0 && (
-                              <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 14 }}>{count}</Text>
-                            )}
+                            {count > 0 && <Text style={styles.extraCount}>{count}</Text>}
                             <TouchableOpacity 
-                               style={[styles.extraAddBtn, isMaxedOut && { opacity: 0.5 }]}
-                               onPress={() => !isMaxedOut && addCustomOption(section.title, choice.name, section.maxChoices)}
-                               activeOpacity={isMaxedOut ? 1 : 0.7}
+                              style={[styles.extraAddBtn, isOut && { opacity: 0.5 }]}
+                              onPress={() => !isOut && addCustomOption(section.title, choice.name, section.maxChoices)}
+                              disabled={isMaxedOut || isOut}
                             >
                                <Ionicons name="add" size={16} color={Theme.colors.text} />
                             </TouchableOpacity>
@@ -669,6 +675,10 @@ const styles = StyleSheet.create({
     fontFamily: Theme.fonts.body,
     fontSize: 12,
     color: Theme.colors.textSecondary,
+  },
+  extraCount: {
+    fontFamily: Theme.fonts.bodyBold,
+    fontSize: 14,
   },
   extraAddBtn: {
     width: 36,
