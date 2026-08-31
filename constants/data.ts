@@ -122,7 +122,7 @@ export const PRODUCTS: Product[] = [
     price: 4.00,
     image: 'poke',
     highlighted: false,
-    hasSauces: false,
+    hasSauces: true,
     customizationSections: [
       {
         title: 'Choisis ta base (2 au choix)',
@@ -194,33 +194,6 @@ export const PRODUCTS: Product[] = [
           { name: 'Ciboulette', priceOffset: 1.00 },
           { name: 'Noix Écrasées', priceOffset: 1.00 }
         ]
-      },
-      {
-        title: 'Choisis ta sauce (1 au choix)',
-        required: true,
-        maxChoices: 1,
-        choices: [
-          { name: 'Teriyaki', priceOffset: 0 },
-          { name: 'Garlic Teriyaki', priceOffset: 0 },
-          { name: 'Soy (Soja)', priceOffset: 0 },
-          { name: 'Spicy Mayo Maison', priceOffset: 0 },
-          { name: 'Homemade Lemon Olive Oil', priceOffset: 0 },
-          { name: 'Special House Sauce', priceOffset: 0 }
-        ]
-      },
-      {
-        title: 'Sauce Supplémentaire',
-        required: false,
-        maxChoices: 2,
-        choices: [
-          { name: 'Teriyaki (Extra)', priceOffset: 0.50 },
-          { name: 'Garlic Teriyaki (Extra)', priceOffset: 0.50 },
-          { name: 'Soy (Extra)', priceOffset: 0.50 },
-          { name: 'Spicy Mayo Maison (Extra)', priceOffset: 0.50 },
-          { name: 'Homemade Lemon Olive Oil (Extra)', priceOffset: 0.50 },
-          { name: 'Special House Sauce (Extra)', priceOffset: 0.50 }
-        ]
-      }
     ]
   },
 

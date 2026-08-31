@@ -74,7 +74,7 @@ export default function ProductDetailScreen() {
     if (selectedSauces.includes(sauce)) {
       setSelectedSauces(prev => prev.filter(s => s !== sauce));
     } else {
-      if (selectedSauces.length < 2) {
+      if (selectedSauces.length < 5) {
         setSelectedSauces(prev => [...prev, sauce]);
       }
     }
@@ -146,7 +146,12 @@ export default function ProductDetailScreen() {
     }
   });
 
-  const basePrice = product.price + supplementTotal + customTotal;
+  let extraSaucesTotal = 0;
+  if (selectedSauces.length > 1) {
+    extraSaucesTotal = (selectedSauces.length - 1) * 0.50;
+  }
+
+  const basePrice = product.price + supplementTotal + customTotal + extraSaucesTotal;
   const lineTotal = (basePrice * quantity + extrasTotal).toFixed(2);
 
   const missingRequiredSections = product.customizationSections?.filter(sec => {
@@ -335,13 +340,16 @@ export default function ProductDetailScreen() {
           );
         })}
 
-        {/* CUSTOMIZATION OPTIONS (LEGACY) */}
-        {product.hasSauces && !product.customizationSections && (
+        {/* SAUCES */}
+        {product.hasSauces && (
           <>
             <View style={styles.divider} />
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <Text style={[styles.sectionTitleBlack, { marginBottom: 0 }]}>SAUCES (MAX 2)</Text>
-              {selectedSauces.length === 2 && (
+              <View>
+                <Text style={[styles.sectionTitleBlack, { marginBottom: 4 }]}>SAUCES (MAX 5)</Text>
+                <Text style={{ fontFamily: Theme.fonts.body, fontSize: 11, color: Theme.colors.textSecondary }}>1 gratuite, les suivantes +0.50 CHF</Text>
+              </View>
+              {selectedSauces.length === 5 && (
                  <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 10, color: Theme.colors.textSecondary }}>LIMITE ATTEINTE</Text>
               )}
             </View>
