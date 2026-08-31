@@ -1403,8 +1403,26 @@ function MenuTab() {
     ]);
   };
 
+  const handleRestorePoke = () => {
+    const poke = PRODUCTS.find(p => p.name === 'COMPOSE TON POKÉ');
+    if (poke) {
+      // Remove id before adding
+      const { id, ...pokeData } = poke as any;
+      addProduct({ ...pokeData, category: 'COMPOSE TON POKE' });
+      Alert.alert('Succès', 'Le Poké sur-mesure a été recréé avec succès dans la catégorie COMPOSE TON POKE !');
+    }
+  };
+
   return (
     <View style={{ flex: 1 }}>
+      {/* TEMP RESTORE BUTTON */}
+      <TouchableOpacity 
+        onPress={handleRestorePoke}
+        style={{ backgroundColor: Theme.colors.danger, padding: 12, margin: 16, borderRadius: 8, alignItems: 'center' }}
+      >
+        <Text style={{ color: '#FFF', fontFamily: Theme.fonts.bodyBold }}>⚠️ CLIQUER ICI POUR RÉPARER "COMPOSE TON POKÉ" ⚠️</Text>
+      </TouchableOpacity>
+      
       {/* CATEGORY FILTER + ADD */}
       <View style={[styles.menuCategoryBar, { flexDirection: 'row', alignItems: 'center' }]}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 16, paddingVertical: 12 }}>
