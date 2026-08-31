@@ -13,7 +13,7 @@ import { useCartStore } from '../store/useCartStore';
 import { useRestaurantStore, checkIsRestaurantOpen } from '../store/useRestaurantStore';
 import { useContentStore } from '../store/useContentStore';
 import { useDeliveryZoneStore, DeliveryZone } from '../store/useDeliveryZoneStore';
-import { Product, PRODUCTS, IMAGES_MAP, getImageSource } from '../constants/data';
+import { Product, PRODUCTS as INITIAL_PRODUCTS, IMAGES_MAP, getImageSource } from '../constants/data';
 import { uploadImageAsync } from '../lib/uploadImage';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -1807,65 +1807,136 @@ function ProductModal({ visible, product, categories, defaultCategory, onClose, 
             </View>
 
             {/* CUSTOMIZATIONS EDITOR */}
-            {customizationSections.length > 0 && (
-              <View style={{ marginTop: 24, borderTopWidth: StyleSheet.hairlineWidth, borderColor: Theme.colors.border, paddingTop: 20 }}>
-                <Text style={styles.fieldLabel}>OPTIONS SUR-MESURE (COMPOSE TON POKÉ)</Text>
-                
-                {customizationSections.map((section, sIndex) => (
-                  <View key={sIndex} style={{ backgroundColor: Theme.colors.background, padding: 12, borderRadius: 12, marginBottom: 16, borderWidth: 1, borderColor: Theme.colors.border }}>
-                    <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 13, marginBottom: 12 }}>{section.title.toUpperCase()}</Text>
-                    
-                    {section.choices.map((choice: any, cIndex: number) => (
-                      <View key={cIndex} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                        <TextInput
-                          style={[styles.input, { flex: 2, marginBottom: 0, paddingVertical: 8, fontSize: 12 }]}
-                          value={choice.name}
-                          placeholder="Nom de l'ingrédient"
-                          placeholderTextColor={Theme.colors.textSecondary}
-                          onChangeText={(val) => {
-                             const newSecs = [...customizationSections];
-                             newSecs[sIndex].choices[cIndex].name = val;
-                             setCustomizationSections(newSecs);
-                          }}
-                        />
-                        <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: Theme.colors.background, borderWidth: 1, borderColor: Theme.colors.border, borderRadius: 8, paddingHorizontal: 8 }}>
-                           <Text style={{ fontSize: 12, color: Theme.colors.textSecondary, fontFamily: Theme.fonts.body }}>+</Text>
-                           <TextInput
-                             style={{ flex: 1, padding: 8, fontSize: 12, fontFamily: Theme.fonts.bodyBold, color: Theme.colors.text }}
-                             value={choice.priceOffset.toString()}
-                             keyboardType="numeric"
-                             onChangeText={(val) => {
-                                const newSecs = [...customizationSections];
-                                newSecs[sIndex].choices[cIndex].priceOffset = parseFloat(val) || 0;
-                                setCustomizationSections(newSecs);
-                             }}
-                           />
-                           <Text style={{ fontSize: 10, color: Theme.colors.textSecondary }}>CHF</Text>
-                        </View>
-                        <TouchableOpacity onPress={() => {
-                           const newSecs = [...customizationSections];
-                           newSecs[sIndex].choices.splice(cIndex, 1);
-                           setCustomizationSections(newSecs);
-                        }}>
-                           <Ionicons name="trash" size={16} color={Theme.colors.danger} />
-                        </TouchableOpacity>
-                      </View>
-                    ))}
-                    
-                    <TouchableOpacity 
-                      style={{ marginTop: 8, padding: 10, alignItems: 'center', backgroundColor: Theme.colors.surface, borderRadius: 8, borderWidth: 1, borderColor: Theme.colors.border, borderStyle: 'dashed' }}
-                      onPress={() => {
-                        const newSecs = [...customizationSections];
-                        newSecs[sIndex].choices.push({ name: 'Nouvel Ingrédient', priceOffset: 0 });
-                        setCustomizationSections(newSecs);
+            <View style={{ marginTop: 24, borderTopWidth: StyleSheet.hairlineWidth, borderColor: Theme.colors.border, paddingTop: 20 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <Text style={styles.fieldLabel}>OPTIONS SUR-MESURE (INGRÉDIENTS)</Text>
+                <View style={{ flexDirection: 'row', gap: 12 }}>
+                  {customizationSections.length === 0 && (
+                    <TouchableOpacity onPress={() => {
+                       const pokeCustom = INITIAL_PRODUCTS.find(p => p.id === 'poke-custom');
+                       if (pokeCustom && pokeCustom.customizationSections) {
+                         setCustomizationSections(JSON.parse(JSON.stringify(pokeCustom.customizationSections)));
+                       }
+                    }}>
+                      <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 12, color: Theme.colors.warning }}>+ Copier modèle Poké</Text>
+                    </TouchableOpacity>
+                  )}
+                  <TouchableOpacity onPress={() => {
+                    setCustomizationSections([...customizationSections, { title: 'Nouvelle étape', required: false, maxChoices: 1, choices: [] }]);
+                  }}>
+                    <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 12, color: Theme.colors.primary }}>+ Ajouter section</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+              
+              {customizationSections.map((section, sIndex) => (
+                <View key={sIndex} style={{ backgroundColor: Theme.colors.background, padding: 12, borderRadius: 12, marginBottom: 16, borderWidth: 1, borderColor: Theme.colors.border }}>
+                  
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                    <TextInput
+                      style={[styles.input, { flex: 1, marginBottom: 0, paddingVertical: 8, fontFamily: Theme.fonts.bodyBold, fontSize: 13 }]}
+                      value={section.title}
+                      placeholder="Titre (ex: Choisis ta protéine)"
+                      onChangeText={(val) => {
+                         const newSecs = [...customizationSections];
+                         newSecs[sIndex].title = val;
+                         setCustomizationSections(newSecs);
                       }}
-                    >
-                      <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 12, color: Theme.colors.text }}>+ Ajouter un ingrédient</Text>
+                    />
+                    <TouchableOpacity onPress={() => {
+                      Alert.alert('Supprimer la section', 'Êtes-vous sûr ?', [
+                        { text: 'Annuler', style: 'cancel' },
+                        { text: 'Supprimer', style: 'destructive', onPress: () => {
+                           const newSecs = [...customizationSections];
+                           newSecs.splice(sIndex, 1);
+                           setCustomizationSections(newSecs);
+                        }}
+                      ]);
+                    }}>
+                      <Ionicons name="trash" size={20} color={Theme.colors.danger} />
                     </TouchableOpacity>
                   </View>
-                ))}
-              </View>
-            )}
+                  
+                  <View style={{ flexDirection: 'row', gap: 16, marginBottom: 12 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      <Text style={{ fontFamily: Theme.fonts.body, fontSize: 11, color: Theme.colors.textSecondary }}>Obligatoire ?</Text>
+                      <Switch
+                        value={section.required}
+                        onValueChange={(val) => {
+                          const newSecs = [...customizationSections];
+                          newSecs[sIndex].required = val;
+                          setCustomizationSections(newSecs);
+                        }}
+                        trackColor={{ false: Theme.colors.surface, true: Theme.colors.success + '88' }}
+                        thumbColor={section.required ? Theme.colors.success : Theme.colors.textSecondary}
+                        style={{ transform: [{ scale: 0.8 }] }}
+                      />
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+                      <Text style={{ fontFamily: Theme.fonts.body, fontSize: 11, color: Theme.colors.textSecondary }}>Max choix:</Text>
+                      <TextInput
+                        style={[styles.input, { flex: 1, marginBottom: 0, paddingVertical: 4, paddingHorizontal: 8, fontSize: 12 }]}
+                        value={section.maxChoices.toString()}
+                        keyboardType="numeric"
+                        onChangeText={(val) => {
+                           const newSecs = [...customizationSections];
+                           newSecs[sIndex].maxChoices = parseInt(val) || 1;
+                           setCustomizationSections(newSecs);
+                        }}
+                      />
+                    </View>
+                  </View>
+
+                  {section.choices.map((choice: any, cIndex: number) => (
+                    <View key={cIndex} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                      <TextInput
+                        style={[styles.input, { flex: 2, marginBottom: 0, paddingVertical: 8, fontSize: 12 }]}
+                        value={choice.name}
+                        placeholder="Nom de l'ingrédient"
+                        placeholderTextColor={Theme.colors.textSecondary}
+                        onChangeText={(val) => {
+                           const newSecs = [...customizationSections];
+                           newSecs[sIndex].choices[cIndex].name = val;
+                           setCustomizationSections(newSecs);
+                        }}
+                      />
+                      <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: Theme.colors.background, borderWidth: 1, borderColor: Theme.colors.border, borderRadius: 8, paddingHorizontal: 8 }}>
+                         <Text style={{ fontSize: 12, color: Theme.colors.textSecondary, fontFamily: Theme.fonts.body }}>+</Text>
+                         <TextInput
+                           style={{ flex: 1, padding: 8, fontSize: 12, fontFamily: Theme.fonts.bodyBold, color: Theme.colors.text }}
+                           value={choice.priceOffset.toString()}
+                           keyboardType="numeric"
+                           onChangeText={(val) => {
+                              const newSecs = [...customizationSections];
+                              newSecs[sIndex].choices[cIndex].priceOffset = parseFloat(val) || 0;
+                              setCustomizationSections(newSecs);
+                           }}
+                         />
+                         <Text style={{ fontSize: 10, color: Theme.colors.textSecondary }}>CHF</Text>
+                      </View>
+                      <TouchableOpacity onPress={() => {
+                         const newSecs = [...customizationSections];
+                         newSecs[sIndex].choices.splice(cIndex, 1);
+                         setCustomizationSections(newSecs);
+                      }}>
+                         <Ionicons name="close-circle" size={20} color={Theme.colors.textSecondary} />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                  
+                  <TouchableOpacity 
+                    style={{ marginTop: 8, padding: 10, alignItems: 'center', backgroundColor: Theme.colors.surface, borderRadius: 8, borderWidth: 1, borderColor: Theme.colors.border, borderStyle: 'dashed' }}
+                    onPress={() => {
+                      const newSecs = [...customizationSections];
+                      newSecs[sIndex].choices.push({ name: '', priceOffset: 0 });
+                      setCustomizationSections(newSecs);
+                    }}
+                  >
+                    <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 12, color: Theme.colors.text }}>+ Ajouter un ingrédient</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
 
             <View style={{ height: 80 }} />
           </ScrollView>

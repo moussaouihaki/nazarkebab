@@ -58,7 +58,7 @@ export const getImageSource = (image: any): any => {
   return image; // Fallback for local require IDs if they happen to work
 };
 
-export const CATEGORIES = ['POKÉ BOWL', 'DESSERTS', 'BOISSONS'];
+export const CATEGORIES = ['POKÉ BOWL', 'CRÉER TON POKÉBOWL', 'DESSERTS', 'BOISSONS'];
 
 export const PRODUCTS: Product[] = [
   // --- NOS SIGNATURES ---
