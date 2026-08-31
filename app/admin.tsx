@@ -856,9 +856,12 @@ function CrmTab() {
     const userOrders = orders.filter(o => o.customerName === name && o.status !== 'cancelled');
     const spent = userOrders.reduce((acc, curr) => acc + curr.total, 0);
     const phone = userOrders.length > 0 ? userOrders[0].customerPhone : '-';
+    // Retrieve the latest address if available (prefer non-empty addresses)
+    const ordersWithAddress = userOrders.filter(o => o.customerAddress && o.customerAddress.trim().length > 0);
+    const address = ordersWithAddress.length > 0 ? ordersWithAddress[0].customerAddress : '';
     // Loyalty points (mock logic: 1 CHF = 1 Point)
     const loyaltyPoints = userOrders.length;
-    return { name, phone, orderCount: userOrders.length, totalSpent: spent, loyaltyPoints, orders: userOrders };
+    return { name, phone, address, orderCount: userOrders.length, totalSpent: spent, loyaltyPoints, orders: userOrders };
   }).filter(c => c.orderCount > 0).sort((a: any, b: any) => b.totalSpent - a.totalSpent);
 
   const filteredCrmData = crmData.filter(client => 
@@ -979,6 +982,12 @@ function CrmTab() {
                   <View>
                     <Text style={{ fontFamily: Theme.fonts.title, fontSize: 24, color: Theme.colors.text }}>{selectedClient.name}</Text>
                     <Text style={{ fontFamily: Theme.fonts.body, fontSize: 14, color: Theme.colors.textSecondary }}>{selectedClient.phone}</Text>
+                    {selectedClient.address ? (
+                      <Text style={{ fontFamily: Theme.fonts.body, fontSize: 14, color: Theme.colors.textSecondary, marginTop: 4 }}>
+                        <Ionicons name="location-outline" size={14} color={Theme.colors.primary} style={{ marginRight: 4 }} /> 
+                        {selectedClient.address}
+                      </Text>
+                    ) : null}
                   </View>
                   <TouchableOpacity onPress={() => setSelectedClient(null)}>
                     <Ionicons name="close" size={24} color={Theme.colors.textSecondary} />
