@@ -207,6 +207,19 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
           prodList.push({ id: docSnap.id, ...data });
         });
         
+        // Auto-cleanup for duplicate COMPOSE TON POKÉ items the user accidentally created
+        const composeItems = prodList.filter(p => p.name === 'COMPOSE TON POKÉ');
+        if (composeItems.length > 0) {
+          // Keep only the hardcoded one, delete all DB duplicates
+          import('firebase/firestore').then(({ deleteDoc }) => {
+            composeItems.forEach(item => {
+              if (item.id !== 'poke-custom') {
+                deleteDoc(doc(db, 'pokemoons_products', item.id));
+              }
+            });
+          });
+        }
+        
         // Merge local missing products to ensure UI always has the defaults
         const mergedProducts = prodList.map(p => {
            const initial = INITIAL_PRODUCTS.find(initP => initP.id === p.id);
