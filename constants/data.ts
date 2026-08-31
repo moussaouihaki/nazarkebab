@@ -23,6 +23,7 @@ export interface Product {
   outOfStock?: boolean;
   hasSauces?: boolean;
   hasDrinkSelection?: boolean;
+  displayOrder?: number;
   allergens?: string[];
   customizationSections?: CustomizationSection[];
 }

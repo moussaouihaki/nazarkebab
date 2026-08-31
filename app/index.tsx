@@ -44,7 +44,14 @@ export default function HomeScreen() {
     fetchContent();
   }, []);
 
-  const populars = products.filter(p => p.highlighted && !p.outOfStock);
+  const populars = products
+    .filter(p => p.highlighted && !p.outOfStock)
+    .sort((a, b) => {
+      const orderA = a.displayOrder ?? 0;
+      const orderB = b.displayOrder ?? 0;
+      if (orderA !== orderB) return orderA - orderB;
+      return a.name.localeCompare(b.name);
+    });
   const getCategoryImage = (cat: string) => {
     const prod = products.find(p => p.category === cat);
     if (prod) return getImageSource(prod.image);

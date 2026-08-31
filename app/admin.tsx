@@ -1366,7 +1366,7 @@ function AccountingTab() {
 // TAB: MENU MANAGEMENT
 // ──────────────────────────────────
 function MenuTab() {
-  const { products, categories, addProduct, updateProduct, deleteProduct, addCategory, deleteCategory } = useRestaurantStore();
+  const { products, categories, addProduct, updateProduct, deleteProduct, addCategory, deleteCategory, reorderCategory, reorderProduct } = useRestaurantStore();
   const [selectedCategory, setSelectedCategory] = useState(categories[0]);
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -1374,7 +1374,14 @@ function MenuTab() {
   const [newCatName, setNewCatName] = useState('');
   const [fastEditMode, setFastEditMode] = useState(false);
 
-  const filtered = products.filter(p => p.category?.toUpperCase() === selectedCategory?.toUpperCase());
+  const filtered = products
+    .filter(p => p.category?.toUpperCase() === selectedCategory?.toUpperCase())
+    .sort((a, b) => {
+      const orderA = a.displayOrder ?? 0;
+      const orderB = b.displayOrder ?? 0;
+      if (orderA !== orderB) return orderA - orderB;
+      return a.name.localeCompare(b.name);
+    });
 
   const openAdd = () => { setEditingProduct(null); setShowModal(true); };
   const openEdit = (p: Product) => { setEditingProduct(p); setShowModal(true); };
@@ -1401,14 +1408,24 @@ function MenuTab() {
       {/* CATEGORY FILTER + ADD */}
       <View style={[styles.menuCategoryBar, { flexDirection: 'row', alignItems: 'center' }]}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 16, paddingVertical: 12 }}>
-          {categories.map(cat => (
+          {categories.map((cat, index) => (
             <TouchableOpacity
               key={cat}
-              style={[styles.catPill, selectedCategory === cat && styles.catPillActive]}
+              style={[styles.catPill, selectedCategory === cat && styles.catPillActive, selectedCategory === cat && { flexDirection: 'row', alignItems: 'center', gap: 6 }]}
               onLongPress={() => handleDeleteCat(cat)}
               onPress={() => setSelectedCategory(cat)}
             >
+              {selectedCategory === cat && index > 0 && (
+                <TouchableOpacity onPress={() => reorderCategory(cat, 'up')} hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
+                  <Ionicons name="chevron-back" size={16} color="#FFF" />
+                </TouchableOpacity>
+              )}
               <Text style={[styles.catPillText, selectedCategory === cat && styles.catPillTextActive]} numberOfLines={1}>{cat}</Text>
+              {selectedCategory === cat && index < categories.length - 1 && (
+                <TouchableOpacity onPress={() => reorderCategory(cat, 'down')} hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
+                  <Ionicons name="chevron-forward" size={16} color="#FFF" />
+                </TouchableOpacity>
+              )}
             </TouchableOpacity>
           ))}
           <TouchableOpacity style={styles.addCatBtn} onPress={() => setShowCatModal(true)}>
@@ -1451,8 +1468,16 @@ function MenuTab() {
             ))}
           </View>
         ) : (
-          filtered.map(product => (
+          filtered.map((product, index) => (
             <View key={product.id} style={styles.menuItem}>
+              <View style={{ marginRight: 12, alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                <TouchableOpacity onPress={() => reorderProduct(product.id, 'up')} disabled={index === 0} style={{ opacity: index === 0 ? 0.2 : 1 }}>
+                  <Ionicons name="chevron-up-circle-outline" size={24} color={Theme.colors.primary} />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => reorderProduct(product.id, 'down')} disabled={index === filtered.length - 1} style={{ opacity: index === filtered.length - 1 ? 0.2 : 1 }}>
+                  <Ionicons name="chevron-down-circle-outline" size={24} color={Theme.colors.primary} />
+                </TouchableOpacity>
+              </View>
               <Image
                 source={getImageSource(product.image)}
                 style={styles.menuItemImage}

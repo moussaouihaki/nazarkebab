@@ -70,10 +70,12 @@ interface RestaurantState {
   addProduct: (product: Omit<Product, 'id'>) => Promise<void>;
   updateProduct: (id: string, data: Partial<Product>) => Promise<void>;
   deleteProduct: (id: string) => Promise<void>;
+  reorderProduct: (id: string, direction: 'up' | 'down') => Promise<void>;
 
   // Category actions
   addCategory: (name: string) => Promise<void>;
   deleteCategory: (name: string) => Promise<void>;
+  reorderCategory: (name: string, direction: 'up' | 'down') => Promise<void>;
 
   // Settings actions
   updateSettings: (data: Partial<RestaurantSettings>) => Promise<void>;
@@ -132,7 +134,7 @@ const DEFAULT_SETTINGS: RestaurantSettings = {
   loyaltyEnabled: true,
   loyaltyMinPoints: 10,
   announcementEnabled: false,
-  announcementMessage: '',
+  announcementMessage: ''
 };
 
 export const useRestaurantStore = create<RestaurantState>((set, get) => ({
@@ -236,6 +238,43 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
     }
   },
 
+  reorderProduct: async (id, direction) => {
+    try {
+      const allProducts = get().products;
+      const product = allProducts.find(p => p.id === id);
+      if (!product) return;
+      
+      const catProducts = allProducts
+        .filter(p => p.category === product.category)
+        .sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+        
+      const idx = catProducts.findIndex(p => p.id === id);
+      if (idx === -1) return;
+      
+      let targetProduct;
+      if (direction === 'up' && idx > 0) {
+        targetProduct = catProducts[idx - 1];
+      } else if (direction === 'down' && idx < catProducts.length - 1) {
+        targetProduct = catProducts[idx + 1];
+      } else {
+        return; // nothing to do
+      }
+      
+      const currentOrder = product.displayOrder ?? idx;
+      const targetOrder = targetProduct.displayOrder ?? (direction === 'up' ? idx - 1 : idx + 1);
+      
+      // Swap displayOrder
+      await Promise.all([
+        updateDoc(doc(db, 'pokemoons_products', id), { displayOrder: targetOrder }),
+        updateDoc(doc(db, 'pokemoons_products', targetProduct.id), { displayOrder: currentOrder })
+      ]);
+      
+      // Update local state is handled by onSnapshot in useRestaurantStore
+    } catch (err) {
+      console.error('Erreur réordonnancement produit:', err);
+    }
+  },
+
   addCategory: async (name) => {
     const trimmed = name.toUpperCase().trim();
     if (!get().categories.includes(trimmed)) {
@@ -253,12 +292,31 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
     try {
       const newList = get().categories.filter(c => c !== name);
       await setDoc(doc(db, 'settings', 'categories'), { list: newList });
-      
-      // Note: We might want to keep products but remove their category link, 
-      // or delete them. For now, let's just update categories.
       set({ categories: newList });
     } catch (err) {
       console.error('Erreur suppression catégorie:', err);
+    }
+  },
+
+  reorderCategory: async (name, direction) => {
+    try {
+      const current = [...get().categories];
+      const idx = current.indexOf(name);
+      if (idx === -1) return;
+      if (direction === 'up' && idx > 0) {
+        // Move up (left)
+        [current[idx - 1], current[idx]] = [current[idx], current[idx - 1]];
+      } else if (direction === 'down' && idx < current.length - 1) {
+        // Move down (right)
+        [current[idx + 1], current[idx]] = [current[idx], current[idx + 1]];
+      } else {
+        return; // nothing to do
+      }
+      
+      await setDoc(doc(db, 'settings', 'categories'), { list: current });
+      set({ categories: current });
+    } catch (err) {
+      console.error('Erreur réordonnancement catégorie:', err);
     }
   },
 

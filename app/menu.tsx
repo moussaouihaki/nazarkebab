@@ -27,7 +27,14 @@ export default function MenuScreen() {
   }, [params.category]);
 
   const filteredProducts = useMemo(() => {
-    const byCategory = products.filter(p => p.category?.toUpperCase() === activeCategory?.toUpperCase() && !p.outOfStock);
+    const byCategory = products
+      .filter(p => p.category?.toUpperCase() === activeCategory?.toUpperCase() && !p.outOfStock)
+      .sort((a, b) => {
+        const orderA = a.displayOrder ?? 0;
+        const orderB = b.displayOrder ?? 0;
+        if (orderA !== orderB) return orderA - orderB;
+        return a.name.localeCompare(b.name);
+      });
     if (!search.trim()) return byCategory;
     const q = search.toLowerCase();
     return byCategory.filter(p =>
@@ -38,12 +45,19 @@ export default function MenuScreen() {
   const allSearchResults = useMemo(() => {
     if (!search.trim()) return [];
     const q = search.toLowerCase();
-    return products.filter(p => 
-      (!p.outOfStock) && (
-        p.name.toLowerCase().includes(q) || 
-        p.description?.toLowerCase().includes(q)
+    return products
+      .filter(p => 
+        (!p.outOfStock) && (
+          p.name.toLowerCase().includes(q) || 
+          p.description?.toLowerCase().includes(q)
+        )
       )
-    );
+      .sort((a, b) => {
+        const orderA = a.displayOrder ?? 0;
+        const orderB = b.displayOrder ?? 0;
+        if (orderA !== orderB) return orderA - orderB;
+        return a.name.localeCompare(b.name);
+      });
   }, [products, search]);
 
   const { width } = useWindowDimensions();
