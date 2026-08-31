@@ -1426,7 +1426,7 @@ function MenuTab() {
       {/* CATEGORY FILTER + ADD */}
       <View style={[styles.menuCategoryBar, { flexDirection: 'row', alignItems: 'center' }]}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 16, paddingVertical: 12 }}>
-          {categories.map((cat, index) => (
+          {categories?.map((cat, index) => (
             <TouchableOpacity
               key={cat}
               style={[styles.catPill, selectedCategory === cat && styles.catPillActive, selectedCategory === cat && { flexDirection: 'row', alignItems: 'center', gap: 6 }]}
@@ -2387,7 +2387,7 @@ function IngredientsStockPanel() {
       <Text style={panels.subtitle}>Sélectionne les ingrédients actuellement en rupture. Ils seront bloqués dans la composition de Pokébowl.</Text>
       <View style={panels.chipContainer}>
         {allIngredients.map(ing => {
-          const isOut = settings.outOfStockIngredients?.includes(ing);
+          const isOut = settings?.outOfStockIngredients?.includes(ing);
           return (
             <TouchableOpacity 
               key={ing} 
