@@ -60,6 +60,9 @@ export interface Order {
   taxAmount: number;
   requestedTime: string;
   loyaltyDiscount?: number;
+  promoDiscount?: number;
+  promoCode?: string;
+  tipAmount?: number;
   userId?: string;
   pushToken?: string;
   cancellationReason?: string;
@@ -89,7 +92,15 @@ interface CartState {
   setCustomerInfo: (name: string, phone: string, address: string) => void;
   setOrderNote: (note: string) => void;
   listenToOrders: (userId?: string, isAdmin?: boolean, specificOrderId?: string) => () => void;
-  placeOrder: (userId?: string, requestedTime?: string, loyaltyDiscount?: number, paymentMethod?: 'card' | 'cash') => Promise<Order>;
+  placeOrder: (
+    userId?: string, 
+    requestedTime?: string, 
+    loyaltyDiscount?: number, 
+    paymentMethod?: 'card' | 'cash',
+    promoDiscount?: number,
+    promoCode?: string,
+    tipAmount?: number
+  ) => Promise<Order>;
   updateOrderStatus: (orderId: string, status: OrderStatus) => Promise<void>;
   cancelOrder: (orderId: string, reason?: string) => Promise<void>;
   markAsPaid: (orderId: string, method: string) => Promise<void>;
@@ -348,9 +359,17 @@ export const useCartStore = create<CartState>()(
     });
   },
 
-  placeOrder: async (userId?: string, requestedTime: string = 'ASAP', loyaltyDiscount: number = 0, paymentMethod: 'card' | 'cash' = 'cash') => {
+  placeOrder: async (
+    userId?: string, 
+    requestedTime: string = 'ASAP', 
+    loyaltyDiscount: number = 0, 
+    paymentMethod: 'card' | 'cash' = 'cash',
+    promoDiscount: number = 0,
+    promoCode: string = '',
+    tipAmount: number = 0
+  ) => {
     const state = get();
-    const grandTotal = Math.max(0, state.total + state.deliveryFee - loyaltyDiscount);
+    const grandTotal = Math.max(0, state.total + state.deliveryFee + tipAmount - loyaltyDiscount - promoDiscount);
     const taxRate = 0.026;
     const subTotal = grandTotal / (1 + taxRate);
     const taxAmount = grandTotal - subTotal;
@@ -381,6 +400,9 @@ export const useCartStore = create<CartState>()(
       taxAmount,
       requestedTime,
       loyaltyDiscount,
+      promoDiscount,
+      promoCode: promoCode || null,
+      tipAmount,
       userId: userId || useAuthStore.getState().user?.id || null,
       pushToken: freshPushToken
     };

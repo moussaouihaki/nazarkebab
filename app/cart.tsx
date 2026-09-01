@@ -58,7 +58,7 @@ export default function CartScreen() {
     items, total, deliveryFee, deliveryType,
     removeItem, addItem, updateQuantity, removeAllOfItem, clearCart,
     setDeliveryType, setDeliveryFee, setCustomerInfo, setOrderNote, placeOrder,
-    customerName, customerPhone, customerAddress, orderNote,
+    customerName, customerPhone, customerAddress, orderNote, orders
   } = useCartStore();
 
   const { user, updateProfile } = useAuthStore();
@@ -98,6 +98,18 @@ export default function CartScreen() {
     }
   }, [settings]);
 
+  // Booked slots count for delivery (max 1 order per 30-min slot)
+  const bookedDeliverySlots = React.useMemo(() => {
+    const counts: Record<string, number> = {};
+    orders.forEach(o => {
+      if (o.status !== 'cancelled' && o.deliveryType === 'delivery' && o.requestedTime) {
+        const timeOnly = o.requestedTime.includes(' à ') ? o.requestedTime.split(' à ')[1] : o.requestedTime;
+        counts[timeOnly] = (counts[timeOnly] || 0) + 1;
+      }
+    });
+    return counts;
+  }, [orders]);
+
   // Generate times for selected date
   useEffect(() => {
     if (!settings || !selectedDate) return;
@@ -112,13 +124,13 @@ export default function CartScreen() {
       return;
     }
 
-    const times = [];
-    const parseTime = (timeStr) => {
+    const times: string[] = [];
+    const parseTime = (timeStr: string) => {
       const [h, m] = timeStr.split(':').map(Number);
       return h * 60 + m;
     };
 
-    const formatTime = (mins) => {
+    const formatTime = (mins: number) => {
       const h = Math.floor(mins / 60);
       const m = mins % 60;
       return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
@@ -127,16 +139,19 @@ export default function CartScreen() {
     const isToday = selectedDate.toDateString() === new Date().toDateString();
     let currentMins = 0;
 
+    // Delivery is every 30 mins, Takeaway is every 15 mins
+    const stepMins = deliveryType === 'delivery' ? 30 : 15;
+
     if (isToday) {
       const now = new Date();
-      currentMins = now.getHours() * 60 + now.getMinutes() + 30; // 30 mins buffer
-      // Round to next 15 mins
-      currentMins = Math.ceil(currentMins / 15) * 15;
+      currentMins = now.getHours() * 60 + now.getMinutes() + (deliveryType === 'delivery' ? 30 : 15);
+      currentMins = Math.ceil(currentMins / stepMins) * stepMins;
     }
 
-    const generateSlots = (openMins, closeMins) => {
+    const generateSlots = (openMins: number, closeMins: number) => {
       let start = Math.max(openMins, isToday ? currentMins : openMins);
-      for (let m = start; m <= closeMins; m += 15) {
+      start = Math.ceil(start / stepMins) * stepMins;
+      for (let m = start; m <= closeMins; m += stepMins) {
         times.push(formatTime(m));
       }
     };
@@ -156,7 +171,7 @@ export default function CartScreen() {
     } else if (times.length === 0) {
       setSelectedTime('');
     }
-  }, [selectedDate, settings]);
+  }, [selectedDate, settings, deliveryType]);
 
   const [step, setStep] = useState<Step>('cart');
   const [note, setNote] = useState(orderNote);
@@ -165,6 +180,10 @@ export default function CartScreen() {
   const [zoneError, setZoneError] = useState('');
   const [useLoyalty, setUseLoyalty] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'cash'>('card');
+  const [promoCodeInput, setPromoCodeInput] = useState('');
+  const [appliedPromo, setAppliedPromo] = useState<{ code: string; discountPercent?: number; fixedAmount?: number } | null>(null);
+  const [promoError, setPromoError] = useState('');
+  const [tipAmount, setTipAmount] = useState<number>(0);
 
   const address = `${street}, ${postalCode} ${city}`;
 
@@ -217,7 +236,9 @@ export default function CartScreen() {
   }, [address, total, deliveryType, zones]);
 
   const loyaltyDiscount = useLoyalty ? 18.00 : 0; // Prix moyen offert pour un poké
-  const grandTotal = Math.max(0, total + deliveryFee - loyaltyDiscount);
+  const promoDiscount = appliedPromo ? (appliedPromo.discountPercent ? (total * appliedPromo.discountPercent) / 100 : (appliedPromo.fixedAmount || 0)) : 0;
+  const activeOrdersCount = orders.filter(o => !['delivered', 'cancelled'].includes(o.status)).length;
+  const grandTotal = Math.max(0, total + deliveryFee + tipAmount - loyaltyDiscount - promoDiscount);
 
   const handleGoToInfo = () => {
     if (items.length === 0) return;
@@ -232,6 +253,12 @@ export default function CartScreen() {
   const handlePlaceOrder = async () => {
     if (!settings.isOpen || availableDates.length === 0 || !selectedTime) {
       alert("Désolé, il n'y a aucun créneau disponible pour passer commande.");
+      return;
+    }
+
+    // Check if slot is already booked for delivery
+    if (deliveryType === 'delivery' && selectedTime !== 'ASAP' && (bookedDeliverySlots[selectedTime] || 0) >= 1) {
+      alert(`Le créneau ${selectedTime} en livraison est déjà complet (1 commande max par 30 min). Veuillez choisir un autre créneau.`);
       return;
     }
 
@@ -260,7 +287,15 @@ export default function CartScreen() {
        const dateStr = selectedDate.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
        finalRequestedTime = `${dateStr} à ${selectedTime}`;
     }
-    placeOrder(user?.id, finalRequestedTime, loyaltyDiscount, paymentMethod);
+    placeOrder(
+      user?.id, 
+      finalRequestedTime, 
+      loyaltyDiscount, 
+      paymentMethod,
+      promoDiscount,
+      appliedPromo?.code || '',
+      tipAmount
+    );
     router.replace('/tracking');
   };
 
@@ -373,13 +408,22 @@ export default function CartScreen() {
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
                     {availableTimes.map((t, i) => {
                       const isSelected = selectedTime === t;
+                      const isBookedFull = deliveryType === 'delivery' && t !== 'ASAP' && (bookedDeliverySlots[t] || 0) >= 1;
                       return (
                         <TouchableOpacity 
                           key={i} 
-                          style={[styles2.timeChip, isSelected && styles2.timeChipActive]} 
+                          style={[
+                            styles2.timeChip, 
+                            isSelected && styles2.timeChipActive,
+                            isBookedFull && { opacity: 0.4, borderColor: '#ccc', backgroundColor: '#eee' }
+                          ]} 
+                          disabled={isBookedFull}
                           onPress={() => setSelectedTime(t)}
                         >
-                          <Text style={[styles2.timeChipText, isSelected && styles2.timeChipTextActive]}>{t === 'ASAP' ? 'Dès que possible' : t}</Text>
+                          <Text style={[styles2.timeChipText, isSelected && styles2.timeChipTextActive, isBookedFull && { color: '#999', textDecorationLine: 'line-through' }]}>
+                            {t === 'ASAP' ? 'Dès que possible' : t}
+                            {isBookedFull ? ' (Complet)' : ''}
+                          </Text>
                         </TouchableOpacity>
                       );
                     })}
@@ -387,6 +431,22 @@ export default function CartScreen() {
                 ) : (
                   <Text style={{ color: Theme.colors.danger, fontSize: 13 }}>Aucun créneau disponible pour cette date.</Text>
                 )}
+                {deliveryType === 'delivery' && (
+                  <Text style={{ fontFamily: Theme.fonts.body, fontSize: 11, color: Theme.colors.textSecondary, marginTop: 6, fontStyle: 'italic' }}>
+                    ℹ️ Livraison : 1 commande par tranche de 30 min maximum (ou dès que possible).
+                  </Text>
+                )}
+              </View>
+            )}
+
+            {/* FORTE AFFLUENCE WARNING */}
+            {activeOrdersCount >= 5 && (
+              <View style={{ backgroundColor: '#fff7ed', borderColor: '#ffedd5', borderWidth: 1, borderRadius: 12, padding: 12, marginBottom: 16, flexDirection: 'row', gap: 10, alignItems: 'center' }}>
+                <Ionicons name="flame" size={22} color="#ea580c" />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 12, color: '#9a3412' }}>Forte affluence en cuisine 🔥</Text>
+                  <Text style={{ fontFamily: Theme.fonts.body, fontSize: 11, color: '#c2410c' }}>Le délai moyen est estimé à ~45-60 min actuellement.</Text>
+                </View>
               </View>
             )}
 
@@ -460,7 +520,7 @@ export default function CartScreen() {
                 onPress={() => setPaymentMethod('card')}
               >
                 <Ionicons name="card-outline" size={20} color={paymentMethod === 'card' ? '#fff' : Theme.colors.text} />
-                <Text style={[styles.toggleText, paymentMethod === 'card' && styles.toggleTextActive]}>Carte (Machine)</Text>
+                <Text style={[styles.toggleText, paymentMethod === 'card' && styles.toggleTextActive]}>Carte / Twint</Text>
               </TouchableOpacity>
               <TouchableOpacity 
                 style={[styles.toggleBtn, paymentMethod === 'cash' && styles.toggleBtnActive]} 
@@ -470,6 +530,30 @@ export default function CartScreen() {
                 <Text style={[styles.toggleText, paymentMethod === 'cash' && styles.toggleTextActive]}>Cash</Text>
               </TouchableOpacity>
             </View>
+
+            {/* POURBOIRE LIVREUR */}
+            {deliveryType === 'delivery' && (
+              <View style={{ marginTop: 20 }}>
+                <Text style={styles.fieldLabel}>POURBOIRE POUR LE LIVREUR (FACULTATIF)</Text>
+                <View style={{ flexDirection: 'row', gap: 8, marginTop: 6 }}>
+                  {[0, 1, 2, 5].map((amount) => (
+                    <TouchableOpacity
+                      key={amount}
+                      onPress={() => setTipAmount(amount)}
+                      style={[
+                        styles2.chip,
+                        tipAmount === amount && styles2.chipActive,
+                        { flex: 1, alignItems: 'center', paddingHorizontal: 0 }
+                      ]}
+                    >
+                      <Text style={[styles2.chipText, tipAmount === amount && styles2.chipTextActive, { fontSize: 12 }]}>
+                        {amount === 0 ? 'Aucun' : `+${amount} CHF`}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            )}
 
             <Text style={styles.fieldLabel}>NOTE POUR LA CUISINE (facultatif)</Text>
             <TextInput 
@@ -630,15 +714,79 @@ export default function CartScreen() {
                 </View>
               )}
 
+              {/* CODE PROMO */}
+              <View style={{ backgroundColor: Theme.colors.surface, padding: 14, borderRadius: 14, borderWidth: 1, borderColor: Theme.colors.border, marginTop: 16 }}>
+                <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 11, color: Theme.colors.textSecondary, letterSpacing: 1, marginBottom: 8, textTransform: 'uppercase' }}>
+                  Code Promo / Bon de réduction
+                </Text>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <TextInput
+                    style={[styles.input, { flex: 1, marginBottom: 0, paddingVertical: 10, textTransform: 'uppercase', fontFamily: Theme.fonts.bodyBold }]}
+                    placeholder="Ex: BIENVENUE10"
+                    placeholderTextColor="#999"
+                    value={promoCodeInput}
+                    onChangeText={(t) => { setPromoCodeInput(t.toUpperCase()); setPromoError(''); }}
+                    editable={!appliedPromo}
+                  />
+                  {appliedPromo ? (
+                    <TouchableOpacity 
+                      onPress={() => { setAppliedPromo(null); setPromoCodeInput(''); }} 
+                      style={{ backgroundColor: Theme.colors.danger + '22', paddingHorizontal: 14, borderRadius: 10, justifyContent: 'center' }}
+                    >
+                      <Text style={{ fontFamily: Theme.fonts.bodyBold, color: Theme.colors.danger, fontSize: 12 }}>Retirer</Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <TouchableOpacity 
+                      onPress={() => {
+                        const code = promoCodeInput.trim().toUpperCase();
+                        if (code === 'BIENVENUE10') {
+                          setAppliedPromo({ code: 'BIENVENUE10', discountPercent: 10 });
+                          setPromoError('');
+                        } else if (code === 'POKE5') {
+                          setAppliedPromo({ code: 'POKE5', discountPercent: 0, fixedAmount: 5 });
+                          setPromoError('');
+                        } else if (!code) {
+                          setPromoError('Veuillez entrer un code');
+                        } else {
+                          setPromoError('Code promo invalide ou expiré');
+                        }
+                      }} 
+                      style={{ backgroundColor: Theme.colors.text, paddingHorizontal: 16, borderRadius: 10, justifyContent: 'center' }}
+                    >
+                      <Text style={{ fontFamily: Theme.fonts.bodyBold, color: Theme.colors.background, fontSize: 12 }}>Appliquer</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+                {appliedPromo && (
+                  <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 12, color: Theme.colors.success, marginTop: 6 }}>
+                    ✓ Code {appliedPromo.code} appliqué : -{promoDiscount.toFixed(2)} CHF !
+                  </Text>
+                )}
+                {promoError ? (
+                  <Text style={{ fontFamily: Theme.fonts.body, fontSize: 12, color: Theme.colors.danger, marginTop: 6 }}>
+                    {promoError}
+                  </Text>
+                ) : null}
+              </View>
+
               <View style={styles.summaryBox}>
                 <View style={styles.summaryRow}><Text style={styles.summaryLabel}>Sous-total</Text><Text style={styles.summaryValue}>{total.toFixed(2)} CHF</Text></View>
                 {deliveryType === 'delivery' && deliveryFee > 0 && (
                   <View style={styles.summaryRow}><Text style={styles.summaryLabel}>Frais de livraison</Text><Text style={styles.summaryValue}>{deliveryFee.toFixed(2)} CHF</Text></View>
                 )}
+                {tipAmount > 0 && (
+                  <View style={styles.summaryRow}><Text style={styles.summaryLabel}>Pourboire livreur</Text><Text style={styles.summaryValue}>+{tipAmount.toFixed(2)} CHF</Text></View>
+                )}
                 {useLoyalty && (
                    <View style={styles.summaryRow}>
-                     <Text style={[styles.summaryLabel, { color: Theme.colors.success }]}>Remise Fidélité</Text>
-                     <Text style={[styles.summaryValue, { color: Theme.colors.success }]}>-12.00 CHF</Text>
+                     <Text style={[styles.summaryLabel, { color: Theme.colors.success }]}>Remise Fidélité (Poké Offert)</Text>
+                     <Text style={[styles.summaryValue, { color: Theme.colors.success }]}>-{loyaltyDiscount.toFixed(2)} CHF</Text>
+                   </View>
+                )}
+                {appliedPromo && promoDiscount > 0 && (
+                   <View style={styles.summaryRow}>
+                     <Text style={[styles.summaryLabel, { color: Theme.colors.success }]}>Remise Code ({appliedPromo.code})</Text>
+                     <Text style={[styles.summaryValue, { color: Theme.colors.success }]}>-{promoDiscount.toFixed(2)} CHF</Text>
                    </View>
                 )}
                 <View style={[styles.summaryRow, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Theme.colors.border, marginTop: 12, paddingTop: 12 }]}>

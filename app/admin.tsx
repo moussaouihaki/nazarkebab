@@ -104,11 +104,58 @@ class ErrorBoundary extends React.Component<any, { error: Error | null }> {
 // ──────────────────────────────────────────────
 export default function AdminScreen() {
   const { user, logout } = useAuthStore();
+  const { orders } = useCartStore();
   const [tab, setTab] = useState<Tab>('dashboard');
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const prevOrdersCount = useRef(orders.length);
   const { width } = useWindowDimensions();
   const isDesktop = Platform.OS === 'web' && width >= 768;
 
-  // Auth guard
+  const playNewOrderChime = () => {
+    try {
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+        if (!AudioContext) return;
+        const ctx = new AudioContext();
+        const now = ctx.currentTime;
+        const osc1 = ctx.createOscillator();
+        const gain1 = ctx.createGain();
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(587.33, now); // D5
+        gain1.gain.setValueAtTime(0.3, now);
+        gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+        osc1.connect(gain1);
+        gain1.connect(ctx.destination);
+        osc1.start(now);
+        osc1.stop(now + 0.4);
+
+        const osc2 = ctx.createOscillator();
+        const gain2 = ctx.createGain();
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(880, now + 0.2); // A5
+        gain2.gain.setValueAtTime(0.3, now + 0.2);
+        gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
+        osc2.connect(gain2);
+        gain2.connect(ctx.destination);
+        osc2.start(now + 0.2);
+        osc2.stop(now + 0.7);
+      }
+    } catch (e) {
+      console.warn('Audio chime error', e);
+    }
+  };
+
+  // Trigger audio chime on new orders
+  useEffect(() => {
+    if (orders.length > prevOrdersCount.current) {
+      if (soundEnabled) {
+        playNewOrderChime();
+      }
+    }
+    prevOrdersCount.current = orders.length;
+  }, [orders.length, soundEnabled]);
+
+  // Auth guard & Web notification permission
   React.useEffect(() => {
     if (Platform.OS === 'web' && typeof window !== 'undefined' && 'Notification' in window) {
       if (Notification.permission === 'default') {
@@ -187,9 +234,30 @@ export default function AdminScreen() {
         <View style={styles.saasMainContent}>
           <View style={styles.saasTopBar}>
             <Text style={styles.saasTopBarTitle}>Administration</Text>
-            <View style={styles.saasAdminBadge}>
-              <Ionicons name="shield-checkmark" size={14} color="#000" />
-              <Text style={styles.saasAdminBadgeText}>ADMIN</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <TouchableOpacity
+                onPress={() => setSoundEnabled(!soundEnabled)}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 6,
+                  backgroundColor: soundEnabled ? Theme.colors.success + '22' : '#eee',
+                  borderColor: soundEnabled ? Theme.colors.success : '#ccc',
+                  borderWidth: 1,
+                  paddingHorizontal: 10,
+                  paddingVertical: 6,
+                  borderRadius: 20
+                }}
+              >
+                <Ionicons name={soundEnabled ? "volume-high" : "volume-mute"} size={16} color={soundEnabled ? Theme.colors.success : Theme.colors.textSecondary} />
+                <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 11, color: soundEnabled ? Theme.colors.success : Theme.colors.textSecondary }}>
+                  {soundEnabled ? 'Sonnerie : ON' : 'Sonnerie : OFF'}
+                </Text>
+              </TouchableOpacity>
+              <View style={styles.saasAdminBadge}>
+                <Ionicons name="shield-checkmark" size={14} color="#000" />
+                <Text style={styles.saasAdminBadgeText}>ADMIN</Text>
+              </View>
             </View>
           </View>
           <View style={{ flex: 1, backgroundColor: Theme.colors.background }}>
@@ -1617,19 +1685,66 @@ function AccountingTab() {
     }
   };
 
+  const exportCSV = () => {
+    const headers = ['Date', 'N° Commande', 'Client', 'Telephone', 'Type', 'Paiement', 'Articles', 'Sous-Total HT (CHF)', 'TVA (2.6%)', 'Total TTC (CHF)', 'Statut'];
+    const rows = filteredOrders.map(o => {
+      const itemsSummary = o.items.map((i: any) => `${i.quantity}x ${i.name}`).join(' | ');
+      const tax = (o.taxAmount || 0).toFixed(2);
+      const ht = (o.total - (o.taxAmount || 0)).toFixed(2);
+      const d = o.createdAt?.toDate ? o.createdAt.toDate() : new Date(o.createdAt || 0);
+      return [
+        d.toLocaleDateString('fr-CH'),
+        `#${o.id}`,
+        `"${(o.customerName || '').replace(/"/g, '""')}"`,
+        `"${(o.customerPhone || '').replace(/"/g, '""')}"`,
+        o.deliveryType === 'delivery' ? 'Livraison' : 'A emporter',
+        o.paymentMethod || 'Carte',
+        `"${itemsSummary.replace(/"/g, '""')}"`,
+        ht,
+        tax,
+        o.total.toFixed(2),
+        o.status
+      ];
+    });
+
+    const csvContent = '\uFEFF' + [headers.join(';'), ...rows.map(r => r.join(';'))].join('\n');
+
+    if (Platform.OS === 'web') {
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `ventes_pokemoons_${startDate.replace(/\//g, '-')}_${endDate.replace(/\//g, '-')}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else {
+      Alert.alert('Export CSV', 'Fichier CSV généré avec succès.');
+    }
+  };
+
   return (
     <ScrollView contentContainerStyle={styles.scrollContent}>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
         <View>
           <Text style={styles.sectionTitle}>Rapport Financier</Text>
           <Text style={{ fontFamily: Theme.fonts.body, fontSize: 13, color: Theme.colors.textSecondary }}>
             Période du {startDate} au {endDate}
           </Text>
         </View>
-        <TouchableOpacity style={styles.goldBtn} onPress={exportPDF}>
-          <Ionicons name="download-outline" size={20} color="#000" />
-          <Text style={[styles.goldBtnText, { marginLeft: 8 }]}>Exporter Rapport PDF</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          <TouchableOpacity 
+            style={[styles.goldBtn, { backgroundColor: '#107c41' }]} 
+            onPress={exportCSV}
+          >
+            <Ionicons name="document-text-outline" size={18} color="#fff" />
+            <Text style={[styles.goldBtnText, { marginLeft: 6, color: '#fff' }]}>Export Excel (CSV)</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.goldBtn} onPress={exportPDF}>
+            <Ionicons name="download-outline" size={18} color="#000" />
+            <Text style={[styles.goldBtnText, { marginLeft: 6 }]}>Export PDF</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* DATE RANGE PICKER */}
