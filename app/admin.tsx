@@ -164,15 +164,89 @@ export default function AdminScreen() {
     }
   }, []);
 
+  const [adminEmail, setAdminEmail] = useState('');
+  const [adminPass, setAdminPass] = useState('');
+  const [adminLoading, setAdminLoading] = useState(false);
+  const [adminError, setAdminError] = useState('');
+  const { login } = useAuthStore();
+
   if (!user || user.role !== 'admin') {
     return (
-      <View style={styles.container}>
-        <SafeAreaView style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <Ionicons name="lock-closed" size={48} color={Theme.colors.danger} />
-          <Text style={[styles.sectionTitle, { marginTop: 16 }]}>Accès refusé</Text>
-          <TouchableOpacity style={styles.goldBtn} onPress={() => router.replace('/')}>
-            <Text style={styles.goldBtnText}>Retour à l'accueil</Text>
-          </TouchableOpacity>
+      <View style={[styles.container, { alignItems: 'center', justifyContent: 'center', padding: 20 }]}>
+        <SafeAreaView style={{ width: '100%', maxWidth: 420 }}>
+          <View style={{ backgroundColor: Theme.colors.surface, padding: 32, borderRadius: 24, borderWidth: 1, borderColor: Theme.colors.border, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.1, shadowRadius: 20, elevation: 6, gap: 16 }}>
+            <View style={{ alignItems: 'center', gap: 6, marginBottom: 8 }}>
+              <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: Theme.colors.success + '22', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
+                <Ionicons name="shield-checkmark" size={32} color={Theme.colors.success} />
+              </View>
+              <Text style={{ fontFamily: Theme.fonts.logo, fontSize: 24, letterSpacing: 3, color: Theme.colors.text }}>POKÉMOONS</Text>
+              <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 13, color: Theme.colors.textSecondary, letterSpacing: 1 }}>ESPACE ADMINISTRATION</Text>
+            </View>
+
+            <View style={{ gap: 6 }}>
+              <Text style={styles.fieldLabel}>EMAIL ADMINISTRATEUR</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="admin@pokemoons.ch"
+                placeholderTextColor="#999"
+                value={adminEmail}
+                onChangeText={(t) => { setAdminEmail(t); setAdminError(''); }}
+                autoCapitalize="none"
+                keyboardType="email-address"
+              />
+            </View>
+
+            <View style={{ gap: 6 }}>
+              <Text style={styles.fieldLabel}>MOT DE PASSE</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="••••••••"
+                placeholderTextColor="#999"
+                value={adminPass}
+                onChangeText={(t) => { setAdminPass(t); setAdminError(''); }}
+                secureTextEntry
+              />
+            </View>
+
+            {adminError ? (
+              <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 12, color: Theme.colors.danger, textAlign: 'center' }}>
+                {adminError}
+              </Text>
+            ) : null}
+
+            <TouchableOpacity
+              style={[styles.goldBtn, { marginTop: 8, justifyContent: 'center' }]}
+              disabled={adminLoading}
+              onPress={async () => {
+                if (!adminEmail.trim() || !adminPass) {
+                  setAdminError('Veuillez remplir tous les champs');
+                  return;
+                }
+                setAdminLoading(true);
+                setAdminError('');
+                const ok = await login(adminEmail.trim(), adminPass);
+                setAdminLoading(false);
+                if (!ok) {
+                  setAdminError('Identifiants incorrects ou compte non admin');
+                }
+              }}
+            >
+              {adminLoading ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={[styles.goldBtnText, { textAlign: 'center' }]}>SE CONNECTER À L'ADMIN</Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => router.replace('/')}
+              style={{ paddingVertical: 8, alignItems: 'center', marginTop: 4 }}
+            >
+              <Text style={{ fontFamily: Theme.fonts.bodyMedium, fontSize: 13, color: Theme.colors.textSecondary }}>
+                ← Retour au site public
+              </Text>
+            </TouchableOpacity>
+          </View>
         </SafeAreaView>
       </View>
     );

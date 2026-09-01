@@ -19,7 +19,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.pokemoons.app",
-      "buildNumber": "11",
+      "buildNumber": "40",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "UIBackgroundModes": [
@@ -35,7 +35,7 @@
       }
     },
     "android": {
-      "versionCode": 11,
+      "versionCode": 40,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/logo.png",
         "backgroundColor": "#FFFFFF"
