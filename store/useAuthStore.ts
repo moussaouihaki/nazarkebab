@@ -14,7 +14,7 @@ import { useNotificationStore } from './useNotificationStore';
 
 import { auth, db } from '../lib/firebase';
 
-export type UserRole = 'client' | 'admin';
+export type UserRole = 'client' | 'admin' | 'driver';
 
 export interface User {
   id: string;
@@ -44,6 +44,7 @@ interface AuthState {
   loginWithGoogle: (idToken: string) => Promise<boolean>;
   loginWithApple: (identityToken: string, fullName?: { givenName: string | null; familyName: string | null }) => Promise<boolean>;
   register: (data: any) => Promise<boolean>;
+  createDriverAccount: (firstName: string, lastName: string, email: string, pass: string, phone?: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   deleteAccount: () => Promise<boolean>;
   updateProfile: (data: Partial<User>) => Promise<void>;
@@ -215,6 +216,43 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
       set({ error: message, isLoading: false });
       return false;
+    }
+  },
+
+  createDriverAccount: async (firstName: string, lastName: string, email: string, pass: string, phone?: string) => {
+    try {
+      const { initializeApp, getApps } = await import('firebase/app');
+      const { getAuth, createUserWithEmailAndPassword: createSecondaryUser, signOut: signOutSecondary } = await import('firebase/auth');
+      const { firebaseConfig } = await import('../lib/firebase');
+
+      const secondaryApp = getApps().find(a => a.name === 'SecondaryAuth') || initializeApp(firebaseConfig, 'SecondaryAuth');
+      const secondaryAuth = getAuth(secondaryApp);
+
+      const userCredential = await createSecondaryUser(secondaryAuth, email.trim(), pass);
+      const uid = userCredential.user.uid;
+
+      const newDriver: User = {
+        id: uid,
+        firstName: firstName.trim() || 'Livreur',
+        lastName: lastName.trim() || '',
+        email: email.trim().toLowerCase(),
+        phone: phone?.trim() || '',
+        address: '',
+        role: 'driver',
+        notifOrders: true,
+        notifPromos: false,
+        createdAt: new Date(),
+        loyaltyPoints: 0,
+      };
+
+      await setDoc(doc(db, 'users', uid), newDriver);
+      await signOutSecondary(secondaryAuth);
+      return { success: true };
+    } catch (err: any) {
+      let msg = err.message || 'Erreur lors de la création du livreur';
+      if (err.code === 'auth/email-already-in-use') msg = 'Cet email est déjà utilisé.';
+      if (err.code === 'auth/weak-password') msg = 'Le mot de passe doit faire au moins 6 caractères.';
+      return { success: false, error: msg };
     }
   },
 

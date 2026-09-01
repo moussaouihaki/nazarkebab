@@ -90,8 +90,16 @@ export default function AuthScreen() {
     if (mode === 'login') {
       if (!email || !password) { setLocalError('Veuillez remplir tous les champs.'); return; }
       const ok = await login(email.trim(), password);
-      // Wait for login state propagation and router mount
-      if (ok) router.replace('/');
+      if (ok) {
+        const loggedUser = useAuthStore.getState().user;
+        if (loggedUser?.role === 'driver') {
+          router.replace('/driver');
+        } else if (loggedUser?.role === 'admin') {
+          router.replace('/admin');
+        } else {
+          router.replace('/');
+        }
+      }
     } else {
       if (!firstName || !lastName || !email || !password) { setLocalError('Veuillez remplir tous les champs obligatoires.'); return; }
       if (password.length < 6) { setLocalError('Le mot de passe doit contenir au moins 6 caractères.'); return; }

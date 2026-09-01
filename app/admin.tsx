@@ -2617,12 +2617,39 @@ function SettingsTab() {
   const [localClosedFrom, setLocalClosedFrom] = useState(settings.closedFrom || '');
   const [localClosedTo, setLocalClosedTo] = useState(settings.closedTo || '');
   const [localAnnouncementEnabled, setLocalAnnouncementEnabled] = useState(settings.announcementEnabled || false);
-  const [localAnnouncementMessage, setLocalAnnouncementMessage] = useState(settings.announcementMessage || '');
   const [localDriverPin, setLocalDriverPin] = useState(settings.driverPin || '2300');
   const [newCodeName, setNewCodeName] = useState('');
   const [newCodeValue, setNewCodeValue] = useState('');
   const [newCodeType, setNewCodeType] = useState<'percent' | 'fixed'>('percent');
   const [saved, setSaved] = useState(false);
+
+  // DRIVER ACCOUNTS STATE
+  const [driverList, setDriverList] = useState<any[]>([]);
+  const [driverFirstName, setDriverFirstName] = useState('');
+  const [driverLastName, setDriverLastName] = useState('');
+  const [driverEmail, setDriverEmail] = useState('');
+  const [driverPass, setDriverPass] = useState('');
+  const [driverPhone, setDriverPhone] = useState('');
+  const [driverLoading, setDriverLoading] = useState(false);
+  const [driverError, setDriverError] = useState('');
+  const [driverSuccess, setDriverSuccess] = useState(false);
+
+  const fetchDrivers = async () => {
+    try {
+      const { collection, getDocs, query, where } = await import('firebase/firestore');
+      const q = query(collection(db, 'users'), where('role', '==', 'driver'));
+      const snap = await getDocs(q);
+      const list: any[] = [];
+      snap.forEach(docSnap => list.push({ id: docSnap.id, ...docSnap.data() }));
+      setDriverList(list);
+    } catch (err) {
+      console.warn('Erreur chargement livreurs', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchDrivers();
+  }, []);
 
   const handleSave = () => {
     updateSettings({
@@ -2631,7 +2658,8 @@ function SettingsTab() {
       deliveryTime: localDelivery, takeAwayTime: localTakeaway,
       isOpen: localIsOpen, openOverrideMessage: localOpenOverrideMessage,
       closedFrom: localClosedFrom, closedTo: localClosedTo,
-      announcementEnabled: localAnnouncementEnabled, announcementMessage: localAnnouncementMessage
+      announcementEnabled: localAnnouncementEnabled, announcementMessage: localAnnouncementMessage,
+      driverPin: localDriverPin,
     });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -2820,6 +2848,151 @@ function SettingsTab() {
             }}
           >
             <Text style={{ fontFamily: Theme.fonts.bodyBold, color: '#fff', fontSize: 12 }}>Ajouter ce code promo</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* GESTION DES COMPTES LIVREURS */}
+      <Text style={[styles.sectionHeader, { color: '#0284c7' }]}>ÉQUIPE & COMPTES LIVREURS</Text>
+      <View style={[styles.settingsCard, { borderColor: '#0284c744', borderWidth: 1 }]}>
+        <Text style={{ fontFamily: Theme.fonts.body, fontSize: 13, color: Theme.colors.textSecondary, marginBottom: 12, lineHeight: 18 }}>
+          Créez des identifiants (email & mot de passe) pour vos livreurs. Lorsqu'ils se connectent à l'application avec ces accès, ils arrivent directement sur leur espace de tournée et n'ont aucun accès au chiffre d'affaires ni au reste de l'administration.
+        </Text>
+
+        {/* LISTE DES LIVREURS EXISTANTS */}
+        {driverList.length > 0 && (
+          <View style={{ marginBottom: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: Theme.colors.border, paddingBottom: 16 }}>
+            <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 12, color: Theme.colors.textSecondary, marginBottom: 8, letterSpacing: 0.5 }}>LIVREURS ACTIFS ({driverList.length})</Text>
+            {driverList.map((d: any) => (
+              <View key={d.id} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: Theme.colors.border + '66' }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+                  <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#0284c722', alignItems: 'center', justifyContent: 'center' }}>
+                    <Ionicons name="bicycle" size={18} color="#0284c7" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 13, color: Theme.colors.text }}>{d.firstName} {d.lastName}</Text>
+                    <Text style={{ fontFamily: Theme.fonts.body, fontSize: 11, color: Theme.colors.textSecondary }}>{d.email} {d.phone ? `• ${d.phone}` : ''}</Text>
+                  </View>
+                </View>
+                <TouchableOpacity 
+                  onPress={async () => {
+                    const confirmDel = Platform.OS === 'web' 
+                      ? (typeof window !== 'undefined' ? window.confirm(`Supprimer le compte de "${d.firstName}" ?`) : true)
+                      : true;
+                    if (confirmDel) {
+                      try {
+                        const { deleteDoc, doc } = await import('firebase/firestore');
+                        await deleteDoc(doc(db, 'users', d.id));
+                        setDriverList(prev => prev.filter(x => x.id !== d.id));
+                      } catch (err) {
+                        console.error(err);
+                      }
+                    }
+                  }}
+                  style={{ padding: 8 }}
+                >
+                  <Ionicons name="trash-outline" size={18} color={Theme.colors.danger} />
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* FORMULAIRE CRÉATION LIVREUR */}
+        <View style={{ backgroundColor: Theme.colors.background, padding: 16, borderRadius: 12, gap: 10 }}>
+          <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 12, color: '#0284c7', letterSpacing: 0.5 }}>+ CRÉER UN NOUVEAU LIVREUR</Text>
+          
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <TextInput
+              style={[styles.input, { flex: 1, marginBottom: 0 }]}
+              placeholder="Prénom"
+              placeholderTextColor="#999"
+              value={driverFirstName}
+              onChangeText={setDriverFirstName}
+            />
+            <TextInput
+              style={[styles.input, { flex: 1, marginBottom: 0 }]}
+              placeholder="Nom"
+              placeholderTextColor="#999"
+              value={driverLastName}
+              onChangeText={setDriverLastName}
+            />
+          </View>
+
+          <TextInput
+            style={[styles.input, { marginBottom: 0 }]}
+            placeholder="Email de connexion (ex: livreur@pokemoons.ch)"
+            placeholderTextColor="#999"
+            value={driverEmail}
+            onChangeText={setDriverEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+          />
+
+          <TextInput
+            style={[styles.input, { marginBottom: 0 }]}
+            placeholder="Mot de passe (min. 6 caractères)"
+            placeholderTextColor="#999"
+            value={driverPass}
+            onChangeText={setDriverPass}
+            secureTextEntry
+          />
+
+          <TextInput
+            style={[styles.input, { marginBottom: 0 }]}
+            placeholder="Téléphone portable (optionnel)"
+            placeholderTextColor="#999"
+            value={driverPhone}
+            onChangeText={setDriverPhone}
+            keyboardType="phone-pad"
+          />
+
+          {driverError ? (
+            <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 12, color: Theme.colors.danger }}>{driverError}</Text>
+          ) : null}
+
+          {driverSuccess ? (
+            <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 12, color: Theme.colors.success }}>✓ Compte livreur créé avec succès !</Text>
+          ) : null}
+
+          <TouchableOpacity
+            style={[styles.goldBtn, { backgroundColor: '#0284c7', marginTop: 4, justifyContent: 'center' }]}
+            disabled={driverLoading}
+            onPress={async () => {
+              if (!driverFirstName.trim() || !driverEmail.trim() || !driverPass.trim()) {
+                setDriverError('Veuillez remplir le prénom, l\'email et le mot de passe.');
+                return;
+              }
+              setDriverLoading(true);
+              setDriverError('');
+              setDriverSuccess(false);
+              const res = await useAuthStore.getState().createDriverAccount(
+                driverFirstName.trim(),
+                driverLastName.trim(),
+                driverEmail.trim(),
+                driverPass.trim(),
+                driverPhone.trim()
+              );
+              setDriverLoading(false);
+              if (res.success) {
+                setDriverSuccess(true);
+                setDriverFirstName('');
+                setDriverLastName('');
+                setDriverEmail('');
+                setDriverPass('');
+                setDriverPhone('');
+                fetchDrivers();
+                setTimeout(() => setDriverSuccess(false), 3000);
+              } else {
+                setDriverError(res.error || 'Erreur lors de la création');
+              }
+            }}
+          >
+            {driverLoading ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text style={[styles.goldBtnText, { color: '#fff' }]}>CRÉER LE COMPTE LIVREUR</Text>
+            )}
           </TouchableOpacity>
         </View>
       </View>
