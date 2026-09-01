@@ -32,6 +32,7 @@ export interface User {
   createdAt: any;         // Firestore Timestamp or Date
   pushToken?: string;
   loyaltyPoints: number;  // Nouveau : points de fidélité
+  usedPromoCodes?: string[]; // Codes promos déjà utilisés
 }
 
 interface AuthState {

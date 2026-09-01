@@ -270,15 +270,19 @@ export default function CartScreen() {
       updateProfile({ address, street, postalCode, city });
     }
     
-    // Gérer les points de fidélité
+    // Gérer les points de fidélité et codes promos utilisés
     if (user) {
+      const updates: any = {};
       if (useLoyalty) {
-        // Déduire 10 points si utilisés (l'utilisateur gagne tout de même 1 point pour cette commande)
-        await updateProfile({ loyaltyPoints: Math.max(0, (user.loyaltyPoints || 0) - 9) });
+        updates.loyaltyPoints = Math.max(0, (user.loyaltyPoints || 0) - 9);
       } else {
-        // Ajouter 1 point pour la commande
-        await updateProfile({ loyaltyPoints: (user.loyaltyPoints || 0) + 1 });
+        updates.loyaltyPoints = (user.loyaltyPoints || 0) + 1;
       }
+      if (appliedPromo?.code) {
+        const codeUpper = appliedPromo.code.toUpperCase();
+        updates.usedPromoCodes = Array.from(new Set([...(user.usedPromoCodes || []), codeUpper]));
+      }
+      await updateProfile(updates);
     }
 
     
@@ -739,6 +743,34 @@ export default function CartScreen() {
                     <TouchableOpacity 
                       onPress={() => {
                         const code = promoCodeInput.trim().toUpperCase();
+                        if (!code) {
+                          setPromoError('Veuillez entrer un code');
+                          return;
+                        }
+
+                        // Vérifier si l'utilisateur a déjà utilisé ce code
+                        if (user?.usedPromoCodes?.includes(code)) {
+                          setPromoError(`Vous avez déjà utilisé le code ${code} sur votre compte.`);
+                          return;
+                        }
+
+                        // Code de bienvenue : uniquement pour la première commande
+                        const isWelcomePromo = code === 'BIENVENUE10' || code === 'BIENVENUE' || code === 'WELCOME10';
+                        if (isWelcomePromo) {
+                          const userPastOrders = (orders || []).filter(o => 
+                            (user?.id && o.userId === user.id) || 
+                            (user?.email && o.customerEmail?.toLowerCase() === user.email.toLowerCase()) ||
+                            (user?.phone && o.customerPhone === user.phone)
+                          );
+                          if (userPastOrders.length > 0 || (user?.loyaltyPoints && user.loyaltyPoints > 0) || user?.usedPromoCodes?.includes('BIENVENUE10')) {
+                            setPromoError('Le code BIENVENUE10 est réservé exclusivement aux nouveaux clients pour leur 1ère commande.');
+                            return;
+                          }
+                          setAppliedPromo({ code: 'BIENVENUE10', discountPercent: 10 });
+                          setPromoError('');
+                          return;
+                        }
+
                         const foundPromo = (settings?.promoCodes || []).find(p => p.code.toUpperCase() === code && p.active);
                         if (foundPromo) {
                           if (foundPromo.minOrder && total < foundPromo.minOrder) {
@@ -751,14 +783,9 @@ export default function CartScreen() {
                             fixedAmount: foundPromo.discountType === 'fixed' ? foundPromo.discountValue : 0
                           });
                           setPromoError('');
-                        } else if (code === 'BIENVENUE10') {
-                          setAppliedPromo({ code: 'BIENVENUE10', discountPercent: 10 });
-                          setPromoError('');
                         } else if (code === 'POKE5') {
                           setAppliedPromo({ code: 'POKE5', discountPercent: 0, fixedAmount: 5 });
                           setPromoError('');
-                        } else if (!code) {
-                          setPromoError('Veuillez entrer un code');
                         } else {
                           setPromoError('Code promo invalide ou expiré');
                         }
