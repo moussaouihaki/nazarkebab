@@ -2504,6 +2504,7 @@ function SettingsTab() {
   const [localClosedTo, setLocalClosedTo] = useState(settings.closedTo || '');
   const [localAnnouncementEnabled, setLocalAnnouncementEnabled] = useState(settings.announcementEnabled || false);
   const [localAnnouncementMessage, setLocalAnnouncementMessage] = useState(settings.announcementMessage || '');
+  const [localDriverPin, setLocalDriverPin] = useState(settings.driverPin || '2300');
   const [newCodeName, setNewCodeName] = useState('');
   const [newCodeValue, setNewCodeValue] = useState('');
   const [newCodeType, setNewCodeType] = useState<'percent' | 'fixed'>('percent');
@@ -2772,6 +2773,39 @@ function SettingsTab() {
         >
           <Text style={{ fontFamily: Theme.fonts.bodyBold, color: Theme.colors.primary, fontSize: 13 }}>🖨️ Tester l'impression d'un ticket de caisse</Text>
         </TouchableOpacity>
+      </View>
+
+      {/* SÉCURITÉ & CODE PIN LIVREUR */}
+      <Text style={[styles.sectionHeader, { color: '#0284c7' }]}>ESPACE LIVREUR & CODE PIN</Text>
+      <View style={styles.settingsCard}>
+        <View style={styles.settingFieldRow}>
+          <Text style={styles.fieldLabel}>CODE PIN DU LIVREUR (4 CHIFFRES)</Text>
+          <Text style={styles.switchSubtitle}>Le livreur accède à son espace sur /driver en entrant ce code PIN (sans avoir accès au reste de l'admin).</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 10 }}>
+            <TextInput
+              style={[styles.input, { flex: 1, fontFamily: Theme.fonts.bodyBold, fontSize: 18, textAlign: 'center', letterSpacing: 8, backgroundColor: Theme.colors.background }]}
+              value={localDriverPin}
+              onChangeText={setLocalDriverPin}
+              maxLength={4}
+              keyboardType="numeric"
+              placeholder="2300"
+              placeholderTextColor="#999"
+            />
+            <TouchableOpacity 
+              style={{ backgroundColor: '#0284c7', paddingVertical: 14, paddingHorizontal: 20, borderRadius: 10 }}
+              onPress={() => {
+                updateSettings({ driverPin: localDriverPin || '2300' });
+                if (Platform.OS === 'web') {
+                  alert('Code PIN Livreur enregistré avec succès !');
+                } else {
+                  Alert.alert('Succès', 'Code PIN Livreur enregistré avec succès !');
+                }
+              }}
+            >
+              <Text style={{ fontFamily: Theme.fonts.bodyBold, color: '#fff', fontSize: 13 }}>Enregistrer</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </View>
 
       {/* EMERGENCY STATUS */}

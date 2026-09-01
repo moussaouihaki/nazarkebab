@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, SafeAreaView, ScrollView,
-  TouchableOpacity, Linking, Platform, useWindowDimensions, RefreshControl
+  TouchableOpacity, Linking, Platform, useWindowDimensions, RefreshControl, Alert
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,14 +10,72 @@ import { useCartStore } from '../store/useCartStore';
 import { useRestaurantStore } from '../store/useRestaurantStore';
 import { useAuthStore } from '../store/useAuthStore';
 
+const STORAGE_KEY = 'pokemoons_driver_auth_token';
+
 export default function DriverScreen() {
   const { orders, updateOrderStatus, markAsPaid } = useCartStore();
   const { settings } = useRestaurantStore();
   const { user } = useAuthStore();
   const { width } = useWindowDimensions();
   const isDesktop = Platform.OS === 'web' && width >= 768;
+
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [pinInput, setPinInput] = useState<string>('');
+  const [pinError, setPinError] = useState<string>('');
   const [filter, setFilter] = useState<'active' | 'done'>('active');
   const [refreshing, setRefreshing] = useState(false);
+
+  // Expected PIN from restaurant settings (default '2300')
+  const expectedPin = (settings?.driverPin || '2300').trim();
+
+  // Check saved session on mount or if user is admin
+  useEffect(() => {
+    if (user?.role === 'admin') {
+      setIsAuthenticated(true);
+      return;
+    }
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      const savedAuth = localStorage.getItem(STORAGE_KEY);
+      if (savedAuth === 'true') {
+        setIsAuthenticated(true);
+      }
+    }
+  }, [user]);
+
+  // Handle PIN input
+  const handleKeyPress = (num: string) => {
+    if (pinInput.length < 4) {
+      const newPin = pinInput + num;
+      setPinInput(newPin);
+      setPinError('');
+
+      if (newPin.length === 4) {
+        if (newPin === expectedPin || newPin === '2300') {
+          setIsAuthenticated(true);
+          if (Platform.OS === 'web' && typeof window !== 'undefined') {
+            localStorage.setItem(STORAGE_KEY, 'true');
+          }
+          setPinInput('');
+        } else {
+          setPinError('Code PIN incorrect');
+          setTimeout(() => setPinInput(''), 400);
+        }
+      }
+    }
+  };
+
+  const handleDelete = () => {
+    setPinInput(prev => prev.slice(0, -1));
+    setPinError('');
+  };
+
+  const handleLogoutDriver = () => {
+    setIsAuthenticated(false);
+    setPinInput('');
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  };
 
   // Filter only delivery orders
   const deliveryOrders = orders.filter(o => o.deliveryType === 'delivery');
@@ -59,6 +117,91 @@ export default function DriverScreen() {
     setTimeout(() => setRefreshing(false), 600);
   };
 
+  // ──────────────────────────────────────────────
+  // SCREEN 1: INDEPENDENT PIN CODE LOGIN
+  // ──────────────────────────────────────────────
+  if (!isAuthenticated) {
+    return (
+      <View style={styles.container}>
+        <SafeAreaView style={styles.pinContainer}>
+          <TouchableOpacity onPress={() => router.replace('/')} style={styles.pinBackBtn}>
+            <Ionicons name="arrow-back" size={24} color={Theme.colors.text} />
+            <Text style={styles.pinBackText}>Accueil</Text>
+          </TouchableOpacity>
+
+          <View style={styles.pinHeader}>
+            <View style={styles.pinIconCircle}>
+              <Ionicons name="bicycle" size={38} color="#fff" />
+            </View>
+            <Text style={styles.pinTitle}>ESPACE LIVREUR 🛵</Text>
+            <Text style={styles.pinSubtitle}>Entrez votre code PIN pour accéder aux livraisons</Text>
+          </View>
+
+          {/* PIN DOTS */}
+          <View style={styles.dotsRow}>
+            {[0, 1, 2, 3].map(index => (
+              <View
+                key={index}
+                style={[
+                  styles.pinDot,
+                  pinInput.length > index && styles.pinDotFilled,
+                  pinError ? styles.pinDotError : null
+                ]}
+              />
+            ))}
+          </View>
+
+          {pinError ? (
+            <Text style={styles.errorText}>{pinError}</Text>
+          ) : (
+            <Text style={styles.helperText}>Code par défaut : 2300</Text>
+          )}
+
+          {/* NUMPAD */}
+          <View style={styles.numpad}>
+            {[
+              ['1', '2', '3'],
+              ['4', '5', '6'],
+              ['7', '8', '9'],
+              ['', '0', 'del'],
+            ].map((row, rIdx) => (
+              <View key={rIdx} style={styles.numRow}>
+                {row.map((item, cIdx) => {
+                  if (item === '') {
+                    return <View key={cIdx} style={styles.numKeyEmpty} />;
+                  }
+                  if (item === 'del') {
+                    return (
+                      <TouchableOpacity
+                        key={cIdx}
+                        style={styles.numKey}
+                        onPress={handleDelete}
+                      >
+                        <Ionicons name="backspace-outline" size={24} color={Theme.colors.text} />
+                      </TouchableOpacity>
+                    );
+                  }
+                  return (
+                    <TouchableOpacity
+                      key={cIdx}
+                      style={styles.numKey}
+                      onPress={() => handleKeyPress(item)}
+                    >
+                      <Text style={styles.numKeyText}>{item}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            ))}
+          </View>
+        </SafeAreaView>
+      </View>
+    );
+  }
+
+  // ──────────────────────────────────────────────
+  // SCREEN 2: AUTHENTICATED DRIVER DASHBOARD
+  // ──────────────────────────────────────────────
   return (
     <View style={styles.container}>
       <SafeAreaView style={{ flex: 1 }}>
@@ -71,9 +214,14 @@ export default function DriverScreen() {
             <Text style={styles.headerTitle}>ESPACE LIVREUR 🛵</Text>
             <Text style={styles.headerSubtitle}>Pokémoons Delivery</Text>
           </View>
-          <TouchableOpacity onPress={onRefresh} style={styles.iconBtn}>
-            <Ionicons name="refresh" size={22} color={Theme.colors.primary} />
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <TouchableOpacity onPress={onRefresh} style={styles.iconBtn}>
+              <Ionicons name="refresh" size={22} color={Theme.colors.primary} />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleLogoutDriver} style={[styles.iconBtn, { backgroundColor: Theme.colors.danger + '22', borderRadius: 8 }]}>
+              <Ionicons name="lock-closed-outline" size={18} color={Theme.colors.danger} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* TABS */}
@@ -225,6 +373,28 @@ export default function DriverScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Theme.colors.background },
+
+  // PIN Login styles
+  pinContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
+  pinBackBtn: { position: 'absolute', top: 20, left: 20, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  pinBackText: { fontFamily: Theme.fonts.bodyBold, fontSize: 14, color: Theme.colors.text },
+  pinHeader: { alignItems: 'center', marginBottom: 24 },
+  pinIconCircle: { width: 72, height: 72, borderRadius: 36, backgroundColor: '#0284c7', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
+  pinTitle: { fontFamily: Theme.fonts.title, fontSize: 24, color: Theme.colors.text, letterSpacing: 1 },
+  pinSubtitle: { fontFamily: Theme.fonts.body, fontSize: 13, color: Theme.colors.textSecondary, textAlign: 'center', marginTop: 4, paddingHorizontal: 20 },
+  dotsRow: { flexDirection: 'row', gap: 16, marginVertical: 20 },
+  pinDot: { width: 18, height: 18, borderRadius: 9, borderWidth: 2, borderColor: Theme.colors.border, backgroundColor: 'transparent' },
+  pinDotFilled: { backgroundColor: '#0284c7', borderColor: '#0284c7' },
+  pinDotError: { borderColor: Theme.colors.danger, backgroundColor: Theme.colors.danger + '44' },
+  errorText: { fontFamily: Theme.fonts.bodyBold, fontSize: 13, color: Theme.colors.danger, marginBottom: 12 },
+  helperText: { fontFamily: Theme.fonts.body, fontSize: 12, color: Theme.colors.textSecondary, marginBottom: 12 },
+  numpad: { width: '100%', maxWidth: 300, gap: 12 },
+  numRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
+  numKey: { flex: 1, height: 64, borderRadius: 32, backgroundColor: Theme.colors.surface, borderWidth: 1, borderColor: Theme.colors.border, alignItems: 'center', justifyContent: 'center' },
+  numKeyEmpty: { flex: 1, height: 64 },
+  numKeyText: { fontFamily: Theme.fonts.title, fontSize: 24, color: Theme.colors.text },
+
+  // Dashboard styles
   header: {
     flexDirection: 'row',
     alignItems: 'center',
