@@ -99,24 +99,62 @@ class ErrorBoundary extends React.Component<any, { error: Error | null }> {
   }
 }
 
+const safeOrderDate = (val: any): Date => {
+  try {
+    if (!val) return new Date();
+    if (typeof val.toDate === 'function') return val.toDate();
+    if (typeof val === 'object' && val.seconds) return new Date(val.seconds * 1000);
+    const d = new Date(val);
+    return isNaN(d.getTime()) ? new Date() : d;
+  } catch (e) {
+    return new Date();
+  }
+};
+
+const safeFormatTime = (val: any): string => {
+  try {
+    const d = safeOrderDate(val);
+    return d.toLocaleTimeString('fr-CH', { hour: '2-digit', minute: '2-digit' });
+  } catch (e) {
+    return '--:--';
+  }
+};
+
+const safeFormatDate = (val: any): string => {
+  try {
+    const d = safeOrderDate(val);
+    return d.toLocaleDateString('fr-CH');
+  } catch (e) {
+    return '--/--/----';
+  }
+};
+
 // ──────────────────────────────────────────────
 // MAIN ADMIN SCREEN
 // ──────────────────────────────────────────────
 export default function AdminScreen() {
+  return (
+    <ErrorBoundary>
+      <AdminContent />
+    </ErrorBoundary>
+  );
+}
+
+function AdminContent() {
   const { user, logout } = useAuthStore();
   const { orders } = useCartStore();
   const [tab, setTab] = useState<Tab>('dashboard');
   const [soundEnabled, setSoundEnabled] = useState(true);
-  const prevOrdersCount = useRef(orders.length);
+  const prevOrdersCount = useRef(orders?.length || 0);
   const { width } = useWindowDimensions();
   const isDesktop = Platform.OS === 'web' && width >= 768;
 
   const playNewOrderChime = () => {
     try {
       if (Platform.OS === 'web' && typeof window !== 'undefined') {
-        const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-        if (!AudioContext) return;
-        const ctx = new AudioContext();
+        const AudioCtx = (window as any).AudioContext || (window as any).webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
         const now = ctx.currentTime;
         const osc1 = ctx.createOscillator();
         const gain1 = ctx.createGain();
@@ -147,19 +185,20 @@ export default function AdminScreen() {
 
   // Trigger audio chime on new orders
   useEffect(() => {
-    if (orders.length > prevOrdersCount.current) {
+    if ((orders?.length || 0) > prevOrdersCount.current) {
       if (soundEnabled) {
         playNewOrderChime();
       }
     }
-    prevOrdersCount.current = orders.length;
-  }, [orders.length, soundEnabled]);
+    prevOrdersCount.current = orders?.length || 0;
+  }, [orders?.length, soundEnabled]);
 
   // Auth guard & Web notification permission
   React.useEffect(() => {
-    if (Platform.OS === 'web' && typeof window !== 'undefined' && 'Notification' in window) {
-      if (Notification.permission === 'default') {
-        Notification.requestPermission();
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      const Notif = (window as any).Notification;
+      if (Notif && Notif.permission === 'default') {
+        Notif.requestPermission().catch(() => {});
       }
     }
   }, []);
@@ -408,29 +447,25 @@ export default function AdminScreen() {
 function DashboardTab() {
   const { orders } = useCartStore();
   const { settings } = useRestaurantStore();
-  const { updateSettings } = useRestaurantStore();
 
   const { width } = useWindowDimensions();
   const isDesktop = Platform.OS === 'web' && width >= 768;
 
-  // REAL STATS CALCULATION
-  const getOrderDate = (o: any) => {
-    if (!o.createdAt) return new Date();
-    return o.createdAt.toDate ? o.createdAt.toDate() : new Date(o.createdAt);
-  };
-
   const todayDate = new Date();
   todayDate.setHours(0, 0, 0, 0);
 
-  const todayOrders = orders.filter(o => {
-    const d = getOrderDate(o);
+  const safeOrders = orders || [];
+
+  const todayOrders = safeOrders.filter(o => {
+    if (!o) return false;
+    const d = safeOrderDate(o.createdAt);
     d.setHours(0, 0, 0, 0);
     return o.status !== 'cancelled' && d.getTime() === todayDate.getTime();
   });
 
-  const dailyRevenue = todayOrders.reduce((s, o) => s + o.total, 0);
-  const totalRevenue = orders.filter(o => o.status !== 'cancelled').reduce((s, o) => s + o.total, 0);
-  const activeCount = orders.filter(o => !['delivered', 'cancelled'].includes(o.status)).length;
+  const dailyRevenue = todayOrders.reduce((s, o) => s + (Number(o?.total) || 0), 0);
+  const totalRevenue = safeOrders.filter(o => o && o.status !== 'cancelled').reduce((s, o) => s + (Number(o?.total) || 0), 0);
+  const activeCount = safeOrders.filter(o => o && !['delivered', 'cancelled'].includes(o.status)).length;
   const avgOrder = todayOrders.length ? dailyRevenue / todayOrders.length : 0;
 
   // Calculate last 7 days for the chart
@@ -439,15 +474,16 @@ function DashboardTab() {
     d.setDate(d.getDate() - (6 - i));
     d.setHours(0, 0, 0, 0);
     
-    const dayOrders = orders.filter(o => {
-      const od = getOrderDate(o);
+    const dayOrders = safeOrders.filter(o => {
+      if (!o) return false;
+      const od = safeOrderDate(o.createdAt);
       od.setHours(0, 0, 0, 0);
       return o.status !== 'cancelled' && od.getTime() === d.getTime();
     });
     
     return {
       label: d.toLocaleDateString('fr-FR', { weekday: 'short' }),
-      value: dayOrders.reduce((s, o) => s + o.total, 0),
+      value: dayOrders.reduce((s, o) => s + (Number(o?.total) || 0), 0),
     };
   });
 
@@ -472,14 +508,16 @@ function DashboardTab() {
             <StatCard label="C.A. Aujourd'hui" value={`${dailyRevenue.toFixed(0)} CHF`} icon="cash" color={Theme.colors.success} />
             <StatCard label="C.A. Total" value={`${totalRevenue.toFixed(0)} CHF`} icon="receipt" color="#2196F3" />
             <StatCard label="Panier Moyen" value={`${avgOrder.toFixed(0)} CHF`} icon="cart" color="#FF9800" />
-            <StatCard label="Annulées" value={String(orders.filter(o => o.status === 'cancelled').length)} icon="close-circle" color={Theme.colors.danger} />
+            <StatCard label="Annulées" value={String(safeOrders.filter(o => o && o.status === 'cancelled').length)} icon="close-circle" color={Theme.colors.danger} />
           </View>
 
           {/* TOP PRODUITS DU JOUR */}
           {todayOrders.length > 0 && (() => {
             const productCounts: Record<string, number> = {};
-            todayOrders.forEach(o => o.items.forEach((i: any) => {
-              productCounts[i.name] = (productCounts[i.name] || 0) + (i.quantity || 1);
+            todayOrders.forEach(o => (o.items || []).forEach((i: any) => {
+              if (i?.name) {
+                productCounts[i.name] = (productCounts[i.name] || 0) + (Number(i.quantity) || 1);
+              }
             }));
             const sorted = Object.entries(productCounts).sort((a, b) => b[1] - a[1]).slice(0, 3);
             return (
@@ -531,22 +569,22 @@ function DashboardTab() {
         <View style={{ flex: isDesktop ? 1 : 1, marginTop: isDesktop ? 0 : 20 }}>
           <View style={styles.recentActivityCard}>
             <Text style={styles.sectionHeader}>ACTIVITÉ RÉCENTE</Text>
-            {orders.slice(0, 5).map(o => (
+            {safeOrders.slice(0, 5).map(o => (
               <View key={o.id} style={styles.activityRow}>
                 <View style={styles.activityDotWrapper}>
                   <View style={styles.activityDot} />
                 </View>
                 <View style={styles.activityInfo}>
                   <Text style={styles.activityTitle}>Commande <Text style={{color: Theme.colors.success}}>#{o.id}</Text></Text>
-                  <Text style={styles.activityDesc}>{o.customerName}</Text>
+                  <Text style={styles.activityDesc}>{o.customerName || 'Client'}</Text>
                 </View>
                 <View style={{ alignItems: 'flex-end' }}>
-                  <Text style={styles.activityAmount}>{o.total.toFixed(2)} CHF</Text>
-                  <Text style={{ fontFamily: Theme.fonts.body, fontSize: 10, color: Theme.colors.textSecondary, marginTop: 4 }}>{STATUS_LABELS[o.status]}</Text>
+                  <Text style={styles.activityAmount}>{Number(o.total || 0).toFixed(2)} CHF</Text>
+                  <Text style={{ fontFamily: Theme.fonts.body, fontSize: 10, color: Theme.colors.textSecondary, marginTop: 4 }}>{STATUS_LABELS[o.status] || o.status}</Text>
                 </View>
               </View>
             ))}
-            {orders.length === 0 && (
+            {safeOrders.length === 0 && (
                <View style={{ alignItems: 'center', paddingVertical: 40, opacity: 0.5 }}>
                  <Ionicons name="notifications-off-outline" size={32} color={Theme.colors.textSecondary} />
                  <Text style={[styles.activityTitle, { marginTop: 12 }]}>Aucune activité</Text>
@@ -841,7 +879,7 @@ function OrdersTab() {
                   </Text>
                 </View>
                 <View style={{ flex: 2 }}>
-                  {order.items.map((i, idx) => (
+                  {(order.items || []).map((i, idx) => (
                     <View key={idx} style={{ marginBottom: 4 }}>
                       <Text style={styles.tdSub}>{i.quantity}× {i.name}</Text>
                       {i.selectedOptions && (() => {
@@ -867,7 +905,7 @@ function OrdersTab() {
                   ))}
                 </View>
                 <View style={{ flex: 1.5 }}>
-                   <Text style={[styles.tdTitle, { color: Theme.colors.success }]}>{order.total.toFixed(2)} CHF</Text>
+                   <Text style={[styles.tdTitle, { color: Theme.colors.success }]}>{Number(order.total || 0).toFixed(2)} CHF</Text>
                    <View style={[styles.statusPill, { backgroundColor: STATUS_COLORS[order.status] + '22', borderColor: STATUS_COLORS[order.status], alignSelf: 'flex-start', marginTop: 4 }]}>
                      <Text style={[styles.statusPillText, { color: STATUS_COLORS[order.status] }]}>{STATUS_LABELS[order.status]}</Text>
                    </View>
@@ -924,7 +962,7 @@ function OrdersTab() {
             </View>
 
             <View style={{ marginBottom: 12 }}>
-              {order.items.map((i, idx) => (
+              {(order.items || []).map((i, idx) => (
                 <View key={idx} style={{ marginBottom: 4 }}>
                   <Text style={styles.orderItemsList}>{i.quantity}× {i.name}</Text>
                   {i.selectedOptions && (() => {
@@ -954,7 +992,7 @@ function OrdersTab() {
 
             <View style={styles.orderCardFooter}>
               <View>
-                <Text style={styles.orderTotal}>{order.total.toFixed(2)} CHF</Text>
+                <Text style={styles.orderTotal}>{Number(order.total || 0).toFixed(2)} CHF</Text>
                 {order.requestedTime && order.requestedTime !== 'ASAP' ? (
                   <Text style={[styles.orderTime, { color: Theme.colors.primary, fontWeight: 'bold' }]}>POUR : {order.requestedTime}</Text>
                 ) : (
@@ -1033,7 +1071,7 @@ function KitchenTab() {
       </View>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 10, paddingBottom: 100 }}>
         {data.map(o => {
-           const minsElapsed = Math.floor((Date.now() - new Date(o.createdAt).getTime()) / 60000);
+           const minsElapsed = Math.floor((Date.now() - new Date(o.createdAt || new Date()).getTime()) / 60000);
            const isLate = minsElapsed > 15 && o.status !== 'ready';
            return (
              <View key={o.id} style={[styles.kTicket, isLate && { borderColor: Theme.colors.danger, borderWidth: 2 }]}>
@@ -1042,7 +1080,7 @@ function KitchenTab() {
                  <View>
                    <Text style={styles.kId}>N° {o.id}</Text>
                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                     <Text style={styles.kTime}>{new Date(o.createdAt).toLocaleTimeString('fr-CH', { hour: '2-digit', minute: '2-digit' })}</Text>
+                     <Text style={styles.kTime}>{new Date(o.createdAt || new Date()).toLocaleTimeString('fr-CH', { hour: '2-digit', minute: '2-digit' })}</Text>
                      <View style={{ backgroundColor: isLate ? Theme.colors.danger : Theme.colors.surface, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
                        <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 10, color: isLate ? '#fff' : Theme.colors.textSecondary }}>{minsElapsed} min</Text>
                      </View>
