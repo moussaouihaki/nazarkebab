@@ -243,25 +243,18 @@ export default function RootLayout() {
             <Stack screenOptions={{ 
               headerShown: false, 
               animation: 'fade',
+              presentation: 'card',
               contentStyle: { backgroundColor: Theme.colors.background } 
             }}>
-              <Stack.Screen name="index" />
-              <Stack.Screen name="menu" />
-              <Stack.Screen 
-                name="product/[id]" 
-                options={{ 
-                  presentation: 'modal',
-                  animation: 'slide_from_bottom' 
-                }} 
-              />
-              <Stack.Screen 
-                name="cart" 
-                options={{ presentation: 'modal' }} 
-              />
-              <Stack.Screen name="admin" options={{ presentation: 'modal' }} />
-              <Stack.Screen name="auth" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
-              <Stack.Screen name="profile" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
-              <Stack.Screen name="tracking" />
+              <Stack.Screen name="index" options={{ presentation: 'card' }} />
+              <Stack.Screen name="menu" options={{ presentation: 'card' }} />
+              <Stack.Screen name="product/[id]" options={{ presentation: 'card' }} />
+              <Stack.Screen name="cart" options={{ presentation: 'card' }} />
+              <Stack.Screen name="admin" options={{ presentation: 'card' }} />
+              <Stack.Screen name="driver" options={{ presentation: 'card' }} />
+              <Stack.Screen name="auth" options={{ presentation: 'card' }} />
+              <Stack.Screen name="profile" options={{ presentation: 'card' }} />
+              <Stack.Screen name="tracking" options={{ presentation: 'card' }} />
             </Stack>
           </SafeAreaProvider>
         </View>
