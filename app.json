@@ -1,25 +1,25 @@
 {
   "expo": {
-    "name": "pokemoons",
+    "name": "Pokémoons",
     "slug": "nazar-kebab",
     "version": "1.0.3",
     "orientation": "portrait",
-    "icon": "./assets/images/logo.png",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/images/splash-icon.png",
+      "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#FFFFFF"
     },
     "notification": {
-      "icon": "./assets/images/logo.png",
-      "color": "#FFD700"
+      "icon": "./assets/icon.png",
+      "color": "#16a34a"
     },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.nazar.kebab",
-      "buildNumber": "40",
+      "buildNumber": "41",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "UIBackgroundModes": [
@@ -35,9 +35,9 @@
       }
     },
     "android": {
-      "versionCode": 40,
+      "versionCode": 41,
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/logo.png",
+        "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundColor": "#FFFFFF"
       },
       "package": "com.nazar.kebab"
