@@ -263,13 +263,13 @@ export default function AdminScreen() {
   ] as { key: Tab; icon: any; label: string }[];
 
   const renderContent = () => {
-    if (tab === 'dashboard') return <DashboardTab />;
-    if (tab === 'orders') return <OrdersTab />;
-    if (tab === 'kitchen') return <KitchenTab />;
-    if (tab === 'crm') return <CrmTab />;
+    if (tab === 'dashboard') return <ErrorBoundary><DashboardTab /></ErrorBoundary>;
+    if (tab === 'orders') return <ErrorBoundary><OrdersTab /></ErrorBoundary>;
+    if (tab === 'kitchen') return <ErrorBoundary><KitchenTab /></ErrorBoundary>;
+    if (tab === 'crm') return <ErrorBoundary><CrmTab /></ErrorBoundary>;
     if (tab === 'menu') return <ErrorBoundary><MenuTab /></ErrorBoundary>;
-    if (tab === 'accounting') return <AccountingTab />; // NEW
-    if (tab === 'settings') return <SettingsTab />;
+    if (tab === 'accounting') return <ErrorBoundary><AccountingTab /></ErrorBoundary>;
+    if (tab === 'settings') return <ErrorBoundary><SettingsTab /></ErrorBoundary>;
     return null;
   };
 
@@ -747,7 +747,7 @@ function OrdersTab() {
   };
 
   const handlePay = (orderId: string) => {
-    if (Platform.OS === 'web') {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
       const method = window.confirm('Paiement par Carte / Twint ?\n\nOK = Carte/Twint\nAnnuler = Espèces')
         ? 'Carte' : 'Espèces';
       markAsPaid(orderId, method);
@@ -1309,7 +1309,7 @@ function CrmTab() {
     try {
       const { doc, setDoc } = await import('firebase/firestore');
       await setDoc(doc(db, 'crm_notes', key), { name: clientName, note, updatedAt: new Date().toISOString() }, { merge: true });
-      if (Platform.OS === 'web') window.alert('Note sauvegardée !');
+      if (Platform.OS === 'web' && typeof window !== 'undefined') window.alert('Note sauvegardée !');
       else Alert.alert('Succès', 'Note sauvegardée !');
     } catch(e) {
       console.error(e);
@@ -1983,7 +1983,7 @@ function MenuTab() {
   const openEdit = (p: Product) => { setEditingProduct(p); setShowModal(true); };
 
   const handleDelete = (p: Product) => {
-    if (Platform.OS === 'web') {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
       if (window.confirm(`Supprimer "${p.name}" du menu ?`)) {
         deleteProduct(p.id);
       }
@@ -2102,7 +2102,7 @@ function MenuTab() {
                 <TouchableOpacity style={[styles.editBtn, { borderColor: Theme.colors.primary + '55' }]} onPress={() => {
                   const { id, ...rest } = product;
                   const duplicated = { ...rest, name: rest.name + ' (COPIE)', displayOrder: (rest.displayOrder || 0) + 0.5 };
-                  if (Platform.OS === 'web') {
+                  if (Platform.OS === 'web' && typeof window !== 'undefined') {
                     if (window.confirm(`Dupliquer "${product.name}" ?`)) {
                       // @ts-ignore
                       useRestaurantStore.getState().addProduct(duplicated);
@@ -2564,6 +2564,8 @@ function ProductModal({ visible, product, categories, defaultCategory, onClose, 
 // ──────────────────────────────────
 function SettingsTab() {
   const { settings, updateSettings, updateHours, addPromoCode, deletePromoCode, togglePromoCode } = useRestaurantStore();
+  const { width } = useWindowDimensions();
+  const isDesktop = Platform.OS === 'web' && width >= 768;
   const [localName, setLocalName] = useState(settings.name);
   const [localPhone, setLocalPhone] = useState(settings.phone);
   const [localAddress, setLocalAddress] = useState(settings.address);
@@ -3587,7 +3589,7 @@ function CmsTab() {
         <Ionicons name="star-outline" size={20} /> WIDGETS DE CONCEPT (3 BLOCS)
       </Text>
       
-      <View style={{ flexDirection: Platform.OS === 'web' && window.innerWidth >= 768 ? 'row' : 'column', gap: 16 }}>
+      <View style={{ flexDirection: isDesktop ? 'row' : 'column', gap: 16 }}>
         {localContent.values.map((val, idx) => (
           <View key={val.id} style={[styles.settingsCard, { flex: 1, borderWidth: 1, borderColor: Theme.colors.border + '55' }]}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 }}>
