@@ -14,67 +14,18 @@ const STORAGE_KEY = 'pokemoons_driver_auth_token';
 
 export default function DriverScreen() {
   const { orders, updateOrderStatus, markAsPaid } = useCartStore();
-  const { settings } = useRestaurantStore();
-  const { user } = useAuthStore();
+  const { user, logout } = useAuthStore();
   const { width } = useWindowDimensions();
   const isDesktop = Platform.OS === 'web' && width >= 768;
 
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [pinInput, setPinInput] = useState<string>('');
-  const [pinError, setPinError] = useState<string>('');
   const [filter, setFilter] = useState<'active' | 'done'>('active');
   const [refreshing, setRefreshing] = useState(false);
 
-  // Expected PIN from restaurant settings (default '2300')
-  const expectedPin = (settings?.driverPin || '2300').trim();
+  const isDriverOrAdmin = user?.role === 'driver' || user?.role === 'admin';
 
-  // Check saved session on mount or if user is admin
-  useEffect(() => {
-    if (user?.role === 'admin') {
-      setIsAuthenticated(true);
-      return;
-    }
-    if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      const savedAuth = localStorage.getItem(STORAGE_KEY);
-      if (savedAuth === 'true') {
-        setIsAuthenticated(true);
-      }
-    }
-  }, [user]);
-
-  // Handle PIN input
-  const handleKeyPress = (num: string) => {
-    if (pinInput.length < 4) {
-      const newPin = pinInput + num;
-      setPinInput(newPin);
-      setPinError('');
-
-      if (newPin.length === 4) {
-        if (newPin === expectedPin || newPin === '2300') {
-          setIsAuthenticated(true);
-          if (Platform.OS === 'web' && typeof window !== 'undefined') {
-            localStorage.setItem(STORAGE_KEY, 'true');
-          }
-          setPinInput('');
-        } else {
-          setPinError('Code PIN incorrect');
-          setTimeout(() => setPinInput(''), 400);
-        }
-      }
-    }
-  };
-
-  const handleDelete = () => {
-    setPinInput(prev => prev.slice(0, -1));
-    setPinError('');
-  };
-
-  const handleLogoutDriver = () => {
-    setIsAuthenticated(false);
-    setPinInput('');
-    if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      localStorage.removeItem(STORAGE_KEY);
-    }
+  const handleLogoutDriver = async () => {
+    await logout();
+    router.replace('/auth');
   };
 
   // Filter only delivery orders
@@ -118,82 +69,31 @@ export default function DriverScreen() {
   };
 
   // ──────────────────────────────────────────────
-  // SCREEN 1: INDEPENDENT PIN CODE LOGIN
+  // SCREEN 1: LOGIN REQUIRED FOR DRIVERS
   // ──────────────────────────────────────────────
-  if (!isAuthenticated) {
+  if (!isDriverOrAdmin) {
     return (
       <View style={styles.container}>
-        <SafeAreaView style={styles.pinContainer}>
-          <TouchableOpacity onPress={() => router.replace('/')} style={styles.pinBackBtn}>
+        <SafeAreaView style={[styles.pinContainer, { justifyContent: 'center', alignItems: 'center', padding: 24 }]}>
+          <TouchableOpacity onPress={() => router.replace('/')} style={[styles.pinBackBtn, { position: 'absolute', top: 50, left: 20 }]}>
             <Ionicons name="arrow-back" size={24} color={Theme.colors.text} />
             <Text style={styles.pinBackText}>Accueil</Text>
           </TouchableOpacity>
 
-          <View style={styles.pinHeader}>
-            <View style={styles.pinIconCircle}>
-              <Ionicons name="bicycle" size={38} color="#fff" />
-            </View>
-            <Text style={styles.pinTitle}>ESPACE LIVREUR 🛵</Text>
-            <Text style={styles.pinSubtitle}>Entrez votre code PIN pour accéder aux livraisons</Text>
+          <View style={[styles.pinIconCircle, { backgroundColor: '#0284c7', width: 90, height: 90, borderRadius: 45 }]}>
+            <Ionicons name="bicycle" size={48} color="#fff" />
           </View>
+          <Text style={[styles.pinTitle, { marginTop: 24, fontSize: 24 }]}>ESPACE LIVREUR 🛵</Text>
+          <Text style={[styles.pinSubtitle, { textAlign: 'center', maxWidth: 320, marginTop: 10, lineHeight: 20 }]}>
+            Connectez-vous avec votre compte livreur pour accéder à votre tournée de livraison en direct.
+          </Text>
 
-          {/* PIN DOTS */}
-          <View style={styles.dotsRow}>
-            {[0, 1, 2, 3].map(index => (
-              <View
-                key={index}
-                style={[
-                  styles.pinDot,
-                  pinInput.length > index && styles.pinDotFilled,
-                  pinError ? styles.pinDotError : null
-                ]}
-              />
-            ))}
-          </View>
-
-          {pinError ? (
-            <Text style={styles.errorText}>{pinError}</Text>
-          ) : (
-            <Text style={styles.helperText}>Code par défaut : 2300</Text>
-          )}
-
-          {/* NUMPAD */}
-          <View style={styles.numpad}>
-            {[
-              ['1', '2', '3'],
-              ['4', '5', '6'],
-              ['7', '8', '9'],
-              ['', '0', 'del'],
-            ].map((row, rIdx) => (
-              <View key={rIdx} style={styles.numRow}>
-                {row.map((item, cIdx) => {
-                  if (item === '') {
-                    return <View key={cIdx} style={styles.numKeyEmpty} />;
-                  }
-                  if (item === 'del') {
-                    return (
-                      <TouchableOpacity
-                        key={cIdx}
-                        style={styles.numKey}
-                        onPress={handleDelete}
-                      >
-                        <Ionicons name="backspace-outline" size={24} color={Theme.colors.text} />
-                      </TouchableOpacity>
-                    );
-                  }
-                  return (
-                    <TouchableOpacity
-                      key={cIdx}
-                      style={styles.numKey}
-                      onPress={() => handleKeyPress(item)}
-                    >
-                      <Text style={styles.numKeyText}>{item}</Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            ))}
-          </View>
+          <TouchableOpacity
+            style={{ backgroundColor: '#0284c7', paddingVertical: 14, paddingHorizontal: 32, borderRadius: 12, marginTop: 32, width: '100%', maxWidth: 300, alignItems: 'center' }}
+            onPress={() => router.push('/auth')}
+          >
+            <Text style={{ fontFamily: Theme.fonts.bodyBold, color: '#fff', fontSize: 16 }}>Se connecter</Text>
+          </TouchableOpacity>
         </SafeAreaView>
       </View>
     );

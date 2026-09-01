@@ -70,7 +70,6 @@ export interface RestaurantSettings {
   outOfStockIngredients?: string[]; // Liste des ingrédients en rupture
   promoCodes?: PromoCode[];
   autoPrintEnabled?: boolean;
-  driverPin?: string; // Code PIN de connexion indépendant pour les livreurs (ex: 2300)
 }
 
 interface RestaurantState {
@@ -161,7 +160,6 @@ const DEFAULT_SETTINGS: RestaurantSettings = {
     { id: 'p2', code: 'POKE5', discountType: 'fixed', discountValue: 5, active: true, minOrder: 30 }
   ],
   autoPrintEnabled: false,
-  driverPin: '2300'
 };
 
 export const useRestaurantStore = create<RestaurantState>((set, get) => ({

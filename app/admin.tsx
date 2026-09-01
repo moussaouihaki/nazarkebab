@@ -2617,7 +2617,6 @@ function SettingsTab() {
   const [localClosedTo, setLocalClosedTo] = useState(settings.closedTo || '');
   const [localAnnouncementEnabled, setLocalAnnouncementEnabled] = useState(settings.announcementEnabled || false);
   const [localAnnouncementMessage, setLocalAnnouncementMessage] = useState(settings.announcementMessage || '');
-  const [localDriverPin, setLocalDriverPin] = useState(settings.driverPin || '2300');
   const [newCodeName, setNewCodeName] = useState('');
   const [newCodeValue, setNewCodeValue] = useState('');
   const [newCodeType, setNewCodeType] = useState<'percent' | 'fixed'>('percent');
@@ -2663,7 +2662,6 @@ function SettingsTab() {
       isOpen: localIsOpen, openOverrideMessage: localOpenOverrideMessage,
       closedFrom: localClosedFrom, closedTo: localClosedTo,
       announcementEnabled: localAnnouncementEnabled, announcementMessage: localAnnouncementMessage,
-      driverPin: localDriverPin,
     });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -2672,13 +2670,15 @@ function SettingsTab() {
   return (
     <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 }]}>
 
-      {/* FERMETURE EXCEPTIONNELLE */}
-      <Text style={[styles.sectionHeader, { color: Theme.colors.danger }]}>ÉTAT DU RESTAURANT</Text>
+      {/* ÉTAT DU RESTAURANT & SERVICES */}
+      <Text style={[styles.sectionHeader, { color: localIsOpen ? Theme.colors.success : Theme.colors.danger }]}>
+        ÉTAT DU RESTAURANT & SERVICES
+      </Text>
       <View style={[styles.settingsCard, { borderColor: !localIsOpen ? Theme.colors.danger : Theme.colors.border, borderWidth: 1 }]}>
         <View style={styles.switchRow}>
           <View>
             <Text style={styles.switchLabel}>Prendre des commandes</Text>
-            <Text style={styles.switchSubtitle}>{localIsOpen ? "Actif : les clients peuvent commander" : "Bloqué : commandes désactivées"}</Text>
+            <Text style={styles.switchSubtitle}>{localIsOpen ? "Actif : les clients peuvent passer commande" : "Bloqué : restaurant fermé aux commandes"}</Text>
           </View>
           <Switch 
             value={localIsOpen} 
@@ -2687,9 +2687,30 @@ function SettingsTab() {
             thumbColor={localIsOpen ? Theme.colors.success : Theme.colors.textSecondary}
           />
         </View>
+
+        <View style={[styles.switchRow, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Theme.colors.border, paddingTop: 14, marginTop: 4 }]}>
+          <View>
+            <Text style={styles.switchLabel}>Accepter les livraisons</Text>
+            <Text style={styles.switchSubtitle}>Service de livraison à domicile</Text>
+          </View>
+          <Switch value={settings.acceptsDelivery} onValueChange={v => updateSettings({ acceptsDelivery: v })}
+            trackColor={{ false: Theme.colors.surface, true: Theme.colors.success + '88' }}
+            thumbColor={settings.acceptsDelivery ? Theme.colors.success : Theme.colors.textSecondary} />
+        </View>
+
+        <View style={[styles.switchRow, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Theme.colors.border, paddingTop: 14, marginTop: 4 }]}>
+          <View>
+            <Text style={styles.switchLabel}>Accepter le Take Away (À emporter)</Text>
+            <Text style={styles.switchSubtitle}>Retrait direct au comptoir</Text>
+          </View>
+          <Switch value={settings.acceptsPickup} onValueChange={v => updateSettings({ acceptsPickup: v })}
+            trackColor={{ false: Theme.colors.surface, true: Theme.colors.success + '88' }}
+            thumbColor={settings.acceptsPickup ? Theme.colors.success : Theme.colors.textSecondary} />
+        </View>
+
         {!localIsOpen && (
           <View style={{ marginTop: 16, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Theme.colors.border, paddingTop: 16 }}>
-            <Text style={styles.fieldLabel}>MESSAGE AUX CLIENTS</Text>
+            <Text style={styles.fieldLabel}>MESSAGE DE FERMETURE AUX CLIENTS</Text>
             <TextInput 
               style={[styles.input, { height: 80, textAlignVertical: 'top' }]} 
               value={localOpenOverrideMessage} 
@@ -2832,8 +2853,9 @@ function SettingsTab() {
         })}
 
         {/* AJOUTER UN CODE PROMO */}
-        <View style={{ marginTop: 8, backgroundColor: Theme.colors.background, padding: 14, borderRadius: 12, gap: 10 }}>
-          <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 11, color: Theme.colors.textSecondary, letterSpacing: 0.5 }}>+ CRÉER UN CODE PROMO AVEC DATES DE VALIDITÉ</Text>
+        <View style={{ marginTop: 8, backgroundColor: Theme.colors.background, padding: 14, borderRadius: 12, gap: 12 }}>
+          <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 12, color: Theme.colors.primary, letterSpacing: 0.5 }}>+ CRÉER UN CODE PROMO</Text>
+          
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <TextInput
               style={[styles.input, { flex: 2, textTransform: 'uppercase', fontFamily: Theme.fonts.bodyBold, marginBottom: 0 }]}
@@ -2862,34 +2884,82 @@ function SettingsTab() {
 
           <TextInput
             style={[styles.input, { marginBottom: 0 }]}
-            placeholder="Montant minimum de commande en CHF (optionnel, ex: 35)"
+            placeholder="Montant minimum d'achat en CHF (optionnel, ex: 35)"
             placeholderTextColor="#999"
             value={newCodeMinOrder}
             onChangeText={setNewCodeMinOrder}
             keyboardType="numeric"
           />
 
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            <TextInput
-              style={[styles.input, { flex: 1, marginBottom: 0 }]}
-              placeholder="Date début (YYYY-MM-DD)"
-              placeholderTextColor="#999"
-              value={newCodeStartDate}
-              onChangeText={setNewCodeStartDate}
-            />
-            <TextInput
-              style={[styles.input, { flex: 1, marginBottom: 0 }]}
-              placeholder="Date fin/expir. (YYYY-MM-DD)"
-              placeholderTextColor="#999"
-              value={newCodeEndDate}
-              onChangeText={setNewCodeEndDate}
-            />
+          {/* DATES DE VALIDITÉ */}
+          <View style={{ backgroundColor: Theme.colors.surface, padding: 10, borderRadius: 8, borderWidth: 1, borderColor: Theme.colors.border }}>
+            <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 11, color: Theme.colors.textSecondary, marginBottom: 6 }}>
+              📅 PÉRIODE DE VALIDITÉ DU CODE (OPTIONNEL)
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 10, color: Theme.colors.textSecondary, marginBottom: 2 }}>Date début (YYYY-MM-DD)</Text>
+                <TextInput
+                  style={[styles.input, { marginBottom: 0, backgroundColor: Theme.colors.background }]}
+                  placeholder="Ex: 2026-09-01"
+                  placeholderTextColor="#999"
+                  value={newCodeStartDate}
+                  onChangeText={setNewCodeStartDate}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 10, color: Theme.colors.textSecondary, marginBottom: 2 }}>Date fin/expir. (YYYY-MM-DD)</Text>
+                <TextInput
+                  style={[styles.input, { marginBottom: 0, backgroundColor: Theme.colors.background }]}
+                  placeholder="Ex: 2026-09-30"
+                  placeholderTextColor="#999"
+                  value={newCodeEndDate}
+                  onChangeText={setNewCodeEndDate}
+                />
+              </View>
+            </View>
+
+            {/* QUICK PRESETS */}
+            <View style={{ flexDirection: 'row', gap: 6, marginTop: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+              <Text style={{ fontSize: 10, fontFamily: Theme.fonts.bodyBold, color: Theme.colors.textSecondary }}>Raccourcis fin :</Text>
+              {[
+                { label: '+7 jours', days: 7 },
+                { label: '+15 jours', days: 15 },
+                { label: '+30 jours', days: 30 },
+                { label: 'Fin du mois', endOfMonth: true },
+              ].map((p, idx) => (
+                <TouchableOpacity
+                  key={idx}
+                  onPress={() => {
+                    const today = new Date();
+                    if (!newCodeStartDate) {
+                      setNewCodeStartDate(today.toISOString().split('T')[0]);
+                    }
+                    const target = new Date();
+                    if (p.days) {
+                      target.setDate(target.getDate() + p.days);
+                    } else if (p.endOfMonth) {
+                      target.setMonth(target.getMonth() + 1, 0);
+                    }
+                    setNewCodeEndDate(target.toISOString().split('T')[0]);
+                  }}
+                  style={{ backgroundColor: Theme.colors.background, borderWidth: 1, borderColor: Theme.colors.border, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 }}
+                >
+                  <Text style={{ fontSize: 11, fontFamily: Theme.fonts.bodyMedium, color: Theme.colors.primary }}>{p.label}</Text>
+                </TouchableOpacity>
+              ))}
+              {(newCodeStartDate || newCodeEndDate) ? (
+                <TouchableOpacity onPress={() => { setNewCodeStartDate(''); setNewCodeEndDate(''); }} style={{ paddingHorizontal: 6, paddingVertical: 4 }}>
+                  <Text style={{ fontSize: 11, fontFamily: Theme.fonts.bodyMedium, color: Theme.colors.danger }}>✕ Effacer dates</Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
           </View>
 
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 4 }}>
             <View>
               <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 12, color: Theme.colors.text }}>1ère commande uniquement</Text>
-              <Text style={{ fontFamily: Theme.fonts.body, fontSize: 11, color: Theme.colors.textSecondary }}>Réservé aux nouveaux clients</Text>
+              <Text style={{ fontFamily: Theme.fonts.body, fontSize: 11, color: Theme.colors.textSecondary }}>Réservé exclusivement aux nouveaux clients</Text>
             </View>
             <Switch
               value={newCodeFirstOrderOnly}
@@ -2900,7 +2970,7 @@ function SettingsTab() {
           </View>
 
           <TouchableOpacity
-            style={{ backgroundColor: Theme.colors.success, paddingVertical: 12, borderRadius: 10, alignItems: 'center' }}
+            style={{ backgroundColor: Theme.colors.success, paddingVertical: 12, borderRadius: 10, alignItems: 'center', marginTop: 4 }}
             onPress={() => {
               if (!newCodeName.trim() || !newCodeValue.trim()) {
                 Alert.alert('Erreur', 'Veuillez entrer un code et une valeur');
@@ -2922,6 +2992,7 @@ function SettingsTab() {
               setNewCodeStartDate('');
               setNewCodeEndDate('');
               setNewCodeFirstOrderOnly(false);
+              Alert.alert('Succès', 'Code promo créé avec succès !');
             }}
           >
             <Text style={{ fontFamily: Theme.fonts.bodyBold, color: '#fff', fontSize: 13 }}>ENREGISTRER LE CODE PROMO</Text>
@@ -3139,73 +3210,6 @@ function SettingsTab() {
         </TouchableOpacity>
       </View>
 
-      {/* SÉCURITÉ & CODE PIN LIVREUR */}
-      <Text style={[styles.sectionHeader, { color: '#0284c7' }]}>ESPACE LIVREUR & CODE PIN</Text>
-      <View style={styles.settingsCard}>
-        <View style={styles.settingFieldRow}>
-          <Text style={styles.fieldLabel}>CODE PIN DU LIVREUR (4 CHIFFRES)</Text>
-          <Text style={styles.switchSubtitle}>Le livreur accède à son espace sur /driver en entrant ce code PIN (sans avoir accès au reste de l'admin).</Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 10 }}>
-            <TextInput
-              style={[styles.input, { flex: 1, fontFamily: Theme.fonts.bodyBold, fontSize: 18, textAlign: 'center', letterSpacing: 8, backgroundColor: Theme.colors.background }]}
-              value={localDriverPin}
-              onChangeText={setLocalDriverPin}
-              maxLength={4}
-              keyboardType="numeric"
-              placeholder="2300"
-              placeholderTextColor="#999"
-            />
-            <TouchableOpacity 
-              style={{ backgroundColor: '#0284c7', paddingVertical: 14, paddingHorizontal: 20, borderRadius: 10 }}
-              onPress={() => {
-                updateSettings({ driverPin: localDriverPin || '2300' });
-                if (Platform.OS === 'web') {
-                  alert('Code PIN Livreur enregistré avec succès !');
-                } else {
-                  Alert.alert('Succès', 'Code PIN Livreur enregistré avec succès !');
-                }
-              }}
-            >
-              <Text style={{ fontFamily: Theme.fonts.bodyBold, color: '#fff', fontSize: 13 }}>Enregistrer</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-
-      {/* EMERGENCY STATUS */}
-      <Text style={styles.sectionHeader}>STATUT ÉTABLISSEMENT</Text>
-      <View style={styles.settingsCard}>
-        <View style={styles.switchRow}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.switchLabel}>Restaurant Ouvert</Text>
-            <Text style={{ fontFamily: Theme.fonts.body, fontSize: 12, color: Theme.colors.textSecondary, marginTop: 4 }}>Désactiver uniquement en cas de problème grave.</Text>
-          </View>
-          <Switch value={settings.isOpen} onValueChange={v => updateSettings({ isOpen: v })}
-            trackColor={{ false: Theme.colors.danger + '44', true: Theme.colors.success + '44' }}
-            thumbColor={settings.isOpen ? Theme.colors.success : Theme.colors.danger} />
-        </View>
-      </View>
-
-      {/* OPTIONS */}
-      <Text style={styles.sectionHeader}>OPTIONS</Text>
-      <View style={styles.settingsCard}>
-        <View style={styles.switchRow}>
-          <Text style={styles.switchLabel}>Accepter les livraisons</Text>
-          <Switch value={settings.acceptsDelivery} onValueChange={v => updateSettings({ acceptsDelivery: v })}
-            trackColor={{ false: Theme.colors.surface, true: Theme.colors.success + '88' }}
-            thumbColor={settings.acceptsDelivery ? Theme.colors.success : Theme.colors.textSecondary} />
-        </View>
-        <View style={[styles.switchRow, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Theme.colors.border, paddingTop: 14, marginTop: 4 }]}>
-          <Text style={styles.switchLabel}>Accepter les commandes à emporter</Text>
-          <Switch value={settings.acceptsPickup} onValueChange={v => updateSettings({ acceptsPickup: v })}
-            trackColor={{ false: Theme.colors.surface, true: Theme.colors.success + '88' }}
-            thumbColor={settings.acceptsPickup ? Theme.colors.success : Theme.colors.textSecondary} />
-        </View>
-      </View>
-
-
-
-      
       {/* SYSTÈME DE FIDÉLITÉ (TAMPONS) */}
       <Text style={styles.sectionHeader}>PROGRAMME DE FIDÉLITÉ (TAMPONS)</Text>
       <View style={styles.settingsCard}>
