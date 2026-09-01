@@ -417,12 +417,166 @@ function StatCard({ label, value, icon, color }: { label: string; value: string;
   );
 }
 
+// ──────────────────────────────────────────────
+// ORDER CANCELLATION MODAL (With Reason & Push Notification)
+// ──────────────────────────────────────────────
+function OrderCancelModal({
+  order,
+  visible,
+  onClose,
+  onConfirmCancel,
+}: {
+  order: any;
+  visible: boolean;
+  onClose: () => void;
+  onConfirmCancel: (orderId: string, reason: string) => Promise<void> | void;
+}) {
+  const [reason, setReason] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  React.useEffect(() => {
+    if (visible) {
+      setReason('');
+      setIsSubmitting(false);
+    }
+  }, [visible]);
+
+  if (!visible || !order) return null;
+
+  const PRESETS = [
+    'Rupture de stock sur un ingrédient',
+    'Fermeture exceptionnelle du restaurant',
+    'Trop de commandes en cuisine',
+    'Adresse hors de notre zone de livraison',
+    'Client injoignable',
+  ];
+
+  const handleConfirm = async () => {
+    setIsSubmitting(true);
+    try {
+      await onConfirmCancel(order.id, reason);
+      onClose();
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Modal visible={visible} transparent animationType="fade">
+      <View style={styles.modalOverlay}>
+        <View style={[styles.modalBox, { width: '92%', maxWidth: 520, padding: 24 }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+            <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: Theme.colors.danger + '22', alignItems: 'center', justifyContent: 'center' }}>
+              <Ionicons name="alert-circle" size={26} color={Theme.colors.danger} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontFamily: Theme.fonts.title, fontSize: 18, color: Theme.colors.text }}>Annuler la commande #{order.id}</Text>
+              <Text style={{ fontFamily: Theme.fonts.body, fontSize: 13, color: Theme.colors.textSecondary }}>Client : {order.customerName} ({order.customerPhone})</Text>
+            </View>
+            <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Ionicons name="close" size={24} color={Theme.colors.textSecondary} />
+            </TouchableOpacity>
+          </View>
+
+          <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 12, color: Theme.colors.text, marginBottom: 8, textTransform: 'uppercase' }}>
+            Motifs rapides (cliquez pour sélectionner) :
+          </Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+            {PRESETS.map(p => (
+              <TouchableOpacity
+                key={p}
+                onPress={() => setReason(p)}
+                style={{
+                  backgroundColor: reason === p ? Theme.colors.danger + '22' : Theme.colors.surface,
+                  borderColor: reason === p ? Theme.colors.danger : Theme.colors.border,
+                  borderWidth: 1,
+                  paddingHorizontal: 10,
+                  paddingVertical: 6,
+                  borderRadius: 8,
+                }}
+              >
+                <Text style={{ fontFamily: Theme.fonts.bodyMedium, fontSize: 11, color: reason === p ? Theme.colors.danger : Theme.colors.text }}>
+                  {p}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 12, color: Theme.colors.text, marginBottom: 6, textTransform: 'uppercase' }}>
+            Message transmis au client :
+          </Text>
+          <TextInput
+            style={{
+              minHeight: 80,
+              textAlignVertical: 'top',
+              fontSize: 13,
+              fontFamily: Theme.fonts.body,
+              backgroundColor: Theme.colors.background,
+              borderColor: Theme.colors.border,
+              borderWidth: 1,
+              borderRadius: 8,
+              padding: 12,
+              color: Theme.colors.text,
+            }}
+            placeholder="Précisez la raison pour informer le client (ex: Rupture de saumon frais ce soir, veuillez nous excuser)..."
+            placeholderTextColor="#999"
+            multiline
+            value={reason}
+            onChangeText={setReason}
+          />
+
+          <View style={{ backgroundColor: '#f0f9ff', borderColor: '#bae6fd', borderWidth: 1, borderRadius: 8, padding: 10, marginTop: 14, flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+            <Ionicons name="notifications-outline" size={18} color="#0284c7" />
+            <Text style={{ fontFamily: Theme.fonts.body, fontSize: 11, color: '#0369a1', flex: 1, lineHeight: 16 }}>
+              Le client recevra instantanément une notification push et verra ce motif sur son écran de suivi de commande.
+            </Text>
+          </View>
+
+          <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 12, marginTop: 20 }}>
+            <TouchableOpacity
+              onPress={onClose}
+              disabled={isSubmitting}
+              style={{ paddingVertical: 12, paddingHorizontal: 16, borderRadius: 8, borderWidth: 1, borderColor: Theme.colors.border }}
+            >
+              <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 13, color: Theme.colors.text }}>Conserver</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={handleConfirm}
+              disabled={isSubmitting}
+              style={{
+                backgroundColor: Theme.colors.danger,
+                paddingVertical: 12,
+                paddingHorizontal: 18,
+                borderRadius: 8,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 6,
+                opacity: isSubmitting ? 0.6 : 1,
+              }}
+            >
+              {isSubmitting ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <>
+                  <Ionicons name="close-circle" size={16} color="#fff" />
+                  <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 13, color: '#fff' }}>Confirmer l'annulation</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 // ──────────────────────────────────
 // TAB: ORDERS
 // ──────────────────────────────────
 function OrdersTab() {
   const { orders, updateOrderStatus, cancelOrder, markAsPaid } = useCartStore();
   const [filter, setFilter] = useState<'active' | 'history'>('active');
+  const [cancellingOrder, setCancellingOrder] = useState<any>(null);
   const { width } = useWindowDimensions();
   const isDesktop = Platform.OS === 'web' && width >= 768;
 
@@ -433,17 +587,6 @@ function OrdersTab() {
   const handleAdvance = (orderId: string, status: string) => {
     const next = NEXT_STATUS[status];
     if (next) updateOrderStatus(orderId, next as any);
-  };
-
-  const handleCancel = (orderId: string) => {
-    if (Platform.OS === 'web') {
-      if (window.confirm('Annuler cette commande ?')) cancelOrder(orderId);
-    } else {
-      Alert.alert('Annuler', "Confirmer l'annulation de cette commande ?", [
-        { text: 'Non', style: 'cancel' },
-        { text: 'Oui', style: 'destructive', onPress: () => cancelOrder(orderId) },
-      ]);
-    }
   };
 
   const handlePay = (orderId: string) => {
@@ -555,12 +698,22 @@ function OrdersTab() {
                    </View>
                 </View>
                 <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'flex-end', gap: 8, alignItems: 'center' }}>
-                    <TouchableOpacity onPress={() => router.push({ pathname: '/receipt', params: { id: order.id } })} style={styles.iconCircleBtn}>
+                    <TouchableOpacity onPress={() => router.push({ pathname: '/receipt', params: { id: order.id } })} style={styles.iconCircleBtn} title="Ticket">
                       <Ionicons name="receipt-outline" size={16} color={Theme.colors.textSecondary} />
                     </TouchableOpacity>
+                    {filter === 'active' && !order.isPaid && (
+                      <TouchableOpacity onPress={() => handlePay(order.id)} style={[styles.iconCircleBtn, { borderColor: Theme.colors.warning }]} title="Encaisser">
+                        <Ionicons name="card-outline" size={16} color={Theme.colors.warning} />
+                      </TouchableOpacity>
+                    )}
                     {filter === 'active' && NEXT_STATUS[order.status] && (
-                      <TouchableOpacity onPress={() => handleAdvance(order.id, order.status)} style={[styles.iconCircleBtn, { borderColor: Theme.colors.success }]}>
+                      <TouchableOpacity onPress={() => handleAdvance(order.id, order.status)} style={[styles.iconCircleBtn, { borderColor: Theme.colors.success }]} title="Avancer">
                         <Ionicons name="checkmark-outline" size={16} color={Theme.colors.success} />
+                      </TouchableOpacity>
+                    )}
+                    {filter === 'active' && (
+                      <TouchableOpacity onPress={() => setCancellingOrder(order)} style={[styles.iconCircleBtn, { borderColor: Theme.colors.danger }]} title="Annuler">
+                        <Ionicons name="close" size={16} color={Theme.colors.danger} />
                       </TouchableOpacity>
                     )}
                 </View>
@@ -652,7 +805,7 @@ function OrdersTab() {
                     <Text style={styles.payBtnText}>Encaisser</Text>
                   </TouchableOpacity>
                 )}
-                <TouchableOpacity style={styles.cancelOrderBtn} onPress={() => handleCancel(order.id)}>
+                <TouchableOpacity style={styles.cancelOrderBtn} onPress={() => setCancellingOrder(order)}>
                   <Ionicons name="close" size={16} color={Theme.colors.danger} />
                 </TouchableOpacity>
               </View>
@@ -661,6 +814,16 @@ function OrdersTab() {
         ))}
         <View style={{ height: 60 }} />
       </ScrollView>
+
+      {/* CANCELLATION MODAL */}
+      <OrderCancelModal
+        order={cancellingOrder}
+        visible={!!cancellingOrder}
+        onClose={() => setCancellingOrder(null)}
+        onConfirmCancel={async (id, reason) => {
+          await cancelOrder(id, reason);
+        }}
+      />
     </View>
   );
 }
@@ -669,7 +832,8 @@ function OrdersTab() {
 // TAB: VUE CUISINE (KDS - Kitchen Display System)
 // ──────────────────────────────────
 function KitchenTab() {
-  const { orders, updateOrderStatus } = useCartStore();
+  const { orders, updateOrderStatus, cancelOrder } = useCartStore();
+  const [cancellingOrder, setCancellingOrder] = useState<any>(null);
   const { width } = useWindowDimensions();
   const isDesktop = Platform.OS === 'web' && width >= 768;
 
@@ -771,31 +935,41 @@ function KitchenTab() {
                 </Text>
              </View>
 
-             {/* Action Button */}
-             {nextStatus && (
-                <TouchableOpacity 
-                  onPress={() => updateOrderStatus(o.id, nextStatus as any)} 
-                  style={[styles.kBtn, { backgroundColor: color }]}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.kBtnText}>{nextLabel || 'VALIDER'}</Text>
-                  <Ionicons name="arrow-forward" size={16} color="#fff" />
-                </TouchableOpacity>
-             )}
+              {/* Action Buttons */}
+              <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
+                {nextStatus && (
+                   <TouchableOpacity 
+                     onPress={() => updateOrderStatus(o.id, nextStatus as any)} 
+                     style={[styles.kBtn, { backgroundColor: color, flex: 1, marginTop: 0 }]}
+                     activeOpacity={0.8}
+                   >
+                     <Text style={styles.kBtnText}>{nextLabel || 'VALIDER'}</Text>
+                     <Ionicons name="arrow-forward" size={16} color="#fff" />
+                   </TouchableOpacity>
+                )}
 
-             {/* Complete Button (if finished) */}
-             {o.status === 'ready' && (
-                <TouchableOpacity 
-                  onPress={() => updateOrderStatus(o.id, 'delivered')} 
-                  style={[styles.kBtn, { backgroundColor: Theme.colors.success }]}
-                  activeOpacity={0.8}
+                {/* Complete Button (if finished) */}
+                {o.status === 'ready' && (
+                   <TouchableOpacity 
+                     onPress={() => updateOrderStatus(o.id, 'delivered')} 
+                     style={[styles.kBtn, { backgroundColor: Theme.colors.success, flex: 1, marginTop: 0 }]}
+                     activeOpacity={0.8}
+                   >
+                     <Text style={styles.kBtnText}>TERMINÉ / LIVRÉ</Text>
+                     <Ionicons name="checkmark-done" size={18} color="#fff" />
+                   </TouchableOpacity>
+                )}
+
+                <TouchableOpacity
+                  onPress={() => setCancellingOrder(o)}
+                  style={{ padding: 10, borderRadius: 8, borderWidth: 1, borderColor: Theme.colors.danger + '44', backgroundColor: Theme.colors.danger + '11', alignItems: 'center', justifyContent: 'center' }}
+                  title="Annuler commande"
                 >
-                  <Text style={styles.kBtnText}>TERMINÉ / LIVRÉ</Text>
-                  <Ionicons name="checkmark-done" size={18} color="#fff" />
+                  <Ionicons name="close-circle-outline" size={20} color={Theme.colors.danger} />
                 </TouchableOpacity>
-             )}
-           </View>
-           );
+              </View>
+            </View>
+            );
         })}
         {data.length === 0 && (
            <View style={{ alignItems: 'center', marginTop: 100, opacity: 0.3 }}>
@@ -858,30 +1032,50 @@ function KitchenTab() {
             nextLabel="LIVRÉ / REMIS"
           />
         )}
+
+        <OrderCancelModal
+          order={cancellingOrder}
+          visible={!!cancellingOrder}
+          onClose={() => setCancellingOrder(null)}
+          onConfirmCancel={async (id, reason) => {
+            await cancelOrder(id, reason);
+          }}
+        />
       </View>
     );
   }
 
   return (
-    <View style={styles.kanbanBoard}>
-      <KanbanColumn 
-        title="À CONFIRMER" 
-        data={pending} 
-        color={Theme.colors.danger} 
-        nextStatus={pending.some(o => o.status === 'pending') ? 'confirmed' : 'preparing'}
-        nextLabel={pending.some(o => o.status === 'pending') ? 'CONFIRMER COMMANDE' : 'LANCER PRÉPARATION'}
-      />
-      <KanbanColumn 
-        title="EN CUISINE" 
-        data={preparing} 
-        color={Theme.colors.primary} 
-        nextStatus="ready"
-        nextLabel="MARQUER COMME PRÊT"
-      />
-      <KanbanColumn 
-        title="PRÊT / EN ROUTE" 
-        data={ready} 
-        color={Theme.colors.success} 
+    <View style={{ flex: 1 }}>
+      <View style={styles.kanbanBoard}>
+        <KanbanColumn 
+          title="À CONFIRMER" 
+          data={pending} 
+          color={Theme.colors.danger} 
+          nextStatus={pending.some(o => o.status === 'pending') ? 'confirmed' : 'preparing'}
+          nextLabel={pending.some(o => o.status === 'pending') ? 'CONFIRMER COMMANDE' : 'LANCER PRÉPARATION'}
+        />
+        <KanbanColumn 
+          title="EN CUISINE" 
+          data={preparing} 
+          color={Theme.colors.primary} 
+          nextStatus="ready"
+          nextLabel="MARQUER COMME PRÊT"
+        />
+        <KanbanColumn 
+          title="PRÊT / EN ROUTE" 
+          data={ready} 
+          color={Theme.colors.success} 
+        />
+      </View>
+
+      <OrderCancelModal
+        order={cancellingOrder}
+        visible={!!cancellingOrder}
+        onClose={() => setCancellingOrder(null)}
+        onConfirmCancel={async (id, reason) => {
+          await cancelOrder(id, reason);
+        }}
       />
     </View>
   );

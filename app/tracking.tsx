@@ -212,9 +212,20 @@ export default function TrackingScreen() {
 
           {isCancelled && (
             <View style={styles.cancelledCard}>
-              <Ionicons name="close-circle" size={36} color={Theme.colors.danger} />
+              <Ionicons name="close-circle" size={44} color={Theme.colors.danger} />
               <Text style={styles.cancelledTitle}>Commande annulée</Text>
-              <Text style={styles.cancelledSubtitle}>Cette commande a été annulée. N'hésitez pas à recommander.</Text>
+              {orderToTrack.cancellationReason ? (
+                <View style={{ backgroundColor: '#fff', padding: 14, borderRadius: 12, borderWidth: 1, borderColor: Theme.colors.danger + '33', marginTop: 4, width: '100%' }}>
+                  <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 12, color: Theme.colors.danger, textTransform: 'uppercase', marginBottom: 4 }}>
+                    Motif du restaurant :
+                  </Text>
+                  <Text style={{ fontFamily: Theme.fonts.body, fontSize: 14, color: Theme.colors.text, lineHeight: 20 }}>
+                    {orderToTrack.cancellationReason}
+                  </Text>
+                </View>
+              ) : (
+                <Text style={styles.cancelledSubtitle}>Cette commande a été annulée par le restaurant.</Text>
+              )}
             </View>
           )}
 

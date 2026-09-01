@@ -62,6 +62,7 @@ export interface Order {
   loyaltyDiscount?: number;
   userId?: string;
   pushToken?: string;
+  cancellationReason?: string;
 }
 
 interface CartState {
@@ -90,7 +91,7 @@ interface CartState {
   listenToOrders: (userId?: string, isAdmin?: boolean, specificOrderId?: string) => () => void;
   placeOrder: (userId?: string, requestedTime?: string, loyaltyDiscount?: number, paymentMethod?: 'card' | 'cash') => Promise<Order>;
   updateOrderStatus: (orderId: string, status: OrderStatus) => Promise<void>;
-  cancelOrder: (orderId: string) => Promise<void>;
+  cancelOrder: (orderId: string, reason?: string) => Promise<void>;
   markAsPaid: (orderId: string, method: string) => Promise<void>;
   setActiveOrderById: (orderId: string) => Promise<void>;
   setAutoPrintOrder: (order: Order | null) => void;
@@ -479,7 +480,7 @@ export const useCartStore = create<CartState>()(
     } catch (err) { console.error('Error updating order:', err); }
   },
 
-  cancelOrder: async (orderId) => {
+  cancelOrder: async (orderId, reason) => {
     try {
       const orderDoc = await getDoc(doc(db, 'orders', orderId));
       if (orderDoc.exists()) {
@@ -495,8 +496,28 @@ export const useCartStore = create<CartState>()(
             });
           }
         }
+        // Save cancellation reason
+        await updateDoc(doc(db, 'orders', orderId), { 
+          status: 'cancelled', 
+          updatedAt: Timestamp.now(),
+          cancellationReason: reason || ''
+        });
+        // Send push notification to customer if they have a token
+        if (orderData.pushToken) {
+          try {
+            await sendPushNotification(
+              orderData.pushToken,
+              '❌ Commande annulée',
+              reason ? `Votre commande a été annulée : "${reason}"` : 'Votre commande a été annulée par le restaurant.',
+              { orderId, type: 'order_cancelled' }
+            );
+          } catch(notifErr) {
+            console.warn('Push notification failed:', notifErr);
+          }
+        }
+      } else {
+        await updateDoc(doc(db, 'orders', orderId), { status: 'cancelled', updatedAt: Timestamp.now() });
       }
-      await updateDoc(doc(db, 'orders', orderId), { status: 'cancelled', updatedAt: Timestamp.now() });
     } catch (err) {
       console.error('Error cancelling order:', err);
     }
