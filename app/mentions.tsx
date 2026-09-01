@@ -1,4 +1,5 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Platform, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, useWindowDimensions } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Theme } from '../constants/theme';
@@ -25,24 +26,31 @@ export default function MentionsLegalesScreen() {
       </BlurView>
 
       <ScrollView contentContainerStyle={[styles.content, isDesktop && styles.contentDesktop]}>
-        <Text style={styles.title}>MENTIONS LÉGALES</Text>
+        <Text style={styles.title}>Mentions Légales & Conditions Générales</Text>
+        <Text style={styles.updated}>Dernière mise à jour : 1er Septembre 2026</Text>
 
-        <Text style={styles.sectionTitle}>Informations légales</Text>
-        
-        <View style={styles.addressBlock}>
-          <Text style={styles.paragraphBold}>Propriétaire :</Text>
-          <Text style={styles.paragraph}>Pokemoons Sarl</Text>
-          <Text style={styles.paragraph}>Place du marché 6</Text>
-          <Text style={styles.paragraph}>2300 La Chaux-de-Fonds</Text>
-        </View>
+        <Text style={styles.sectionTitle}>1. Éditeur de l'application et du site</Text>
+        <Text style={styles.paragraph}>
+          L'application et le site sont édités par :
+          {'\n'}• Nom commercial : Pokémoons
+          {'\n'}• Téléphone : 032 913 23 23
+          {'\n'}• Email : contact@pokemoons.ch
+        </Text>
 
-        <View style={styles.addressBlock}>
-          <Text style={styles.paragraphBold}>Responsable publication :</Text>
-          <Text style={styles.paragraph}>Yasin Zorgui</Text>
-          <Text style={[styles.paragraph, { marginTop: 8, fontStyle: 'italic', fontSize: 13, color: Theme.colors.textSecondary }]}>
-            Le responsable publication est une personne physique.
-          </Text>
-        </View>
+        <Text style={styles.sectionTitle}>2. Hébergement</Text>
+        <Text style={styles.paragraph}>
+          L'application web est hébergée par Vercel Inc. et les bases de données / services d'authentification sont gérés via Google Firebase.
+        </Text>
+
+        <Text style={styles.sectionTitle}>3. Propriété intellectuelle</Text>
+        <Text style={styles.paragraph}>
+          Tous les éléments visuels, logos, photos, textes et identité de marque "Pokémoons" sont protégés par le droit de la propriété intellectuelle. Toute reproduction non autorisée est strictement interdite.
+        </Text>
+
+        <Text style={styles.sectionTitle}>4. Commandes et livraisons</Text>
+        <Text style={styles.paragraph}>
+          Les prix affichés sont en Francs Suisses (CHF) toutes taxes comprises (TTC). Pokémoons s'efforce de respecter les délais de livraison et de préparation indiqués, sous réserve des aléas de circulation ou de forte affluence.
+        </Text>
 
         <View style={{ height: 100 }} />
       </ScrollView>
@@ -61,7 +69,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.7)',
     zIndex: 10,
     ...Platform.select({
-      web: { position: 'sticky', top: 0 },
+      web: { position: 'sticky' as any, top: 0 },
       default: { position: 'absolute', top: 0, left: 0, right: 0 },
     }),
   },
@@ -102,7 +110,14 @@ const styles = StyleSheet.create({
     fontFamily: Theme.fonts.title,
     fontSize: 32,
     color: Theme.colors.primary,
-    marginBottom: 40,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  updated: {
+    fontFamily: Theme.fonts.body,
+    fontSize: 13,
+    color: Theme.colors.textSecondary,
+    marginBottom: 30,
     textAlign: 'center',
   },
   sectionTitle: {

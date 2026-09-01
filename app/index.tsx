@@ -387,7 +387,6 @@ const styles = StyleSheet.create({
   logoMoons: {
     fontFamily: Theme.fonts.logo,
     fontSize: 28,
-    color: 'transparent',
     letterSpacing: 2,
     lineHeight: 28,
     marginTop: -8, // Tightly stack them like the original logo
@@ -512,16 +511,6 @@ const styles = StyleSheet.create({
     color: Theme.colors.text,
     fontSize: 28,
     letterSpacing: 2,
-  },
-  categoryImgWrapper: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: Theme.colors.surface,
-    marginBottom: 8,
-    overflow: 'hidden',
-    borderWidth: 2,
-    borderColor: Theme.colors.border,
   },
   goldLine: {
     width: 30,

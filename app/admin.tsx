@@ -911,21 +911,21 @@ function OrdersTab() {
                    </View>
                 </View>
                 <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'flex-end', gap: 8, alignItems: 'center' }}>
-                    <TouchableOpacity onPress={() => router.push({ pathname: '/receipt', params: { id: order.id } })} style={styles.iconCircleBtn} title="Ticket">
+                    <TouchableOpacity onPress={() => router.push({ pathname: '/receipt', params: { id: order.id } })} style={styles.iconCircleBtn}>
                       <Ionicons name="receipt-outline" size={16} color={Theme.colors.textSecondary} />
                     </TouchableOpacity>
                     {filter === 'active' && !order.isPaid && (
-                      <TouchableOpacity onPress={() => handlePay(order.id)} style={[styles.iconCircleBtn, { borderColor: Theme.colors.warning }]} title="Encaisser">
-                        <Ionicons name="card-outline" size={16} color={Theme.colors.warning} />
+                      <TouchableOpacity onPress={() => handlePay(order.id)} style={[styles.iconCircleBtn, { borderColor: '#f59e0b' }]}>
+                        <Ionicons name="card-outline" size={16} color="#f59e0b" />
                       </TouchableOpacity>
                     )}
                     {filter === 'active' && NEXT_STATUS[order.status] && (
-                      <TouchableOpacity onPress={() => handleAdvance(order.id, order.status)} style={[styles.iconCircleBtn, { borderColor: Theme.colors.success }]} title="Avancer">
+                      <TouchableOpacity onPress={() => handleAdvance(order.id, order.status)} style={[styles.iconCircleBtn, { borderColor: Theme.colors.success }]}>
                         <Ionicons name="checkmark-outline" size={16} color={Theme.colors.success} />
                       </TouchableOpacity>
                     )}
                     {filter === 'active' && (
-                      <TouchableOpacity onPress={() => setCancellingOrder(order)} style={[styles.iconCircleBtn, { borderColor: Theme.colors.danger }]} title="Annuler">
+                      <TouchableOpacity onPress={() => setCancellingOrder(order)} style={[styles.iconCircleBtn, { borderColor: Theme.colors.danger }]}>
                         <Ionicons name="close" size={16} color={Theme.colors.danger} />
                       </TouchableOpacity>
                     )}
@@ -1176,7 +1176,6 @@ function KitchenTab() {
                 <TouchableOpacity
                   onPress={() => setCancellingOrder(o)}
                   style={{ padding: 10, borderRadius: 8, borderWidth: 1, borderColor: Theme.colors.danger + '44', backgroundColor: Theme.colors.danger + '11', alignItems: 'center', justifyContent: 'center' }}
-                  title="Annuler commande"
                 >
                   <Ionicons name="close-circle-outline" size={20} color={Theme.colors.danger} />
                 </TouchableOpacity>
@@ -1534,7 +1533,7 @@ function CrmTab() {
                         </View>
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
                           <Text style={{ fontFamily: Theme.fonts.body, fontSize: 12, color: Theme.colors.textSecondary }}>{o.items?.length || 0} article(s) • {o.deliveryType === 'delivery' ? 'Livraison' : 'Emporter'}</Text>
-                          <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 12, color: o.status === 'cancelled' ? Theme.colors.danger : (o.isPaid ? Theme.colors.success : Theme.colors.warning) }}>
+                          <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 12, color: o.status === 'cancelled' ? Theme.colors.danger : (o.isPaid ? Theme.colors.success : '#f59e0b') }}>
                             {o.status === 'cancelled' ? 'Annulée' : (o.isPaid ? 'Payé' : 'Non payé')} ({o.paymentMethod || '?'})
                           </Text>
                         </View>
@@ -2094,7 +2093,7 @@ function MenuTab() {
                       style={{ backgroundColor: '#FFF', borderWidth: 1, borderColor: Theme.colors.border, borderRadius: 8, padding: 8, width: 80, textAlign: 'center', fontFamily: Theme.fonts.bodyBold }}
                       defaultValue={product.price.toString()}
                       keyboardType="numeric"
-                      onBlur={(e) => {
+                      onBlur={(e: any) => {
                          const val = parseFloat(e.nativeEvent.text);
                          if (!isNaN(val) && val !== product.price) {
                             updateProduct(product.id, { price: val });
@@ -2469,7 +2468,7 @@ function ProductModal({ visible, product, categories, defaultCategory, onClose, 
                          setCustomizationSections(JSON.parse(JSON.stringify(pokeCustom.customizationSections)));
                        }
                     }}>
-                      <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 12, color: Theme.colors.warning }}>+ Copier modèle Poké</Text>
+                      <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 12, color: '#f59e0b' }}>+ Copier modèle Poké</Text>
                     </TouchableOpacity>
                   )}
                   <TouchableOpacity onPress={() => {
@@ -2617,6 +2616,7 @@ function SettingsTab() {
   const [localClosedFrom, setLocalClosedFrom] = useState(settings.closedFrom || '');
   const [localClosedTo, setLocalClosedTo] = useState(settings.closedTo || '');
   const [localAnnouncementEnabled, setLocalAnnouncementEnabled] = useState(settings.announcementEnabled || false);
+  const [localAnnouncementMessage, setLocalAnnouncementMessage] = useState(settings.announcementMessage || '');
   const [localDriverPin, setLocalDriverPin] = useState(settings.driverPin || '2300');
   const [newCodeName, setNewCodeName] = useState('');
   const [newCodeValue, setNewCodeValue] = useState('');
@@ -3329,7 +3329,7 @@ function SettingsTab() {
           <View style={{ paddingHorizontal: 16, paddingBottom: 16, paddingTop: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Theme.colors.border }}>
             <Text style={[styles.fieldLabel, { marginBottom: 8 }]}>MESSAGE À AFFICHER</Text>
             <TextInput
-              style={[styles.textInput, { minHeight: 80, textAlignVertical: 'top' }]}
+              style={[styles.input, { minHeight: 80, textAlignVertical: 'top' }]}
               multiline
               numberOfLines={3}
               placeholder="Ex: Fermé du 5 au 20 août pour congés. On se retrouve à la rentrée ! 🌴"
@@ -3359,7 +3359,7 @@ function SettingsTab() {
 // DELIVERY ZONES PANEL
 // ──────────────────────────────────
 function DeliveryZonesPanel() {
-  const { zones, updateZone, fetchZones } = useDeliveryZoneStore();
+  const { zones, updateZone, addZone, deleteZone, fetchZones } = useDeliveryZoneStore();
 
   React.useEffect(() => {
     fetchZones();
@@ -3371,6 +3371,7 @@ function DeliveryZonesPanel() {
     zoneName: { fontFamily: Theme.fonts.bodyBold, fontSize: 14, color: Theme.colors.text },
     zoneMeta: { fontFamily: Theme.fonts.body, fontSize: 11, color: Theme.colors.textSecondary, marginTop: 2 },
     badge: { fontFamily: Theme.fonts.bodyBold, fontSize: 12, color: Theme.colors.primary, backgroundColor: Theme.colors.primary + '15', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
+    input: { backgroundColor: Theme.colors.surface, borderRadius: 8, padding: 10, color: Theme.colors.text, fontFamily: Theme.fonts.body, fontSize: 13, borderWidth: 1, borderColor: Theme.colors.border },
   });
 
   const [isAdding, setIsAdding] = useState(false);
@@ -3524,17 +3525,18 @@ function IngredientsStockPanel() {
 // SAUCES & BOISSONS PANEL
 // ──────────────────────────────────
 function SaucesDrinksPanel() {
-  const { sauces, updateSauces } = useRestaurantStore();
+  const { settings, updateSauces } = useRestaurantStore();
+  const sauces = settings?.sauces || [];
   const [newSauce, setNewSauce] = useState('');
 
   const addSauce = () => {
     if (!newSauce.trim()) return;
-    updateSauces([...(sauces || []), newSauce.trim()]);
+    updateSauces([...sauces, newSauce.trim()]);
     setNewSauce('');
   };
 
   const removeSauce = (name: string) => {
-    updateSauces((sauces || []).filter(s => s !== name));
+    updateSauces(sauces.filter((s: string) => s !== name));
   };
 
   const panels = StyleSheet.create({
@@ -3565,7 +3567,7 @@ function SaucesDrinksPanel() {
           </TouchableOpacity>
         </View>
         <View style={panels.chipContainer}>
-          {sauces?.map(s => (
+          {sauces.map((s: string) => (
             <View key={s} style={panels.chip}>
               <Text style={panels.chipText}>{s}</Text>
               <TouchableOpacity onPress={() => removeSauce(s)}>
@@ -3786,6 +3788,8 @@ const styles = StyleSheet.create({
 // ──────────────────────────────────
 function CmsTab() {
   const { content, updateContent } = useContentStore();
+  const { width } = useWindowDimensions();
+  const isDesktop = Platform.OS === 'web' && width >= 768;
   const [localContent, setLocalContent] = useState(content);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -3818,28 +3822,28 @@ function CmsTab() {
         <Ionicons name="image-outline" size={20} /> BANNIÈRE PRINCIPALE (HERO)
       </Text>
       <View style={styles.settingsCard}>
-        <Text style={styles.inputLabel}>Titre principal (ex: L'ART DU POKÉ BOWL)</Text>
+        <Text style={styles.fieldLabel}>Titre principal (ex: L'ART DU POKÉ BOWL)</Text>
         <TextInput
           style={[styles.input, { backgroundColor: Theme.colors.background, marginBottom: 16 }]}
           value={localContent.heroTitle}
           onChangeText={t => setLocalContent({ ...localContent, heroTitle: t })}
         />
         
-        <Text style={styles.inputLabel}>Sous-titre (ex: DEPUIS 4 ANS)</Text>
+        <Text style={styles.fieldLabel}>Sous-titre (ex: DEPUIS 4 ANS)</Text>
         <TextInput
           style={[styles.input, { backgroundColor: Theme.colors.background, marginBottom: 16 }]}
           value={localContent.heroSubtitle}
           onChangeText={t => setLocalContent({ ...localContent, heroSubtitle: t })}
         />
 
-        <Text style={styles.inputLabel}>Texte du bouton principal</Text>
+        <Text style={styles.fieldLabel}>Texte du bouton principal</Text>
         <TextInput
           style={[styles.input, { backgroundColor: Theme.colors.background, marginBottom: 16 }]}
           value={localContent.heroButtonText}
           onChangeText={t => setLocalContent({ ...localContent, heroButtonText: t })}
         />
         
-        <Text style={styles.inputLabel}>URL de l'image de fond (ou choisissez une image)</Text>
+        <Text style={styles.fieldLabel}>URL de l'image de fond (ou choisissez une image)</Text>
         <TouchableOpacity style={styles.imagePicker} onPress={async () => {
           const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
           if (!perm.granted) return Alert.alert('Erreur', 'Permission refusée');
@@ -3884,10 +3888,10 @@ function CmsTab() {
                <View style={{ backgroundColor: Theme.colors.success + '22', padding: 8, borderRadius: 8 }}>
                  <Ionicons name={val.icon as any} size={24} color={Theme.colors.success} />
                </View>
-               <Text style={[styles.inputLabel, { color: Theme.colors.success, marginBottom: 0 }]}>Widget {idx + 1}</Text>
+               <Text style={[styles.fieldLabel, { color: Theme.colors.success, marginBottom: 0 }]}>Widget {idx + 1}</Text>
             </View>
             
-            <Text style={styles.inputLabel}>Nom de l'icône (Ionicons)</Text>
+            <Text style={styles.fieldLabel}>Nom de l'icône (Ionicons)</Text>
             <TextInput
               style={[styles.input, { backgroundColor: Theme.colors.background, marginBottom: 12 }]}
               value={val.icon}
@@ -3898,7 +3902,7 @@ function CmsTab() {
               }}
             />
 
-            <Text style={styles.inputLabel}>Titre court</Text>
+            <Text style={styles.fieldLabel}>Titre court</Text>
             <TextInput
               style={[styles.input, { backgroundColor: Theme.colors.background, marginBottom: 12 }]}
               value={val.title}
@@ -3909,7 +3913,7 @@ function CmsTab() {
               }}
             />
 
-            <Text style={styles.inputLabel}>Description</Text>
+            <Text style={styles.fieldLabel}>Description</Text>
             <TextInput
               style={[styles.input, { height: 80, backgroundColor: Theme.colors.background, textAlignVertical: 'top' }]}
               multiline
@@ -3928,13 +3932,13 @@ function CmsTab() {
         <Ionicons name="information-circle-outline" size={20} /> PIED DE PAGE (FOOTER)
       </Text>
       <View style={styles.settingsCard}>
-        <Text style={styles.inputLabel}>Ville (ex: LA CHAUX-DE-FONDS)</Text>
+        <Text style={styles.fieldLabel}>Ville (ex: LA CHAUX-DE-FONDS)</Text>
         <TextInput
           style={[styles.input, { backgroundColor: Theme.colors.background, marginBottom: 16 }]}
           value={localContent.footerCity}
           onChangeText={t => setLocalContent({ ...localContent, footerCity: t })}
         />
-        <Text style={styles.inputLabel}>Téléphone de contact</Text>
+        <Text style={styles.fieldLabel}>Téléphone de contact</Text>
         <TextInput
           style={[styles.input, { backgroundColor: Theme.colors.background }]}
           value={localContent.footerPhone}

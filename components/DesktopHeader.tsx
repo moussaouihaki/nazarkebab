@@ -103,7 +103,6 @@ const styles = StyleSheet.create({
   logoMoons: {
     fontFamily: Theme.fonts.logo,
     fontSize: 28,
-    color: 'transparent',
     letterSpacing: 2,
     lineHeight: 28,
     marginTop: -8,

@@ -70,7 +70,7 @@ export default function AuthScreen() {
       });
 
       if (credential.identityToken) {
-        const ok = await loginWithApple(credential.identityToken, nonce);
+        const ok = await loginWithApple(credential.identityToken, nonce as any);
         if (ok) router.replace('/');
       }
     } catch (e: any) {

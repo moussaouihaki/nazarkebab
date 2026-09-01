@@ -500,10 +500,10 @@ export default function CartScreen() {
 
                 {/* OUT OF ZONE */}
                 {address.length > 4 && zoneError === 'out_of_zone' && (
-                  <Text style={styles.errorText}>Désolé, nous ne livrons pas à cette adresse.</Text>
+                  <Text style={{ fontFamily: Theme.fonts.bodyBold, color: Theme.colors.danger, fontSize: 13, marginTop: 4 }}>Désolé, nous ne livrons pas à cette adresse.</Text>
                 )}
-                {address.length > 4 && !zoneError && zoneError === 'min_not_met' && (
-                  <Text style={styles.warningText}>Minimum de commande de CHF {detectedZone?.minOrder.toFixed(2)} non atteint pour cette zone.</Text>
+                {address.length > 4 && zoneError === 'min_not_met' && (
+                  <Text style={{ fontFamily: Theme.fonts.bodyBold, color: '#f59e0b', fontSize: 13, marginTop: 4 }}>Minimum de commande de CHF {detectedZone?.minOrder.toFixed(2)} non atteint pour cette zone.</Text>
                 )}
 
                 {user && deliveryType === 'delivery' && (
@@ -759,8 +759,7 @@ export default function CartScreen() {
                         if (isWelcomePromo) {
                           const userPastOrders = (orders || []).filter(o => 
                             (user?.id && o.userId === user.id) || 
-                            (user?.email && o.customerEmail?.toLowerCase() === user.email.toLowerCase()) ||
-                            (user?.phone && o.customerPhone === user.phone)
+                            (user?.phone && (o as any).customerPhone === user.phone)
                           );
                           if (userPastOrders.length > 0 || (user?.loyaltyPoints && user.loyaltyPoints > 0) || user?.usedPromoCodes?.includes('BIENVENUE10')) {
                             setPromoError('Le code BIENVENUE10 est réservé exclusivement aux nouveaux clients pour leur 1ère commande.');
@@ -791,8 +790,7 @@ export default function CartScreen() {
                           if (foundPromo.firstOrderOnly) {
                             const userPastOrders = (orders || []).filter(o => 
                               (user?.id && o.userId === user.id) || 
-                              (user?.email && o.customerEmail?.toLowerCase() === user.email.toLowerCase()) ||
-                              (user?.phone && o.customerPhone === user.phone)
+                              (user?.phone && (o as any).customerPhone === user.phone)
                             );
                             if (userPastOrders.length > 0 || (user?.loyaltyPoints && user.loyaltyPoints > 0) || user?.usedPromoCodes?.includes(foundPromo.code)) {
                               setPromoError(`Le code ${foundPromo.code} est réservé exclusivement aux nouveaux clients.`);
