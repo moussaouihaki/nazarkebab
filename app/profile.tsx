@@ -425,21 +425,34 @@ export default function ProfileScreen() {
             </View>
           </View>
 
-          {/* ADMIN SHORTCUT */}
+          {/* PROFESSIONAL SHORTCUTS */}
+          <Text style={styles.sectionLabel}>ESPACE PROFESSIONNEL</Text>
+          <TouchableOpacity style={[styles.adminCard, { borderColor: '#0284c744', backgroundColor: '#0284c708', marginBottom: 10 }]} onPress={() => router.push('/driver')}>
+            <View style={styles.adminCardLeft}>
+              <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#0284c722', alignItems: 'center', justifyContent: 'center' }}>
+                <Ionicons name="bicycle" size={22} color="#0284c7" />
+              </View>
+              <View>
+                <Text style={[styles.adminCardTitle, { color: '#0284c7' }]}>Espace Livreur (Code PIN)</Text>
+                <Text style={styles.adminCardSubtitle}>Tournées, adresses GPS, livraisons en direct</Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="#0284c7" />
+          </TouchableOpacity>
+
           {user.role === 'admin' && (
-            <>
-              <Text style={styles.sectionLabel}>ADMINISTRATION</Text>
-              <TouchableOpacity style={styles.adminCard} onPress={() => router.push('/admin')}>
-                <View style={styles.adminCardLeft}>
-                  <Ionicons name="settings" size={22} color={Theme.colors.success} />
-                  <View>
-                    <Text style={styles.adminCardTitle}>Panel administrateur</Text>
-                    <Text style={styles.adminCardSubtitle}>Menu, commandes, horaires, réglages</Text>
-                  </View>
+            <TouchableOpacity style={styles.adminCard} onPress={() => router.push('/admin')}>
+              <View style={styles.adminCardLeft}>
+                <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: Theme.colors.success + '22', alignItems: 'center', justifyContent: 'center' }}>
+                  <Ionicons name="shield-checkmark" size={22} color={Theme.colors.success} />
                 </View>
-                <Ionicons name="chevron-forward" size={18} color={Theme.colors.textSecondary} />
-              </TouchableOpacity>
-            </>
+                <View>
+                  <Text style={styles.adminCardTitle}>Panel Administrateur</Text>
+                  <Text style={styles.adminCardSubtitle}>C.A., CRM clients, Menu, Réglages</Text>
+                </View>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={Theme.colors.textSecondary} />
+            </TouchableOpacity>
           )}
 
           {/* LOGOUT */}
