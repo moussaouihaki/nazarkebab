@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, SafeAreaView, ScrollView,
-  TouchableOpacity, Animated, Platform, useWindowDimensions
+  TouchableOpacity, Animated, Platform, useWindowDimensions, Linking
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -300,9 +300,12 @@ export default function TrackingScreen() {
           </View>
 
           {/* CONTACT RESTAURANT */}
-          <TouchableOpacity style={styles.callBtn}>
+          <TouchableOpacity 
+            style={styles.callBtn} 
+            onPress={() => Linking.openURL(`tel:${(settings?.phone || '032 968 53 13').replace(/\s+/g, '')}`)}
+          >
             <Ionicons name="call" size={20} color="#000" />
-            <Text style={styles.callBtnText}>Contacter le restaurant — 032 757 44 44</Text>
+            <Text style={styles.callBtnText}>Contacter le restaurant — {settings?.phone || '032 968 53 13'}</Text>
           </TouchableOpacity>
         </ScrollView>
 

@@ -2486,8 +2486,17 @@ function SettingsTab() {
              <Switch value={true} trackColor={{ true: Theme.colors.success + '88' }} thumbColor={Theme.colors.success} />
            </View>
         </View>
-        <TouchableOpacity style={{ paddingVertical: 14, alignItems: 'center', borderTopWidth: StyleSheet.hairlineWidth, borderColor: Theme.colors.border }}>
-          <Text style={{ fontFamily: Theme.fonts.bodyBold, color: Theme.colors.primary, fontSize: 13 }}>+ Générer un nouveau code promo</Text>
+        <TouchableOpacity 
+          style={{ paddingVertical: 14, alignItems: 'center', borderTopWidth: StyleSheet.hairlineWidth, borderColor: Theme.colors.border }}
+          onPress={() => {
+            if (Platform.OS === 'web') {
+              window.alert('Code promo actif : "BIENVENUE10" (-10% sur toute la carte).\nLes clients peuvent entrer ce code lors du paiement pour bénéficier de 10% de remise.');
+            } else {
+              Alert.alert('Codes Promos', 'Code promo actif : "BIENVENUE10" (-10% sur toute la carte).\nLes clients peuvent entrer ce code lors du paiement pour bénéficier de 10% de remise.');
+            }
+          }}
+        >
+          <Text style={{ fontFamily: Theme.fonts.bodyBold, color: Theme.colors.primary, fontSize: 13 }}>+ Gérer les codes promos</Text>
         </TouchableOpacity>
       </View>
 
@@ -2499,12 +2508,52 @@ function SettingsTab() {
              <Ionicons name="print-outline" size={32} color={Theme.colors.textSecondary} />
              <View>
                <Text style={styles.fieldLabel}>IMPRIMANTE THERMIQUE</Text>
-               <Text style={styles.switchSubtitle}>Aucun appareil Bluetooth détecté</Text>
+               <Text style={styles.switchSubtitle}>Impression directe et automatique des tickets de caisse</Text>
              </View>
            </View>
         </View>
-        <TouchableOpacity style={{ paddingVertical: 14, alignItems: 'center', borderTopWidth: StyleSheet.hairlineWidth, borderColor: Theme.colors.border }}>
-          <Text style={{ fontFamily: Theme.fonts.bodyBold, color: Theme.colors.primary, fontSize: 13 }}>Rechercher une imprimante</Text>
+        <TouchableOpacity 
+          style={{ paddingVertical: 14, alignItems: 'center', borderTopWidth: StyleSheet.hairlineWidth, borderColor: Theme.colors.border }}
+          onPress={async () => {
+            const sampleOrder = {
+              id: 'TEST-' + Math.floor(1000 + Math.random() * 9000),
+              createdAt: new Date().toISOString(),
+              customerName: 'Test Imprimante',
+              customerPhone: '079 000 00 00',
+              customerAddress: 'Place du Marché 6, 2300 La Chaux-de-Fonds',
+              deliveryType: 'delivery',
+              total: 24.50,
+              isPaid: true,
+              paymentMethod: 'Carte',
+              items: [
+                { name: 'POKÉMOONS SALMON', quantity: 1, price: 21.00 },
+                { name: 'COCA-COLA 33CL', quantity: 1, price: 3.50 },
+              ],
+              note: 'Ticket de test Pokémoons',
+            };
+            const html = generateReceiptHTML(sampleOrder, settings, true);
+            try {
+              if (Platform.OS === 'web') {
+                const iframe = document.createElement('iframe');
+                iframe.style.display = 'none';
+                document.body.appendChild(iframe);
+                iframe.contentWindow?.document.write(html);
+                iframe.contentWindow?.document.close();
+                iframe.onload = () => {
+                  setTimeout(() => {
+                    iframe.contentWindow?.print();
+                    setTimeout(() => { if (document.body.contains(iframe)) document.body.removeChild(iframe); }, 1000);
+                  }, 500);
+                };
+              } else {
+                await Print.printAsync({ html });
+              }
+            } catch (err) {
+              console.error('Erreur test impression', err);
+            }
+          }}
+        >
+          <Text style={{ fontFamily: Theme.fonts.bodyBold, color: Theme.colors.primary, fontSize: 13 }}>🖨️ Tester l'impression d'un ticket de caisse</Text>
         </TouchableOpacity>
       </View>
 

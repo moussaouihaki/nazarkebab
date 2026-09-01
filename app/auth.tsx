@@ -117,8 +117,8 @@ export default function AuthScreen() {
           <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
             {/* LOGO */}
             <View style={styles.logoBlock}>
-              <Text style={styles.logoNazar}>POKÉMOONS</Text>
-              <Text style={styles.logoKebab}></Text>
+              <Text style={styles.logoTitle}>POKÉMOONS</Text>
+              <Text style={styles.logoSubtitle}>FRESH BOWL & DRINKS</Text>
             </View>
 
             {/* TITLE */}
@@ -298,8 +298,8 @@ const styles = StyleSheet.create({
   closeBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   scrollContent: { padding: 24 },
   logoBlock: { alignItems: 'center', marginBottom: 32 },
-  logoNazar: { fontFamily: Theme.fonts.logo, fontSize: 36, color: Theme.colors.text, letterSpacing: 4 },
-  logoKebab: { fontFamily: Theme.fonts.logo, fontSize: 12, color: Theme.colors.primary, letterSpacing: 8, marginTop: -4 },
+  logoTitle: { fontFamily: Theme.fonts.logo, fontSize: 36, color: Theme.colors.text, letterSpacing: 4 },
+  logoSubtitle: { fontFamily: Theme.fonts.logo, fontSize: 11, color: Theme.colors.primary, letterSpacing: 4, marginTop: 2 },
   title: { fontFamily: Theme.fonts.logo, fontSize: 28, color: Theme.colors.text, letterSpacing: 3, marginBottom: 8 },
   subtitle: { fontFamily: Theme.fonts.body, fontSize: 14, color: Theme.colors.textSecondary, lineHeight: 20, marginBottom: 24 },
   modeToggle: { flexDirection: 'row', backgroundColor: Theme.colors.surface, borderRadius: 12, padding: 4, marginBottom: 24 },
