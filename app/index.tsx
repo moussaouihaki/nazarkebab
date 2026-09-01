@@ -295,6 +295,15 @@ export default function HomeScreen() {
                 
                 <View style={styles.listInfo}>
                   <Text style={styles.listTitle}>{product.name}</Text>
+                  {product.dietaryBadges && product.dietaryBadges.length > 0 && (
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginVertical: 4 }}>
+                      {product.dietaryBadges.map((badge, bIdx) => (
+                        <View key={bIdx} style={{ backgroundColor: '#f0fdf4', borderColor: '#bbf7d0', borderWidth: 1, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+                          <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 9, color: '#16a34a' }}>{badge}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
                   <Text style={styles.listDesc} numberOfLines={2}>
                     {product.description || `Dégustez notre ${product.name.toLowerCase()} préparé avec la plus grande attention.`}
                   </Text>

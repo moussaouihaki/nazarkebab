@@ -30,6 +30,15 @@ export interface Drink {
   outOfStock?: boolean;
 }
 
+export interface PromoCode {
+  id: string;
+  code: string;
+  discountType: 'percent' | 'fixed';
+  discountValue: number;
+  active: boolean;
+  minOrder?: number;
+}
+
 export interface RestaurantSettings {
   name: string;
   slogan: string;
@@ -56,6 +65,8 @@ export interface RestaurantSettings {
   announcementEnabled: boolean;   // Afficher ou non la bannière
   announcementMessage: string;    // Texte du message (ex: "Fermé du 1 au 15 août")
   outOfStockIngredients?: string[]; // Liste des ingrédients en rupture
+  promoCodes?: PromoCode[];
+  autoPrintEnabled?: boolean;
 }
 
 interface RestaurantState {
@@ -84,6 +95,9 @@ interface RestaurantState {
   updateSauces: (sauces: string[]) => Promise<void>;
   updateDrinks: (drinks: Drink[]) => Promise<void>;
   toggleIngredientStock: (ingredient: string) => Promise<void>;
+  addPromoCode: (promo: Omit<PromoCode, 'id'>) => Promise<void>;
+  deletePromoCode: (id: string) => Promise<void>;
+  togglePromoCode: (id: string) => Promise<void>;
 }
 
 const DEFAULT_HOURS: OpeningHours[] = [
@@ -137,7 +151,12 @@ const DEFAULT_SETTINGS: RestaurantSettings = {
   loyaltyMinPoints: 10,
   announcementEnabled: false,
   announcementMessage: '',
-  outOfStockIngredients: []
+  outOfStockIngredients: [],
+  promoCodes: [
+    { id: 'p1', code: 'BIENVENUE10', discountType: 'percent', discountValue: 10, active: true },
+    { id: 'p2', code: 'POKE5', discountType: 'fixed', discountValue: 5, active: true, minOrder: 30 }
+  ],
+  autoPrintEnabled: false
 };
 
 export const useRestaurantStore = create<RestaurantState>((set, get) => ({
@@ -402,6 +421,38 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
       set({ settings: updatedSettings });
     } catch (err) {
       console.error('Erreur MAJ boissons:', err);
+    }
+  },
+
+  addPromoCode: async (promo) => {
+    try {
+      const newId = 'promo-' + Date.now();
+      const newPromo = { ...promo, id: newId };
+      const currentPromos = get().settings.promoCodes || [];
+      const updatedPromos = [...currentPromos, newPromo];
+      await get().updateSettings({ promoCodes: updatedPromos });
+    } catch (err) {
+      console.error('Erreur add promo code:', err);
+    }
+  },
+
+  deletePromoCode: async (id) => {
+    try {
+      const currentPromos = get().settings.promoCodes || [];
+      const updatedPromos = currentPromos.filter(p => p.id !== id);
+      await get().updateSettings({ promoCodes: updatedPromos });
+    } catch (err) {
+      console.error('Erreur delete promo code:', err);
+    }
+  },
+
+  togglePromoCode: async (id) => {
+    try {
+      const currentPromos = get().settings.promoCodes || [];
+      const updatedPromos = currentPromos.map(p => p.id === id ? { ...p, active: !p.active } : p);
+      await get().updateSettings({ promoCodes: updatedPromos });
+    } catch (err) {
+      console.error('Erreur toggle promo code:', err);
     }
   },
 }));

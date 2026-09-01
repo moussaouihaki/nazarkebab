@@ -739,7 +739,19 @@ export default function CartScreen() {
                     <TouchableOpacity 
                       onPress={() => {
                         const code = promoCodeInput.trim().toUpperCase();
-                        if (code === 'BIENVENUE10') {
+                        const foundPromo = (settings?.promoCodes || []).find(p => p.code.toUpperCase() === code && p.active);
+                        if (foundPromo) {
+                          if (foundPromo.minOrder && total < foundPromo.minOrder) {
+                            setPromoError(`Minimum de ${foundPromo.minOrder} CHF requis pour ce code.`);
+                            return;
+                          }
+                          setAppliedPromo({
+                            code: foundPromo.code,
+                            discountPercent: foundPromo.discountType === 'percent' ? foundPromo.discountValue : 0,
+                            fixedAmount: foundPromo.discountType === 'fixed' ? foundPromo.discountValue : 0
+                          });
+                          setPromoError('');
+                        } else if (code === 'BIENVENUE10') {
                           setAppliedPromo({ code: 'BIENVENUE10', discountPercent: 10 });
                           setPromoError('');
                         } else if (code === 'POKE5') {

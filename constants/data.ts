@@ -25,6 +25,7 @@ export interface Product {
   hasDrinkSelection?: boolean;
   displayOrder?: number;
   allergens?: string[];
+  dietaryBadges?: string[];
   customizationSections?: CustomizationSection[];
 }
 
@@ -71,6 +72,7 @@ export const PRODUCTS: Product[] = [
     image: 'poke_falafel',
     highlighted: true,
     hasSauces: true,
+    dietaryBadges: ['🌱 Végétarien', '🥑 Frais'],
   },
   {
     id: 'poke-chicken',
@@ -81,6 +83,7 @@ export const PRODUCTS: Product[] = [
     image: 'poke_chicken',
     highlighted: true,
     hasSauces: true,
+    dietaryBadges: ['🥩 Poulet Grillé', '🌾 Sans Gluten'],
   },
   {
     id: 'poke-salmon',
@@ -91,6 +94,7 @@ export const PRODUCTS: Product[] = [
     image: 'poke_salmon',
     highlighted: true,
     hasSauces: true,
+    dietaryBadges: ['🐟 Saumon Frais', '🌾 Sans Gluten'],
   },
   {
     id: 'poke-beef',
@@ -101,6 +105,7 @@ export const PRODUCTS: Product[] = [
     image: 'poke_beef',
     highlighted: true,
     hasSauces: true,
+    dietaryBadges: ['🥩 Bœuf Mariné', '🌾 Sans Gluten'],
   },
   {
     id: 'poke-shrimp',
@@ -111,6 +116,7 @@ export const PRODUCTS: Product[] = [
     image: 'poke_shrimp',
     highlighted: true,
     hasSauces: true,
+    dietaryBadges: ['🍤 Crevettes', '🌾 Sans Gluten'],
   },
 
   // --- LE SUR-MESURE ---

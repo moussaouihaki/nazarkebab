@@ -1,8 +1,10 @@
 import React, { useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, SafeAreaView, ScrollView,
-  TouchableOpacity, Animated, Platform, useWindowDimensions, Linking
+  TouchableOpacity, Animated, Platform, useWindowDimensions, Linking, TextInput, Alert
 } from 'react-native';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Theme } from '../constants/theme';
@@ -31,11 +33,15 @@ export default function TrackingScreen() {
   
   // State to track which order is currently viewed if multiple exist
   const [viewedOrderId, setViewedOrderId] = React.useState<string | null>(null);
+  const [selectedRating, setSelectedRating] = React.useState<number>(0);
+  const [reviewComment, setReviewComment] = React.useState<string>('');
+  const [isSubmittingReview, setIsSubmittingReview] = React.useState<boolean>(false);
+  const [reviewSubmitted, setReviewSubmitted] = React.useState<boolean>(false);
 
   // Determine which order to display
   const orderToTrack = viewedOrderId 
-    ? activeOrders.find(o => o.id === viewedOrderId) || activeOrders[0]
-    : activeOrder || activeOrders[0];
+    ? orders.find(o => o.id === viewedOrderId) || activeOrders[0]
+    : activeOrder || activeOrders[0] || orders[0];
 
   useEffect(() => {
     // If we have an active order but no viewedOrderId set, set it
@@ -229,6 +235,76 @@ export default function TrackingScreen() {
             </View>
           )}
 
+          {/* DELIVERED REVIEW / RATING CARD */}
+          {orderToTrack.status === 'delivered' && (
+            <View style={styles.reviewCard}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <Ionicons name="star" size={24} color="#f59e0b" />
+                <Text style={styles.reviewTitle}>Votre avis sur la commande</Text>
+              </View>
+
+              {(orderToTrack as any).rating || reviewSubmitted ? (
+                <View style={{ backgroundColor: '#ecfdf5', padding: 14, borderRadius: 12, borderWidth: 1, borderColor: '#a7f3d0' }}>
+                  <Text style={{ fontFamily: Theme.fonts.bodyBold, color: '#047857', fontSize: 13 }}>
+                    ✓ Merci pour votre note de {(orderToTrack as any).rating || selectedRating}/5 ⭐ !
+                  </Text>
+                  {((orderToTrack as any).reviewComment || reviewComment) ? (
+                    <Text style={{ fontFamily: Theme.fonts.body, color: '#065f46', fontSize: 12, marginTop: 4 }}>
+                      "{(orderToTrack as any).reviewComment || reviewComment}"
+                    </Text>
+                  ) : null}
+                </View>
+              ) : (
+                <View style={{ gap: 10 }}>
+                  <Text style={styles.reviewSubtitle}>Comment s'est passée votre dégustation ?</Text>
+                  <View style={{ flexDirection: 'row', gap: 12, justifyContent: 'center', marginVertical: 6 }}>
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <TouchableOpacity key={star} onPress={() => setSelectedRating(star)}>
+                        <Ionicons 
+                          name={star <= selectedRating ? "star" : "star-outline"} 
+                          size={36} 
+                          color={star <= selectedRating ? "#f59e0b" : "#d1d5db"} 
+                        />
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                  <TextInput
+                    style={styles.reviewInput}
+                    placeholder="Laissez un petit commentaire pour notre équipe..."
+                    placeholderTextColor="#999"
+                    value={reviewComment}
+                    onChangeText={setReviewComment}
+                    multiline
+                  />
+                  <TouchableOpacity
+                    style={[styles.sendReviewBtn, selectedRating === 0 && { opacity: 0.5 }]}
+                    disabled={selectedRating === 0 || isSubmittingReview}
+                    onPress={async () => {
+                      if (selectedRating === 0) return;
+                      setIsSubmittingReview(true);
+                      try {
+                        await updateDoc(doc(db, 'orders', orderToTrack.id), {
+                          rating: selectedRating,
+                          reviewComment: reviewComment.trim(),
+                          reviewedAt: new Date().toISOString(),
+                        });
+                        setReviewSubmitted(true);
+                      } catch (err) {
+                        console.error('Erreur envoi avis:', err);
+                      } finally {
+                        setIsSubmittingReview(false);
+                      }
+                    }}
+                  >
+                    <Text style={styles.sendReviewBtnText}>
+                      {isSubmittingReview ? 'Envoi en cours...' : 'Envoyer mon avis ⭐'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          )}
+
           {/* ORDER DETAILS */}
           <Text style={styles.sectionLabel}>DÉTAILS DE LA COMMANDE</Text>
           <View style={styles.detailCard}>
@@ -363,7 +439,45 @@ const styles = StyleSheet.create({
 
   // Contact
   callBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, margin: 20, backgroundColor: Theme.colors.success, padding: 16, borderRadius: 100, justifyContent: 'center', shadowColor: Theme.colors.success, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 6 },
-  callBtnText: { fontFamily: Theme.fonts.bodyBold, fontSize: 14, color: '#FFF' },
+  callBtnText: { fontFamily: Theme.fonts.bodyBold, fontSize: 14, color: '#000' },
+
+  // Review & Rating styles
+  reviewCard: {
+    marginHorizontal: 20,
+    marginTop: 10,
+    marginBottom: 20,
+    backgroundColor: Theme.colors.surface,
+    borderRadius: 16,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: '#fde68a',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  reviewTitle: { fontFamily: Theme.fonts.title, fontSize: 18, color: Theme.colors.text },
+  reviewSubtitle: { fontFamily: Theme.fonts.body, fontSize: 13, color: Theme.colors.textSecondary, textAlign: 'center' },
+  reviewInput: {
+    backgroundColor: Theme.colors.background,
+    borderColor: Theme.colors.border,
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 10,
+    fontSize: 13,
+    fontFamily: Theme.fonts.body,
+    minHeight: 60,
+    textAlignVertical: 'top',
+  },
+  sendReviewBtn: {
+    backgroundColor: '#f59e0b',
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sendReviewBtnText: { fontFamily: Theme.fonts.bodyBold, fontSize: 13, color: '#fff' },
 
   goldBtnText: { fontFamily: Theme.fonts.bodyBold, fontSize: 15, color: '#FFF', letterSpacing: 0.5 },
 

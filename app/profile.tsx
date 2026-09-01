@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, SafeAreaView,
-  ScrollView, Switch, TextInput, Alert, Platform, useWindowDimensions
+  ScrollView, Switch, TextInput, Alert, Platform, useWindowDimensions, Share
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -268,9 +268,13 @@ export default function ProfileScreen() {
                   return (
                     <View key={step} style={[styles.punchHole, isPunched && styles.punchHoleActive, isGift && !isPunched && styles.punchHoleGift]}>
                       {isGift ? (
-                        <Ionicons name="gift" size={22} color={isPunched ? '#000' : Theme.colors.success} />
+                        <Ionicons name="gift" size={16} color={isPunched ? '#FFF' : Theme.colors.success} />
                       ) : (
-                        isPunched ? <Ionicons name="checkmark-sharp" size={18} color="#000" /> : <Text style={styles.punchText}>{step}</Text>
+                        <Ionicons
+                          name={isPunched ? 'checkmark' : 'ellipse-outline'}
+                          size={14}
+                          color={isPunched ? '#FFF' : Theme.colors.textSecondary}
+                        />
                       )}
                     </View>
                   );
@@ -285,6 +289,42 @@ export default function ProfileScreen() {
               </View>
             </View>
           )}
+
+          {/* PARRAINAGE & PARTAGE */}
+          <View style={[styles.card, { backgroundColor: '#f0fdf4', borderColor: '#bbf7d0', borderWidth: 1, marginTop: 16 }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+              <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: Theme.colors.success, alignItems: 'center', justifyContent: 'center' }}>
+                <Ionicons name="gift-outline" size={22} color="#fff" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontFamily: Theme.fonts.title, fontSize: 16, color: Theme.colors.text }}>Inviter un ami & Partager 🎁</Text>
+                <Text style={{ fontFamily: Theme.fonts.body, fontSize: 12, color: Theme.colors.textSecondary }}>Faites découvrir Pokémoons et offrez -10% avec le code BIENVENUE10</Text>
+              </View>
+            </View>
+            <TouchableOpacity
+              style={{ backgroundColor: Theme.colors.success, paddingVertical: 12, borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 6 }}
+              onPress={async () => {
+                const message = "Découvre Pokémoons à La Chaux-de-Fonds ! 🥑🍣 Commande de délicieux Poké Bowls frais avec -10% de remise grâce au code promo BIENVENUE10 : https://pokemoons.vercel.app";
+                try {
+                  if (Platform.OS === 'web') {
+                    if (navigator.share) {
+                      await navigator.share({ title: 'Pokémoons', text: message, url: 'https://pokemoons.vercel.app' });
+                    } else if (navigator.clipboard) {
+                      await navigator.clipboard.writeText(message);
+                      alert('Message copié ! Tu peux le coller dans WhatsApp ou SMS.');
+                    }
+                  } else {
+                    await Share.share({ message });
+                  }
+                } catch (e) {
+                  console.warn(e);
+                }
+              }}
+            >
+              <Ionicons name="share-social-outline" size={18} color="#fff" />
+              <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 13, color: '#fff' }}>Partager sur WhatsApp / SMS</Text>
+            </TouchableOpacity>
+          </View>
 
           {/* PERSONAL INFO */}
           <Text style={styles.sectionLabel}>INFORMATIONS PERSONNELLES</Text>

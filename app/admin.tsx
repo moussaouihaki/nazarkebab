@@ -222,6 +222,16 @@ export default function AdminScreen() {
                 </Text>
               </TouchableOpacity>
             ))}
+
+            <TouchableOpacity
+              style={[styles.saasSidebarNavItem, { backgroundColor: '#0284c718', borderColor: '#0284c744', borderWidth: 1, marginTop: 12 }]}
+              onPress={() => router.push('/driver')}
+            >
+              <Ionicons name="bicycle-outline" size={20} color="#0284c7" />
+              <Text style={[styles.saasSidebarNavLabel, { color: '#0284c7', fontWeight: 'bold' }]}>
+                Espace Livreur 🛵
+              </Text>
+            </TouchableOpacity>
           </ScrollView>
 
           <TouchableOpacity style={styles.saasSidebarExit} onPress={() => { logout(); router.replace('/'); }}>
@@ -279,9 +289,14 @@ export default function AdminScreen() {
             <Ionicons name="arrow-back" size={24} color={Theme.colors.text} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>PANEL ADMIN</Text>
-          <TouchableOpacity onPress={() => { logout(); router.replace('/'); }} style={styles.iconBtn}>
-            <Ionicons name="log-out-outline" size={24} color={Theme.colors.danger} />
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <TouchableOpacity onPress={() => router.push('/driver')} style={[styles.iconBtn, { backgroundColor: '#0284c722', borderRadius: 8 }]}>
+              <Ionicons name="bicycle" size={20} color="#0284c7" />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => { logout(); router.replace('/'); }} style={styles.iconBtn}>
+              <Ionicons name="log-out-outline" size={24} color={Theme.colors.danger} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* TAB BAR (Scrollable in Mobile) */}
@@ -728,7 +743,25 @@ function OrdersTab() {
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.tdTitle}>{order.deliveryType === 'delivery' ? '🛵 Livr.' : '🥡 Emp.'}</Text>
-                  {order.deliveryType === 'delivery' && <Text style={styles.tdSub}>{order.customerAddress}</Text>}
+                  {order.deliveryType === 'delivery' && (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                      <Text style={[styles.tdSub, { flex: 1 }]}>{order.customerAddress}</Text>
+                      <TouchableOpacity 
+                        onPress={() => {
+                          const cleanAddress = encodeURIComponent(order.customerAddress);
+                          const url = Platform.select({
+                            ios: `maps://app?daddr=${cleanAddress}`,
+                            android: `google.navigation:q=${cleanAddress}`,
+                            default: `https://www.google.com/maps/dir/?api=1&destination=${cleanAddress}`,
+                          });
+                          Linking.openURL(url || `https://www.google.com/maps/dir/?api=1&destination=${cleanAddress}`);
+                        }} 
+                        style={{ backgroundColor: '#0284c722', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}
+                      >
+                        <Text style={{ fontSize: 10, fontFamily: Theme.fonts.bodyBold, color: '#0284c7' }}>🧭 GPS</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
                   <Text style={[styles.tdSub, { marginTop: 4, fontFamily: Theme.fonts.bodyBold, color: '#000' }]}>
                     {order.paymentMethod === 'card' ? '💳 Carte' : '💵 Cash'}
                   </Text>
@@ -2456,7 +2489,7 @@ function ProductModal({ visible, product, categories, defaultCategory, onClose, 
 // TAB: SETTINGS
 // ──────────────────────────────────
 function SettingsTab() {
-  const { settings, updateSettings, updateHours } = useRestaurantStore();
+  const { settings, updateSettings, updateHours, addPromoCode, deletePromoCode, togglePromoCode } = useRestaurantStore();
   const [localName, setLocalName] = useState(settings.name);
   const [localPhone, setLocalPhone] = useState(settings.phone);
   const [localAddress, setLocalAddress] = useState(settings.address);
@@ -2471,6 +2504,9 @@ function SettingsTab() {
   const [localClosedTo, setLocalClosedTo] = useState(settings.closedTo || '');
   const [localAnnouncementEnabled, setLocalAnnouncementEnabled] = useState(settings.announcementEnabled || false);
   const [localAnnouncementMessage, setLocalAnnouncementMessage] = useState(settings.announcementMessage || '');
+  const [newCodeName, setNewCodeName] = useState('');
+  const [newCodeValue, setNewCodeValue] = useState('');
+  const [newCodeType, setNewCodeType] = useState<'percent' | 'fixed'>('percent');
   const [saved, setSaved] = useState(false);
 
   const handleSave = () => {
@@ -2594,37 +2630,103 @@ function SettingsTab() {
       {/* MARKETING & PROMOS */}
       <Text style={styles.sectionHeader}>MARKETING & CODES PROMOS</Text>
       <View style={styles.settingsCard}>
-        <View style={styles.settingFieldRow}>
-           <Text style={styles.fieldLabel}>CODE: "BIENVENUE10"</Text>
-           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
-             <Text style={styles.switchSubtitle}>Offre -10% sur toute la carte</Text>
-             <Switch value={true} trackColor={{ true: Theme.colors.success + '88' }} thumbColor={Theme.colors.success} />
-           </View>
+        {(settings.promoCodes || [
+          { id: 'p1', code: 'BIENVENUE10', discountType: 'percent', discountValue: 10, active: true },
+          { id: 'p2', code: 'POKE5', discountType: 'fixed', discountValue: 5, active: true, minOrder: 30 }
+        ]).map((promo) => (
+          <View key={promo.id} style={[styles.settingFieldRow, { borderBottomWidth: 1, borderBottomColor: Theme.colors.border, paddingBottom: 10, marginBottom: 10 }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 14, color: Theme.colors.text }}>
+                  🏷️ {promo.code} ({promo.discountType === 'percent' ? `-${promo.discountValue}%` : `-${promo.discountValue} CHF`})
+                </Text>
+                <Text style={styles.switchSubtitle}>
+                  {promo.minOrder ? `Min. ${promo.minOrder} CHF` : 'Sans minimum d\'achat'} • {promo.active ? 'Actif' : 'Désactivé'}
+                </Text>
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                <Switch
+                  value={promo.active}
+                  onValueChange={() => togglePromoCode(promo.id)}
+                  trackColor={{ true: Theme.colors.success + '88' }}
+                  thumbColor={promo.active ? Theme.colors.success : '#ccc'}
+                />
+                <TouchableOpacity onPress={() => deletePromoCode(promo.id)} style={{ padding: 4 }}>
+                  <Ionicons name="trash-outline" size={18} color={Theme.colors.danger} />
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        ))}
+
+        {/* AJOUTER UN CODE PROMO */}
+        <View style={{ marginTop: 8, backgroundColor: Theme.colors.background, padding: 12, borderRadius: 10 }}>
+          <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 11, color: Theme.colors.textSecondary, marginBottom: 8, letterSpacing: 0.5 }}>+ CRÉER UN CODE PROMO</Text>
+          <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
+            <TextInput
+              style={[styles.input, { flex: 2, textTransform: 'uppercase', fontFamily: Theme.fonts.bodyBold }]}
+              placeholder="Code (ex: ETE20)"
+              placeholderTextColor="#999"
+              value={newCodeName}
+              onChangeText={setNewCodeName}
+            />
+            <TextInput
+              style={[styles.input, { flex: 1 }]}
+              placeholder="Valeur"
+              placeholderTextColor="#999"
+              value={newCodeValue}
+              onChangeText={setNewCodeValue}
+              keyboardType="numeric"
+            />
+            <TouchableOpacity
+              onPress={() => setNewCodeType(newCodeType === 'percent' ? 'fixed' : 'percent')}
+              style={{ backgroundColor: Theme.colors.surface, borderWidth: 1, borderColor: Theme.colors.border, borderRadius: 10, paddingHorizontal: 12, justifyContent: 'center' }}
+            >
+              <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 13, color: Theme.colors.text }}>
+                {newCodeType === 'percent' ? '%' : 'CHF'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <TouchableOpacity
+            style={{ backgroundColor: Theme.colors.success, paddingVertical: 10, borderRadius: 8, alignItems: 'center' }}
+            onPress={() => {
+              if (!newCodeName.trim() || !newCodeValue.trim()) {
+                Alert.alert('Erreur', 'Veuillez entrer un code et une valeur');
+                return;
+              }
+              addPromoCode({
+                code: newCodeName.trim().toUpperCase(),
+                discountType: newCodeType,
+                discountValue: parseFloat(newCodeValue) || 10,
+                active: true,
+              });
+              setNewCodeName('');
+              setNewCodeValue('');
+            }}
+          >
+            <Text style={{ fontFamily: Theme.fonts.bodyBold, color: '#fff', fontSize: 12 }}>Ajouter ce code promo</Text>
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity 
-          style={{ paddingVertical: 14, alignItems: 'center', borderTopWidth: StyleSheet.hairlineWidth, borderColor: Theme.colors.border }}
-          onPress={() => {
-            if (Platform.OS === 'web') {
-              window.alert('Code promo actif : "BIENVENUE10" (-10% sur toute la carte).\nLes clients peuvent entrer ce code lors du paiement pour bénéficier de 10% de remise.');
-            } else {
-              Alert.alert('Codes Promos', 'Code promo actif : "BIENVENUE10" (-10% sur toute la carte).\nLes clients peuvent entrer ce code lors du paiement pour bénéficier de 10% de remise.');
-            }
-          }}
-        >
-          <Text style={{ fontFamily: Theme.fonts.bodyBold, color: Theme.colors.primary, fontSize: 13 }}>+ Gérer les codes promos</Text>
-        </TouchableOpacity>
       </View>
 
       {/* MATÉRIEL & CAISSE */}
       <Text style={styles.sectionHeader}>MATÉRIEL & IMPRESSION TICKETS</Text>
       <View style={styles.settingsCard}>
         <View style={styles.settingFieldRow}>
-           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-             <Ionicons name="print-outline" size={32} color={Theme.colors.textSecondary} />
-             <View>
-               <Text style={styles.fieldLabel}>IMPRIMANTE THERMIQUE</Text>
-               <Text style={styles.switchSubtitle}>Impression directe et automatique des tickets de caisse</Text>
+           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
+               <Ionicons name="print-outline" size={28} color={Theme.colors.textSecondary} />
+               <View style={{ flex: 1 }}>
+                 <Text style={styles.fieldLabel}>IMPRESSION AUTOMATIQUE</Text>
+                 <Text style={styles.switchSubtitle}>Imprimer automatiquement les tickets dès réception</Text>
+               </View>
              </View>
+             <Switch 
+               value={settings.autoPrintEnabled || false} 
+               onValueChange={(val) => updateSettings({ autoPrintEnabled: val })}
+               trackColor={{ true: Theme.colors.success + '88' }} 
+               thumbColor={settings.autoPrintEnabled ? Theme.colors.success : '#ccc'} 
+             />
            </View>
         </View>
         <TouchableOpacity 
