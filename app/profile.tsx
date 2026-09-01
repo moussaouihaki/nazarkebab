@@ -34,7 +34,7 @@ export default function ProfileScreen() {
   const [postalCode, setPostalCode] = useState(user?.postalCode || user?.address?.match(/\d{4}/)?.[0] || '');
   const [city, setCity] = useState(user?.city || user?.address?.split(/ \d{4} /)[1] || user?.address?.split(',').pop()?.trim() || '');
 
-  const myOrders = user?.id ? orders.filter(o => o.userId === user.id) : orders;
+  const myOrders = user?.id ? orders.filter(o => o.userId === user.id) : [];
   const deliveredOrders = myOrders.filter(o => o.status === 'delivered');
   const totalSpent = deliveredOrders.reduce((acc, o) => acc + o.total, 0);
 
@@ -54,20 +54,21 @@ export default function ProfileScreen() {
   };
 
   const handleLogout = () => {
+    const doLogout = () => {
+      clearOrders();
+      clearCart();
+      logout();
+      router.replace('/');
+    };
+
     if (Platform.OS === 'web') {
       if (confirm('Êtes-vous sûr de vouloir vous déconnecter ?')) {
-        logout();
-        router.replace('/');
+        doLogout();
       }
     } else {
       Alert.alert('Déconnexion', 'Êtes-vous sûr de vouloir vous déconnecter ?', [
         { text: 'Annuler', style: 'cancel' },
-        {
-          text: 'Se déconnecter', style: 'destructive', onPress: () => {
-            logout();
-            router.replace('/');
-          }
-        },
+        { text: 'Se déconnecter', style: 'destructive', onPress: doLogout },
       ]);
     }
   };
@@ -182,10 +183,6 @@ export default function ProfileScreen() {
               </Text>
             </View>
 
-            {/* ORDER HISTORY FOR GUESTS */}
-            <View style={{ width: '100%' }}>
-              {renderOrderHistory()}
-            </View>
           </ScrollView>
         </SafeAreaView>
       </View>
