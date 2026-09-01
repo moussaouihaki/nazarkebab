@@ -408,7 +408,4 @@ const styles = StyleSheet.create({
   floatingCartCount: { fontFamily: Theme.fonts.bodyMedium, fontSize: 12, color: '#FFF', letterSpacing: 1 },
   floatingCartText:  { flex: 1, textAlign: 'center', fontFamily: Theme.fonts.bodyBold, fontSize: 14, color: '#FFF', letterSpacing: 1 },
   floatingCartPrice: { fontFamily: Theme.fonts.bodyBold,   fontSize: 14, color: '#FFF' },
-  // Search
-  searchBar: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 16, marginBottom: 10, backgroundColor: Theme.colors.surface, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, borderWidth: StyleSheet.hairlineWidth, borderColor: Theme.colors.border },
-  searchInput: { flex: 1, fontFamily: Theme.fonts.body, fontSize: 14, color: Theme.colors.text },
 });

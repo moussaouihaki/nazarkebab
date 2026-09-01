@@ -225,7 +225,7 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
             data.category = 'CRÉER TON POKÉBOWL';
           }
           
-          prodList.push({ id: docSnap.id, ...data });
+          prodList.push({ ...data, id: docSnap.id });
         });
         
         // Auto-cleanup for duplicate COMPOSE TON POKÉ items the user accidentally created

@@ -127,13 +127,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  loginWithApple: async (token: string, nonce?: string) => {
+  loginWithApple: async (token: string, fullNameOrNonce?: any) => {
     set({ isLoading: true, error: null });
     try {
       const provider = new OAuthProvider('apple.com');
       const credential = provider.credential({
         idToken: token,
-        rawNonce: nonce,
+        rawNonce: typeof fullNameOrNonce === 'string' ? fullNameOrNonce : undefined,
       });
       
       const userCredential = await signInWithCredential(auth, credential);

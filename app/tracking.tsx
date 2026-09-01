@@ -314,7 +314,7 @@ export default function TrackingScreen() {
                   <Text style={styles.itemQty}>{item.quantity}×</Text>
                   <View style={{ flex: 1, paddingHorizontal: 12 }}>
                     <Text style={styles.itemName}>{item.name}</Text>
-                    {item.note && <Text style={{ fontSize: 13, color: Theme.colors.textSecondary, fontFamily: Theme.fonts.bodyItalic, marginTop: 2 }}>Note: {item.note}</Text>}
+                    {item.note && <Text style={{ fontSize: 13, color: Theme.colors.textSecondary, fontFamily: Theme.fonts.bodyMedium, fontStyle: 'italic', marginTop: 2 }}>Note: {item.note}</Text>}
                     {item.selectedOptions && Object.entries(item.selectedOptions).map(([sectionTitle, choices]: [string, any]) => (
                       <Text key={sectionTitle} style={{ fontSize: 13, color: Theme.colors.textSecondary, fontFamily: Theme.fonts.body, marginTop: 2 }}>
                         <Text style={{ fontFamily: Theme.fonts.bodyBold }}>{sectionTitle.split(' (')[0]}: </Text>
