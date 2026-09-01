@@ -10,6 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Theme } from '../constants/theme';
 import { useCartStore, OrderStatus } from '../store/useCartStore';
 import { useRestaurantStore } from '../store/useRestaurantStore';
+import { useAuthStore } from '../store/useAuthStore';
 import BottomBar from '../components/BottomBar';
 
 const STEPS: { status: OrderStatus; label: string; icon: any; description: string }[] = [
@@ -24,6 +25,7 @@ const STATUS_ORDER = ['pending', 'confirmed', 'preparing', 'ready', 'delivered']
 
 export default function TrackingScreen() {
   const { activeOrder, orders, listenToOrders } = useCartStore();
+  const { user } = useAuthStore();
   const { width } = useWindowDimensions();
   const isDesktop = Platform.OS === 'web' && width >= 768;
   const { settings } = useRestaurantStore();
@@ -49,6 +51,13 @@ export default function TrackingScreen() {
       setViewedOrderId(orderToTrack.id);
     }
   }, [orderToTrack?.id]);
+
+  useEffect(() => {
+    const unsub = listenToOrders(user?.id, false, orderToTrack?.id);
+    return () => {
+      if (unsub) unsub();
+    };
+  }, [user?.id, orderToTrack?.id]);
 
   const currentStepIndex = orderToTrack
     ? STATUS_ORDER.indexOf(orderToTrack.status)

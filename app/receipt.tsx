@@ -33,8 +33,17 @@ export default function ReceiptScreen() {
 
     try {
       if (Platform.OS === 'web') {
-        const { uri } = await Print.printToFileAsync({ html });
-        window.open(uri, '_blank');
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        document.body.appendChild(iframe);
+        iframe.contentWindow?.document.write(html);
+        iframe.contentWindow?.document.close();
+        iframe.onload = () => {
+          setTimeout(() => {
+            iframe.contentWindow?.print();
+            setTimeout(() => { if (document.body.contains(iframe)) document.body.removeChild(iframe); }, 1000);
+          }, 400);
+        };
       } else {
         await Print.printAsync({ html });
       }

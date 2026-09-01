@@ -409,25 +409,34 @@ export const useCartStore = create<CartState>()(
 
     // Transaction to safely get a sequential ID (PM1, PM2...)
     const counterDocRef = doc(db, 'counters', 'orders');
-    
-    const finalOrderId = await runTransaction(db, async (transaction) => {
-      const counterDoc = await transaction.get(counterDocRef);
-      let nextSeq = 1;
-      
-      if (counterDoc.exists()) {
-        nextSeq = (counterDoc.data().lastOrderId || 0) + 1;
-        transaction.update(counterDocRef, { lastOrderId: nextSeq });
-      } else {
-        transaction.set(counterDocRef, { lastOrderId: 1 });
-      }
-      
-      const orderId = `PM${nextSeq}`;
-      const orderDocRef = doc(db, 'orders', orderId);
-      
-      transaction.set(orderDocRef, cleanForFirebase(orderData));
-      
-      return orderId;
-    });
+    let finalOrderId = `PM${Date.now().toString().slice(-4)}`;
+
+    try {
+      finalOrderId = await runTransaction(db, async (transaction) => {
+        const counterDoc = await transaction.get(counterDocRef);
+        let nextSeq = 1;
+        
+        if (counterDoc.exists()) {
+          nextSeq = (counterDoc.data().lastOrderId || 0) + 1;
+          transaction.update(counterDocRef, { lastOrderId: nextSeq });
+        } else {
+          transaction.set(counterDocRef, { lastOrderId: 1 });
+        }
+        
+        const orderId = `PM${nextSeq}`;
+        const orderDocRef = doc(db, 'orders', orderId);
+        
+        transaction.set(orderDocRef, cleanForFirebase(orderData));
+        
+        return orderId;
+      });
+    } catch (e) {
+      console.warn('Transaction order counter failed, using direct setDoc fallback:', e);
+      const fallbackId = `PM${Date.now().toString().slice(-4)}`;
+      const orderDocRef = doc(db, 'orders', fallbackId);
+      await setDoc(orderDocRef, cleanForFirebase(orderData));
+      finalOrderId = fallbackId;
+    }
 
     const order = { ...orderData, id: finalOrderId, createdAt: new Date(), updatedAt: new Date() } as Order;
     set({ activeOrder: order, items: [], total: 0, orderNote: '' });

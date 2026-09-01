@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, TextInput, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, TextInput, Platform, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { Theme } from '../constants/theme';
 import { useCartStore } from '../store/useCartStore';
@@ -74,6 +74,7 @@ export default function CartScreen() {
   const [postalCode, setPostalCode] = useState(customerAddress ? customerAddress.match(/\d{4}/)?.[0] || '' : (user?.postalCode || user?.address?.match(/\d{4}/)?.[0] || ''));
   const [city, setCity] = useState(customerAddress ? customerAddress.split(/ \d{4} /)[1] || customerAddress.split(',').pop()?.trim() || '' : (user?.city || user?.address?.split(/ \d{4} /)[1] || user?.address?.split(',').pop()?.trim() || ''));
   const [saveAddress, setSaveAddress] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedTime, setSelectedTime] = useState<string>('ASAP');
@@ -251,6 +252,7 @@ export default function CartScreen() {
   };
 
   const handlePlaceOrder = async () => {
+    if (isSubmitting) return;
     if (!settings.isOpen || availableDates.length === 0 || !selectedTime) {
       alert("Désolé, il n'y a aucun créneau disponible pour passer commande.");
       return;
@@ -262,45 +264,52 @@ export default function CartScreen() {
       return;
     }
 
-    setCustomerInfo(name, phone, address);
-    setOrderNote(note);
-    
-    // Si l'utilisateur veut sauvegarder cette adresse pour la prochaine fois
-    if (saveAddress && user) {
-      updateProfile({ address, street, postalCode, city });
-    }
-    
-    // Gérer les points de fidélité et codes promos utilisés
-    if (user) {
-      const updates: any = {};
-      if (useLoyalty) {
-        updates.loyaltyPoints = Math.max(0, (user.loyaltyPoints || 0) - 9);
-      } else {
-        updates.loyaltyPoints = (user.loyaltyPoints || 0) + 1;
+    setIsSubmitting(true);
+    try {
+      setCustomerInfo(name, phone, address);
+      setOrderNote(note);
+      
+      // Si l'utilisateur veut sauvegarder cette adresse pour la prochaine fois
+      if (saveAddress && user) {
+        await updateProfile({ address, street, postalCode, city });
       }
-      if (appliedPromo?.code) {
-        const codeUpper = appliedPromo.code.toUpperCase();
-        updates.usedPromoCodes = Array.from(new Set([...(user.usedPromoCodes || []), codeUpper]));
+      
+      // Gérer les points de fidélité et codes promos utilisés
+      if (user) {
+        const updates: any = {};
+        if (useLoyalty) {
+          updates.loyaltyPoints = Math.max(0, (user.loyaltyPoints || 0) - 9);
+        } else {
+          updates.loyaltyPoints = (user.loyaltyPoints || 0) + 1;
+        }
+        if (appliedPromo?.code) {
+          const codeUpper = appliedPromo.code.toUpperCase();
+          updates.usedPromoCodes = Array.from(new Set([...(user.usedPromoCodes || []), codeUpper]));
+        }
+        await updateProfile(updates);
       }
-      await updateProfile(updates);
-    }
 
-    
-    let finalRequestedTime = selectedTime;
-    if (selectedDate && selectedDate.toDateString() !== new Date().toDateString()) {
-       const dateStr = selectedDate.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
-       finalRequestedTime = `${dateStr} à ${selectedTime}`;
+      let finalRequestedTime = selectedTime;
+      if (selectedDate && selectedDate.toDateString() !== new Date().toDateString()) {
+         const dateStr = selectedDate.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
+         finalRequestedTime = `${dateStr} à ${selectedTime}`;
+      }
+      await placeOrder(
+        user?.id, 
+        finalRequestedTime, 
+        loyaltyDiscount, 
+        paymentMethod,
+        promoDiscount,
+        appliedPromo?.code || '',
+        tipAmount
+      );
+      router.replace('/tracking');
+    } catch (err: any) {
+      console.error('Erreur handlePlaceOrder:', err);
+      alert('Une erreur est survenue lors de la commande. Veuillez vérifier votre connexion et réessayer.');
+    } finally {
+      setIsSubmitting(false);
     }
-    placeOrder(
-      user?.id, 
-      finalRequestedTime, 
-      loyaltyDiscount, 
-      paymentMethod,
-      promoDiscount,
-      appliedPromo?.code || '',
-      tipAmount
-    );
-    router.replace('/tracking');
   };
 
   // STEP 3: ORDER PLACED CONFIRMATION
@@ -584,12 +593,18 @@ export default function CartScreen() {
 
           <View style={styles.footer}>
             <TouchableOpacity 
-              style={[styles.goldBtn, ((!name || !phone) || (deliveryType === 'delivery' && zoneError !== '')) && { opacity: 0.5 }]} 
+              style={[styles.goldBtn, ((!name || !phone) || (deliveryType === 'delivery' && zoneError !== '') || isSubmitting) && { opacity: 0.5 }]} 
               onPress={handlePlaceOrder} 
-              disabled={!name || !phone || (deliveryType === 'delivery' && zoneError !== '')}
+              disabled={isSubmitting || !name || !phone || (deliveryType === 'delivery' && zoneError !== '')}
             >
-              <Text style={styles.goldBtnText}>CONFIRMER LA COMMANDE</Text>
-              <Text style={[styles.goldBtnText, { opacity: 0.7, fontSize: 12 }]}>{grandTotal.toFixed(2)} CHF</Text>
+              {isSubmitting ? (
+                <ActivityIndicator color="#000" />
+              ) : (
+                <>
+                  <Text style={styles.goldBtnText}>CONFIRMER LA COMMANDE</Text>
+                  <Text style={[styles.goldBtnText, { opacity: 0.7, fontSize: 12 }]}>{grandTotal.toFixed(2)} CHF</Text>
+                </>
+              )}
             </TouchableOpacity>
           </View>
         </SafeAreaView>
