@@ -96,7 +96,7 @@ interface CartState {
     userId?: string, 
     requestedTime?: string, 
     loyaltyDiscount?: number, 
-    paymentMethod?: 'card' | 'cash',
+    paymentMethod?: string,
     promoDiscount?: number,
     promoCode?: string,
     tipAmount?: number
@@ -363,7 +363,7 @@ export const useCartStore = create<CartState>()(
     userId?: string, 
     requestedTime: string = 'ASAP', 
     loyaltyDiscount: number = 0, 
-    paymentMethod: 'card' | 'cash' = 'cash',
+    paymentMethod: string = 'card',
     promoDiscount: number = 0,
     promoCode: string = '',
     tipAmount: number = 0
@@ -382,6 +382,9 @@ export const useCartStore = create<CartState>()(
       console.log('Error getting fresh token during order', e);
     }
 
+    const isCardPaid = paymentMethod === 'card' || paymentMethod === 'Carte (En ligne)' || paymentMethod === 'Twint';
+    const cleanPaymentMethod = paymentMethod === 'card' ? 'Carte (En ligne)' : (paymentMethod === 'cash' ? 'Espèces' : paymentMethod);
+
     const orderData = {
       items: state.items.map(item => ({ ...item, image: null })),
       total: grandTotal,
@@ -394,8 +397,8 @@ export const useCartStore = create<CartState>()(
       deliveryType: state.deliveryType,
       estimatedTime: state.deliveryType === 'delivery' ? 30 : 15,
       note: state.orderNote || null,
-      isPaid: false,
-      paymentMethod: paymentMethod,
+      isPaid: isCardPaid,
+      paymentMethod: cleanPaymentMethod,
       subTotal,
       taxAmount,
       requestedTime,

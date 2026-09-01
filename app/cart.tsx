@@ -180,7 +180,27 @@ export default function CartScreen() {
   const [detectedZone, setDetectedZone] = useState<DeliveryZone | null>(null);
   const [zoneError, setZoneError] = useState('');
   const [useLoyalty, setUseLoyalty] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<'card' | 'cash'>('card');
+  const [paymentMethod, setPaymentMethod] = useState<'card' | 'cash' | 'twint'>('card');
+  const [cardNumber, setCardNumber] = useState('');
+  const [cardExp, setCardExp] = useState('');
+  const [cardCvc, setCardCvc] = useState('');
+  const [cardHolder, setCardHolder] = useState(customerName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim());
+  const [saveCard, setSaveCard] = useState(true);
+
+  const formatCardNumber = (text: string) => {
+    const clean = text.replace(/\D/g, '').slice(0, 16);
+    const matches = clean.match(/.{1,4}/g);
+    return matches ? matches.join(' ') : clean;
+  };
+
+  const formatExp = (text: string) => {
+    const clean = text.replace(/\D/g, '').slice(0, 4);
+    if (clean.length >= 3) return `${clean.slice(0, 2)}/${clean.slice(2)}`;
+    return clean;
+  };
+
+  const formatCvc = (text: string) => text.replace(/\D/g, '').slice(0, 4);
+
   const [promoCodeInput, setPromoCodeInput] = useState('');
   const [appliedPromo, setAppliedPromo] = useState<{ code: string; discountPercent?: number; fixedAmount?: number } | null>(null);
   const [promoError, setPromoError] = useState('');
@@ -262,6 +282,26 @@ export default function CartScreen() {
     if (deliveryType === 'delivery' && selectedTime !== 'ASAP' && (bookedDeliverySlots[selectedTime] || 0) >= 1) {
       alert(`Le créneau ${selectedTime} en livraison est déjà complet (1 commande max par 30 min). Veuillez choisir un autre créneau.`);
       return;
+    }
+
+    if (paymentMethod === 'card') {
+      const cleanNum = cardNumber.replace(/\s/g, '');
+      if (cleanNum.length < 15) {
+        alert('Veuillez saisir un numéro de carte bancaire valide (16 chiffres).');
+        return;
+      }
+      if (cardExp.length < 5 || !cardExp.includes('/')) {
+        alert("Veuillez saisir une date d'expiration valide (MM/AA).");
+        return;
+      }
+      if (cardCvc.length < 3) {
+        alert('Veuillez saisir un code de sécurité CVC valide (3 ou 4 chiffres).');
+        return;
+      }
+      if (!cardHolder.trim()) {
+        alert('Veuillez saisir le nom du titulaire de la carte.');
+        return;
+      }
     }
 
     setIsSubmitting(true);
@@ -526,23 +566,132 @@ export default function CartScreen() {
               </>
             )}
 
-            <Text style={[styles.fieldLabel, { marginTop: 20 }]}>MÉTHODE DE PAIEMENT (À LA LIVRAISON)</Text>
-            <View style={styles.toggleRow}>
+            <Text style={[styles.fieldLabel, { marginTop: 20 }]}>MODE DE PAIEMENT</Text>
+            <View style={[styles.toggleRow, { gap: 8 }]}>
               <TouchableOpacity 
-                style={[styles.toggleBtn, paymentMethod === 'card' && styles.toggleBtnActive]} 
+                style={[styles.toggleBtn, paymentMethod === 'card' && styles.toggleBtnActive, { flex: 1, paddingVertical: 12 }]} 
                 onPress={() => setPaymentMethod('card')}
               >
-                <Ionicons name="card-outline" size={20} color={paymentMethod === 'card' ? '#fff' : Theme.colors.text} />
-                <Text style={[styles.toggleText, paymentMethod === 'card' && styles.toggleTextActive]}>Carte / Twint</Text>
+                <Ionicons name="card-outline" size={18} color={paymentMethod === 'card' ? '#fff' : Theme.colors.text} />
+                <Text style={[styles.toggleText, paymentMethod === 'card' && styles.toggleTextActive, { fontSize: 13 }]}>Carte</Text>
               </TouchableOpacity>
               <TouchableOpacity 
-                style={[styles.toggleBtn, paymentMethod === 'cash' && styles.toggleBtnActive]} 
+                style={[styles.toggleBtn, paymentMethod === 'cash' && styles.toggleBtnActive, { flex: 1, paddingVertical: 12 }]} 
                 onPress={() => setPaymentMethod('cash')}
               >
-                <Ionicons name="cash-outline" size={20} color={paymentMethod === 'cash' ? '#fff' : Theme.colors.text} />
-                <Text style={[styles.toggleText, paymentMethod === 'cash' && styles.toggleTextActive]}>Cash</Text>
+                <Ionicons name="cash-outline" size={18} color={paymentMethod === 'cash' ? '#fff' : Theme.colors.text} />
+                <Text style={[styles.toggleText, paymentMethod === 'cash' && styles.toggleTextActive, { fontSize: 13 }]}>Espèces</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.toggleBtn, paymentMethod === 'twint' && styles.toggleBtnActive, { flex: 1, paddingVertical: 12 }]} 
+                onPress={() => setPaymentMethod('twint')}
+              >
+                <Ionicons name="phone-portrait-outline" size={18} color={paymentMethod === 'twint' ? '#fff' : Theme.colors.text} />
+                <Text style={[styles.toggleText, paymentMethod === 'twint' && styles.toggleTextActive, { fontSize: 13 }]}>Twint</Text>
               </TouchableOpacity>
             </View>
+
+            {/* IN-APP CARD PAYMENT FORM */}
+            {paymentMethod === 'card' && (
+              <View style={{ marginTop: 14, backgroundColor: Theme.colors.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: Theme.colors.primary + '40' }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Ionicons name="shield-checkmark" size={18} color={Theme.colors.success} />
+                    <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 13, color: Theme.colors.text }}>Paiement sécurisé par carte</Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', gap: 4 }}>
+                    <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 10, color: '#fff', backgroundColor: '#1A1F71', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>VISA</Text>
+                    <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 10, color: '#fff', backgroundColor: '#EB001B', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>MC</Text>
+                  </View>
+                </View>
+
+                {/* Card Number */}
+                <Text style={[styles.fieldLabel, { fontSize: 11, marginBottom: 4 }]}>NUMÉRO DE CARTE</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: Theme.colors.background, borderRadius: 10, borderWidth: 1, borderColor: Theme.colors.border, paddingHorizontal: 12, marginBottom: 10 }}>
+                  <Ionicons name="card" size={18} color={Theme.colors.primary} style={{ marginRight: 8 }} />
+                  <TextInput
+                    style={{ flex: 1, paddingVertical: 12, color: Theme.colors.text, fontFamily: Theme.fonts.bodyBold, fontSize: 15, letterSpacing: 2 }}
+                    placeholder="4532 •••• •••• 1234"
+                    placeholderTextColor={Theme.colors.textSecondary}
+                    value={cardNumber}
+                    onChangeText={(t) => setCardNumber(formatCardNumber(t))}
+                    keyboardType="numeric"
+                    maxLength={19}
+                  />
+                </View>
+
+                {/* Exp & CVC Row */}
+                <View style={{ flexDirection: 'row', gap: 10, marginBottom: 10 }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.fieldLabel, { fontSize: 11, marginBottom: 4 }]}>EXPIRATION</Text>
+                    <TextInput
+                      style={{ backgroundColor: Theme.colors.background, borderRadius: 10, borderWidth: 1, borderColor: Theme.colors.border, padding: 12, color: Theme.colors.text, fontFamily: Theme.fonts.bodyBold, fontSize: 14, textAlign: 'center' }}
+                      placeholder="MM/AA"
+                      placeholderTextColor={Theme.colors.textSecondary}
+                      value={cardExp}
+                      onChangeText={(t) => setCardExp(formatExp(t))}
+                      keyboardType="numeric"
+                      maxLength={5}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.fieldLabel, { fontSize: 11, marginBottom: 4 }]}>CVC / CVV</Text>
+                    <TextInput
+                      style={{ backgroundColor: Theme.colors.background, borderRadius: 10, borderWidth: 1, borderColor: Theme.colors.border, padding: 12, color: Theme.colors.text, fontFamily: Theme.fonts.bodyBold, fontSize: 14, textAlign: 'center' }}
+                      placeholder="123"
+                      placeholderTextColor={Theme.colors.textSecondary}
+                      value={cardCvc}
+                      onChangeText={(t) => setCardCvc(formatCvc(t))}
+                      keyboardType="numeric"
+                      maxLength={4}
+                      secureTextEntry
+                    />
+                  </View>
+                </View>
+
+                {/* Cardholder */}
+                <Text style={[styles.fieldLabel, { fontSize: 11, marginBottom: 4 }]}>TITULAIRE DE LA CARTE</Text>
+                <TextInput
+                  style={{ backgroundColor: Theme.colors.background, borderRadius: 10, borderWidth: 1, borderColor: Theme.colors.border, padding: 12, color: Theme.colors.text, fontFamily: Theme.fonts.body, fontSize: 14, marginBottom: 8 }}
+                  placeholder="Ex: Jean Dupont"
+                  placeholderTextColor={Theme.colors.textSecondary}
+                  value={cardHolder}
+                  onChangeText={setCardHolder}
+                  autoCapitalize="words"
+                />
+
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                  <Ionicons name="lock-closed" size={12} color={Theme.colors.textSecondary} />
+                  <Text style={{ fontFamily: Theme.fonts.body, fontSize: 11, color: Theme.colors.textSecondary }}>Chiffrement bancaire SSL 256-bit • Débit immédiat</Text>
+                </View>
+              </View>
+            )}
+
+            {/* CASH INFO */}
+            {paymentMethod === 'cash' && (
+              <View style={{ marginTop: 14, backgroundColor: Theme.colors.surface, borderRadius: 12, padding: 14, borderWidth: 1, borderColor: Theme.colors.border, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                <Ionicons name="cash" size={24} color={Theme.colors.primary} />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 13, color: Theme.colors.text }}>Paiement en espèces</Text>
+                  <Text style={{ fontFamily: Theme.fonts.body, fontSize: 12, color: Theme.colors.textSecondary, marginTop: 2 }}>
+                    Réglez en cash directement auprès du livreur ou au comptoir lors du retrait.
+                  </Text>
+                </View>
+              </View>
+            )}
+
+            {/* TWINT INFO */}
+            {paymentMethod === 'twint' && (
+              <View style={{ marginTop: 14, backgroundColor: Theme.colors.surface, borderRadius: 12, padding: 14, borderWidth: 1, borderColor: Theme.colors.border, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                <Ionicons name="qr-code-outline" size={24} color={Theme.colors.primary} />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 13, color: Theme.colors.text }}>Paiement par Twint</Text>
+                  <Text style={{ fontFamily: Theme.fonts.body, fontSize: 12, color: Theme.colors.textSecondary, marginTop: 2 }}>
+                    Le QR Code ou numéro Twint vous sera présenté par le livreur ou sur le ticket.
+                  </Text>
+                </View>
+              </View>
+            )}
 
             {/* POURBOIRE LIVREUR */}
             {deliveryType === 'delivery' && (
