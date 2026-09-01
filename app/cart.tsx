@@ -773,6 +773,33 @@ export default function CartScreen() {
 
                         const foundPromo = (settings?.promoCodes || []).find(p => p.code.toUpperCase() === code && p.active);
                         if (foundPromo) {
+                          const nowStr = new Date().toISOString().split('T')[0];
+
+                          // Vérification date de début
+                          if (foundPromo.startDate && foundPromo.startDate > nowStr) {
+                            setPromoError(`Ce code sera disponible à partir du ${foundPromo.startDate}.`);
+                            return;
+                          }
+
+                          // Vérification date d'expiration
+                          if (foundPromo.endDate && foundPromo.endDate < nowStr) {
+                            setPromoError(`Ce code promo a expiré le ${foundPromo.endDate}.`);
+                            return;
+                          }
+
+                          // Vérification 1ère commande
+                          if (foundPromo.firstOrderOnly) {
+                            const userPastOrders = (orders || []).filter(o => 
+                              (user?.id && o.userId === user.id) || 
+                              (user?.email && o.customerEmail?.toLowerCase() === user.email.toLowerCase()) ||
+                              (user?.phone && o.customerPhone === user.phone)
+                            );
+                            if (userPastOrders.length > 0 || (user?.loyaltyPoints && user.loyaltyPoints > 0) || user?.usedPromoCodes?.includes(foundPromo.code)) {
+                              setPromoError(`Le code ${foundPromo.code} est réservé exclusivement aux nouveaux clients.`);
+                              return;
+                            }
+                          }
+
                           if (foundPromo.minOrder && total < foundPromo.minOrder) {
                             setPromoError(`Minimum de ${foundPromo.minOrder} CHF requis pour ce code.`);
                             return;

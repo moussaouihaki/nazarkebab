@@ -37,6 +37,9 @@ export interface PromoCode {
   discountValue: number;
   active: boolean;
   minOrder?: number;
+  startDate?: string; // YYYY-MM-DD
+  endDate?: string;   // YYYY-MM-DD
+  firstOrderOnly?: boolean;
 }
 
 export interface RestaurantSettings {

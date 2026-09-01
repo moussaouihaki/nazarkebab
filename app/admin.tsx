@@ -2621,6 +2621,10 @@ function SettingsTab() {
   const [newCodeName, setNewCodeName] = useState('');
   const [newCodeValue, setNewCodeValue] = useState('');
   const [newCodeType, setNewCodeType] = useState<'percent' | 'fixed'>('percent');
+  const [newCodeMinOrder, setNewCodeMinOrder] = useState('');
+  const [newCodeStartDate, setNewCodeStartDate] = useState('');
+  const [newCodeEndDate, setNewCodeEndDate] = useState('');
+  const [newCodeFirstOrderOnly, setNewCodeFirstOrderOnly] = useState(false);
   const [saved, setSaved] = useState(false);
 
   // DRIVER ACCOUNTS STATE
@@ -2774,47 +2778,72 @@ function SettingsTab() {
       <Text style={styles.sectionHeader}>MARKETING & CODES PROMOS</Text>
       <View style={styles.settingsCard}>
         {(settings.promoCodes || [
-          { id: 'p1', code: 'BIENVENUE10', discountType: 'percent', discountValue: 10, active: true },
+          { id: 'p1', code: 'BIENVENUE10', discountType: 'percent', discountValue: 10, active: true, firstOrderOnly: true },
           { id: 'p2', code: 'POKE5', discountType: 'fixed', discountValue: 5, active: true, minOrder: 30 }
-        ]).map((promo) => (
-          <View key={promo.id} style={[styles.settingFieldRow, { borderBottomWidth: 1, borderBottomColor: Theme.colors.border, paddingBottom: 10, marginBottom: 10 }]}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 14, color: Theme.colors.text }}>
-                  🏷️ {promo.code} ({promo.discountType === 'percent' ? `-${promo.discountValue}%` : `-${promo.discountValue} CHF`})
-                </Text>
-                <Text style={styles.switchSubtitle}>
-                  {promo.minOrder ? `Min. ${promo.minOrder} CHF` : 'Sans minimum d\'achat'} • {promo.active ? 'Actif' : 'Désactivé'}
-                </Text>
-              </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                <Switch
-                  value={promo.active}
-                  onValueChange={() => togglePromoCode(promo.id)}
-                  trackColor={{ true: Theme.colors.success + '88' }}
-                  thumbColor={promo.active ? Theme.colors.success : '#ccc'}
-                />
-                <TouchableOpacity onPress={() => deletePromoCode(promo.id)} style={{ padding: 4 }}>
-                  <Ionicons name="trash-outline" size={18} color={Theme.colors.danger} />
-                </TouchableOpacity>
+        ]).map((promo) => {
+          const nowStr = new Date().toISOString().split('T')[0];
+          const isExpired = promo.endDate && promo.endDate < nowStr;
+          const isUpcoming = promo.startDate && promo.startDate > nowStr;
+
+          return (
+            <View key={promo.id} style={[styles.settingFieldRow, { borderBottomWidth: 1, borderBottomColor: Theme.colors.border, paddingBottom: 10, marginBottom: 10 }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <View style={{ flex: 1 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                    <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 14, color: Theme.colors.text }}>
+                      🏷️ {promo.code} ({promo.discountType === 'percent' ? `-${promo.discountValue}%` : `-${promo.discountValue} CHF`})
+                    </Text>
+                    {promo.firstOrderOnly && (
+                      <View style={{ backgroundColor: '#fef3c7', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
+                        <Text style={{ fontSize: 10, fontFamily: Theme.fonts.bodyBold, color: '#b45309' }}>1ère commande</Text>
+                      </View>
+                    )}
+                    {isExpired ? (
+                      <View style={{ backgroundColor: '#fee2e2', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
+                        <Text style={{ fontSize: 10, fontFamily: Theme.fonts.bodyBold, color: '#dc2626' }}>Expiré</Text>
+                      </View>
+                    ) : isUpcoming ? (
+                      <View style={{ backgroundColor: '#e0f2fe', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
+                        <Text style={{ fontSize: 10, fontFamily: Theme.fonts.bodyBold, color: '#0369a1' }}>Dès le {promo.startDate}</Text>
+                      </View>
+                    ) : null}
+                  </View>
+                  <Text style={[styles.switchSubtitle, { marginTop: 3 }]}>
+                    {promo.minOrder ? `Min. ${promo.minOrder} CHF` : 'Sans minimum d\'achat'}
+                    {promo.startDate ? ` • Du ${promo.startDate}` : ''}
+                    {promo.endDate ? ` jusqu'au ${promo.endDate}` : ''}
+                    {` • ${promo.active ? 'Actif' : 'Désactivé'}`}
+                  </Text>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                  <Switch
+                    value={promo.active}
+                    onValueChange={() => togglePromoCode(promo.id)}
+                    trackColor={{ true: Theme.colors.success + '88' }}
+                    thumbColor={promo.active ? Theme.colors.success : '#ccc'}
+                  />
+                  <TouchableOpacity onPress={() => deletePromoCode(promo.id)} style={{ padding: 4 }}>
+                    <Ionicons name="trash-outline" size={18} color={Theme.colors.danger} />
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
-          </View>
-        ))}
+          );
+        })}
 
         {/* AJOUTER UN CODE PROMO */}
-        <View style={{ marginTop: 8, backgroundColor: Theme.colors.background, padding: 12, borderRadius: 10 }}>
-          <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 11, color: Theme.colors.textSecondary, marginBottom: 8, letterSpacing: 0.5 }}>+ CRÉER UN CODE PROMO</Text>
-          <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
+        <View style={{ marginTop: 8, backgroundColor: Theme.colors.background, padding: 14, borderRadius: 12, gap: 10 }}>
+          <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 11, color: Theme.colors.textSecondary, letterSpacing: 0.5 }}>+ CRÉER UN CODE PROMO AVEC DATES DE VALIDITÉ</Text>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
             <TextInput
-              style={[styles.input, { flex: 2, textTransform: 'uppercase', fontFamily: Theme.fonts.bodyBold }]}
+              style={[styles.input, { flex: 2, textTransform: 'uppercase', fontFamily: Theme.fonts.bodyBold, marginBottom: 0 }]}
               placeholder="Code (ex: ETE20)"
               placeholderTextColor="#999"
               value={newCodeName}
               onChangeText={setNewCodeName}
             />
             <TextInput
-              style={[styles.input, { flex: 1 }]}
+              style={[styles.input, { flex: 1, marginBottom: 0 }]}
               placeholder="Valeur"
               placeholderTextColor="#999"
               value={newCodeValue}
@@ -2830,8 +2859,48 @@ function SettingsTab() {
               </Text>
             </TouchableOpacity>
           </View>
+
+          <TextInput
+            style={[styles.input, { marginBottom: 0 }]}
+            placeholder="Montant minimum de commande en CHF (optionnel, ex: 35)"
+            placeholderTextColor="#999"
+            value={newCodeMinOrder}
+            onChangeText={setNewCodeMinOrder}
+            keyboardType="numeric"
+          />
+
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <TextInput
+              style={[styles.input, { flex: 1, marginBottom: 0 }]}
+              placeholder="Date début (YYYY-MM-DD)"
+              placeholderTextColor="#999"
+              value={newCodeStartDate}
+              onChangeText={setNewCodeStartDate}
+            />
+            <TextInput
+              style={[styles.input, { flex: 1, marginBottom: 0 }]}
+              placeholder="Date fin/expir. (YYYY-MM-DD)"
+              placeholderTextColor="#999"
+              value={newCodeEndDate}
+              onChangeText={setNewCodeEndDate}
+            />
+          </View>
+
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 4 }}>
+            <View>
+              <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 12, color: Theme.colors.text }}>1ère commande uniquement</Text>
+              <Text style={{ fontFamily: Theme.fonts.body, fontSize: 11, color: Theme.colors.textSecondary }}>Réservé aux nouveaux clients</Text>
+            </View>
+            <Switch
+              value={newCodeFirstOrderOnly}
+              onValueChange={setNewCodeFirstOrderOnly}
+              trackColor={{ true: Theme.colors.success + '88' }}
+              thumbColor={newCodeFirstOrderOnly ? Theme.colors.success : '#ccc'}
+            />
+          </View>
+
           <TouchableOpacity
-            style={{ backgroundColor: Theme.colors.success, paddingVertical: 10, borderRadius: 8, alignItems: 'center' }}
+            style={{ backgroundColor: Theme.colors.success, paddingVertical: 12, borderRadius: 10, alignItems: 'center' }}
             onPress={() => {
               if (!newCodeName.trim() || !newCodeValue.trim()) {
                 Alert.alert('Erreur', 'Veuillez entrer un code et une valeur');
@@ -2842,12 +2911,20 @@ function SettingsTab() {
                 discountType: newCodeType,
                 discountValue: parseFloat(newCodeValue) || 10,
                 active: true,
+                minOrder: newCodeMinOrder.trim() ? parseFloat(newCodeMinOrder) : undefined,
+                startDate: newCodeStartDate.trim() || undefined,
+                endDate: newCodeEndDate.trim() || undefined,
+                firstOrderOnly: newCodeFirstOrderOnly,
               });
               setNewCodeName('');
               setNewCodeValue('');
+              setNewCodeMinOrder('');
+              setNewCodeStartDate('');
+              setNewCodeEndDate('');
+              setNewCodeFirstOrderOnly(false);
             }}
           >
-            <Text style={{ fontFamily: Theme.fonts.bodyBold, color: '#fff', fontSize: 12 }}>Ajouter ce code promo</Text>
+            <Text style={{ fontFamily: Theme.fonts.bodyBold, color: '#fff', fontSize: 13 }}>ENREGISTRER LE CODE PROMO</Text>
           </TouchableOpacity>
         </View>
       </View>
