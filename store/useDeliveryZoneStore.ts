@@ -66,39 +66,89 @@ export const useDeliveryZoneStore = create<DeliveryZoneState>((set, get) => ({
     try {
       const colRef = collection(db, 'deliveryZones');
 
-      // 2. Écouter en temps réel
       return onSnapshot(colRef, async (snapshot) => {
         let zones: DeliveryZone[] = [];
-        snapshot.forEach(d => zones.push({ id: d.id, ...d.data() } as DeliveryZone));
+        snapshot.forEach(d => {
+          const data = d.data() || {};
+          zones.push({
+            id: d.id,
+            name: data.name || 'Zone sans nom',
+            postalCodes: Array.isArray(data.postalCodes) ? data.postalCodes.map(String) : [],
+            minOrder: Number(data.minOrder) || 0,
+            deliveryFee: Number(data.deliveryFee) || 0,
+            estimatedTime: Number(data.estimatedTime) || 30,
+            active: data.active !== false,
+          });
+        });
 
-
-
-
-
-        set({ zones, isLoading: false });
+        if (zones.length === 0) {
+          const localZones = DEFAULT_ZONES.map((z, idx) => ({ id: `default-${idx}`, ...z } as DeliveryZone));
+          set({ zones: localZones, isLoading: false });
+        } else {
+          set({ zones, isLoading: false });
+        }
       }, (error) => {
-        console.error('Erreur Snapshot Zones:', error);
+        console.warn('Erreur Snapshot Zones, utilisation local:', error);
         const localZones = DEFAULT_ZONES.map((z, idx) => ({ id: `local-${idx}`, ...z } as DeliveryZone));
         set({ zones: localZones, isLoading: false });
       });
     } catch (err) {
-      console.error('Erreur Initialisation Zones:', err);
+      console.warn('Erreur Initialisation Zones, utilisation local:', err);
       const localZones = DEFAULT_ZONES.map((z, idx) => ({ id: `local-${idx}`, ...z } as DeliveryZone));
       set({ zones: localZones, isLoading: false });
     }
   },
 
   addZone: async (zoneData) => {
-    const ref = doc(collection(db, 'deliveryZones'));
-    await setDoc(ref, zoneData);
+    try {
+      const cleanData = {
+        name: zoneData.name.trim(),
+        postalCodes: Array.isArray(zoneData.postalCodes) ? zoneData.postalCodes : [],
+        minOrder: Number(zoneData.minOrder) || 0,
+        deliveryFee: Number(zoneData.deliveryFee) || 0,
+        estimatedTime: Number(zoneData.estimatedTime) || 30,
+        active: Boolean(zoneData.active),
+      };
+      const ref = doc(collection(db, 'deliveryZones'));
+      await setDoc(ref, cleanData);
+      
+      // Optimistic update
+      const { zones } = get();
+      set({ zones: [...zones, { id: ref.id, ...cleanData }] });
+    } catch (err) {
+      console.error('Erreur setDoc zone:', err);
+      // Fallback local
+      const { zones } = get();
+      set({ zones: [...zones, { id: `local-${Date.now()}`, ...zoneData }] });
+    }
   },
 
   updateZone: async (id, data) => {
-    await updateDoc(doc(db, 'deliveryZones', id), data);
+    try {
+      // Optimistic update
+      const { zones } = get();
+      set({ zones: zones.map(z => z.id === id ? { ...z, ...data } : z) });
+
+      if (!id.startsWith('local-') && !id.startsWith('default-')) {
+        await updateDoc(doc(db, 'deliveryZones', id), data);
+      }
+    } catch (err) {
+      console.error('Erreur updateDoc zone:', err);
+    }
   },
 
   deleteZone: async (id) => {
-    await deleteDoc(doc(db, 'deliveryZones', id));
+    try {
+      // Optimistic delete
+      const { zones } = get();
+      set({ zones: zones.filter(z => z.id !== id) });
+
+      if (!id.startsWith('local-') && !id.startsWith('default-')) {
+        await deleteDoc(doc(db, 'deliveryZones', id));
+      }
+    } catch (err) {
+      console.error('Erreur deleteDoc zone:', err);
+    }
   },
 
   getZoneForAddress: (address) => {
@@ -107,7 +157,7 @@ export const useDeliveryZoneStore = create<DeliveryZoneState>((set, get) => ({
 
     const { zones } = get();
     return zones.find(
-      z => z.active && z.postalCodes.map(c => c.trim()).includes(postalCode.trim())
+      z => z.active && Array.isArray(z.postalCodes) && z.postalCodes.map(c => String(c).trim()).includes(postalCode.trim())
     ) || null;
   },
 }));

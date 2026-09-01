@@ -3391,22 +3391,32 @@ function DeliveryZonesPanel() {
     </Text>
   );
 
-  const handleAdd = () => {
-    if (!newName || !newCp) {
-      Alert.alert('Erreur', 'Veuillez remplir au moins le nom et les codes postaux.');
+  const handleAdd = async () => {
+    if (!newName.trim() || !newCp.trim()) {
+      Alert.alert('Champs requis', 'Veuillez renseigner le nom de la zone et au moins un code postal (ex: 2300).');
       return;
     }
-    const cida = newCp.split(',').map(s => s.trim()).filter(s => s);
-    addZone({
-      name: newName,
-      postalCodes: cida,
-      minOrder: parseFloat(newMin) || 0,
-      deliveryFee: parseFloat(newFee) || 0,
-      estimatedTime: parseInt(newTime) || 30,
-      active: true,
-    });
-    setIsAdding(false);
-    setNewName(''); setNewCp(''); setNewMin('20'); setNewFee('0'); setNewTime('20');
+    const cida = newCp.split(/[,;\s]+/).map(s => s.trim()).filter(s => s.length > 0);
+    if (cida.length === 0) {
+      Alert.alert('Code postal invalide', 'Veuillez saisir au moins un code postal valide (ex: 2300).');
+      return;
+    }
+    try {
+      await addZone({
+        name: newName.trim(),
+        postalCodes: cida,
+        minOrder: parseFloat(newMin) || 0,
+        deliveryFee: parseFloat(newFee) || 0,
+        estimatedTime: parseInt(newTime) || 30,
+        active: true,
+      });
+      setIsAdding(false);
+      setNewName(''); setNewCp(''); setNewMin('20'); setNewFee('0'); setNewTime('20');
+      Alert.alert('Succès', 'Zone de livraison ajoutée avec succès !');
+    } catch (err: any) {
+      console.error('Erreur addZone:', err);
+      Alert.alert('Erreur', err?.message || 'Impossible d\'enregistrer la zone.');
+    }
   };
 
   const handleDelete = (id: string, name: string) => {
@@ -3418,23 +3428,23 @@ function DeliveryZonesPanel() {
 
   return (
     <View style={styles.card}>
-      {zones.map((zone, i) => (
-        <View key={zone.id} style={[styles.row, i === zones.length - 1 && !isAdding && { borderBottomWidth: 0 }]}>
+      {(zones || []).map((zone, i) => (
+        <View key={zone.id || `zone-${i}`} style={[styles.row, i === zones.length - 1 && !isAdding && { borderBottomWidth: 0 }]}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.zoneName}>{zone.name}</Text>
+            <Text style={styles.zoneName}>{zone.name || 'Zone'}</Text>
             <Text style={styles.zoneMeta}>
-              Min. {zone.minOrder} CHF • {zone.deliveryFee === 0 ? 'Livraison offerte' : `${zone.deliveryFee} CHF`} • ~{zone.estimatedTime} min
+              Min. {zone.minOrder || 0} CHF • {zone.deliveryFee === 0 ? 'Livraison offerte' : `${zone.deliveryFee} CHF`} • ~{zone.estimatedTime || 30} min
             </Text>
             <Text style={styles.zoneMeta} numberOfLines={1}>
-              CP: {zone.postalCodes.join(', ')}
+              CP: {Array.isArray(zone.postalCodes) ? zone.postalCodes.join(', ') : ''}
             </Text>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
             <Switch
-              value={zone.active}
+              value={zone.active !== false}
               onValueChange={(v) => updateZone(zone.id, { active: v })}
               trackColor={{ false: Theme.colors.surface, true: Theme.colors.success + '88' }}
-              thumbColor={zone.active ? Theme.colors.success : Theme.colors.textSecondary}
+              thumbColor={zone.active !== false ? Theme.colors.success : Theme.colors.textSecondary}
             />
             <TouchableOpacity onPress={() => handleDelete(zone.id, zone.name)} style={{ padding: 8 }}>
               <Ionicons name="trash-outline" size={20} color={Theme.colors.danger} />
