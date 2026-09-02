@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, Dimensions, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, Dimensions, Platform, Alert } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Theme } from '../../constants/theme';
 import { PRODUCTS } from '../../constants/data';
@@ -154,15 +154,34 @@ export default function ProductDetailScreen() {
   const basePrice = product.price + supplementTotal + customTotal + extraSaucesTotal;
   const lineTotal = (basePrice * quantity + extrasTotal).toFixed(2);
 
+  const isSauceMissing = Boolean(product.hasSauces && selectedSauces.length === 0);
+
   const missingRequiredSections = product.customizationSections?.filter(sec => {
     const title = sec.title.toLowerCase();
     if (title.includes('boisson') || title.includes('dessert')) return false;
     return sec.required && (!selectedCustomOptions[sec.title] || selectedCustomOptions[sec.title].length === 0);
   }) || [];
-  const isAddDisabled = missingRequiredSections.length > 0;
+  
+  const isAddDisabled = missingRequiredSections.length > 0 || isSauceMissing;
 
   const handleAddToCart = () => {
-    if (isAddDisabled) return;
+    if (isSauceMissing) {
+      if (Platform.OS === 'web') {
+        alert('Sauce obligatoire : Veuillez sélectionner au moins une sauce pour votre Poké Bowl.');
+      } else {
+        Alert.alert('Sauce obligatoire', 'Veuillez sélectionner au moins une sauce pour votre Poké Bowl.');
+      }
+      return;
+    }
+    if (missingRequiredSections.length > 0) {
+      const msg = `Veuillez compléter : ${missingRequiredSections.map(s => s.title).join(', ')}`;
+      if (Platform.OS === 'web') {
+        alert(msg);
+      } else {
+        Alert.alert('Choix obligatoire', msg);
+      }
+      return;
+    }
     const parts = [];
     if (selectedSauces.length > 0) parts.push(`Sauce(s): ${selectedSauces.join(' & ')}`);
     if (selectedDrink) parts.push(`Boisson: ${selectedDrink}`);
@@ -346,8 +365,15 @@ export default function ProductDetailScreen() {
             <View style={styles.divider} />
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <View>
-                <Text style={[styles.sectionTitleBlack, { marginBottom: 4 }]}>SAUCES (MAX 5)</Text>
-                <Text style={{ fontFamily: Theme.fonts.body, fontSize: 11, color: Theme.colors.textSecondary }}>1 gratuite, les suivantes +0.50 CHF</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                  <Text style={styles.sectionTitleBlack}>SAUCE</Text>
+                  <View style={{ backgroundColor: selectedSauces.length > 0 ? Theme.colors.success + '20' : '#fee2e2', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, borderWidth: 1, borderColor: selectedSauces.length > 0 ? Theme.colors.success + '50' : '#fca5a5' }}>
+                    <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 10, color: selectedSauces.length > 0 ? Theme.colors.success : '#dc2626' }}>
+                      {selectedSauces.length > 0 ? `✓ ${selectedSauces.length} CHOISIE${selectedSauces.length > 1 ? 'S' : ''}` : 'OBLIGATOIRE'}
+                    </Text>
+                  </View>
+                </View>
+                <Text style={{ fontFamily: Theme.fonts.body, fontSize: 11, color: Theme.colors.textSecondary }}>1 gratuite, les suivantes +0.50 CHF (Max 5)</Text>
               </View>
               {selectedSauces.length === 5 && (
                  <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 10, color: Theme.colors.textSecondary }}>LIMITE ATTEINTE</Text>
@@ -471,7 +497,19 @@ export default function ProductDetailScreen() {
             <Ionicons name="checkmark-circle" size={14} color={Theme.colors.success} /> Déjà dans votre commande ({inCart.quantity}x)
           </Text>
         )}
-        <TouchableOpacity style={[styles.addBtn, isAddDisabled && { opacity: 0.5 }]} onPress={handleAddToCart} activeOpacity={0.85} disabled={isAddDisabled}>
+        {isSauceMissing && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 8 }}>
+            <Ionicons name="alert-circle" size={14} color="#dc2626" />
+            <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 12, color: '#dc2626' }}>Veuillez choisir une sauce avant d'ajouter</Text>
+          </View>
+        )}
+        {missingRequiredSections.length > 0 && !isSauceMissing && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 8 }}>
+            <Ionicons name="alert-circle" size={14} color="#dc2626" />
+            <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 12, color: '#dc2626' }}>Veuillez compléter : {missingRequiredSections.map(s => s.title).join(', ')}</Text>
+          </View>
+        )}
+        <TouchableOpacity style={[styles.addBtn, isAddDisabled && { opacity: 0.5 }]} onPress={handleAddToCart} activeOpacity={0.85}>
           <Text style={styles.addBtnText} numberOfLines={1}>{editCartItemId ? 'METTRE À JOUR' : 'AJOUTER AU PANIER'}</Text>
           <View style={styles.addBtnPriceBox}>
              <Text style={styles.addBtnPrice}>{lineTotal}</Text>

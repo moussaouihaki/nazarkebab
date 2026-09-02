@@ -135,7 +135,7 @@ export function generateReceiptHTML(order: any, settings: any, isPaid: boolean) 
 
         ${order?.requestedTime ? `
           <div class="status-box" style="background: #eee; font-size: 15px;">
-            POUR : ${order.requestedTime}
+            POUR : ${order.requestedTime === 'ASAP' ? 'DÈS QUE POSSIBLE (AU PLUS VITE) ⚡' : order.requestedTime}
           </div>
         ` : ''}
 
