@@ -99,18 +99,30 @@ export function generateReceiptHTML(order: any, settings: any, isPaid: boolean) 
           .item-name { font-size: 13px; font-weight: 900; color: #000; }
           .price { text-align: right; white-space: nowrap; font-weight: 900; font-size: 13px; }
           .total { font-weight: 900; font-size: 1.3em; border-top: 2px solid #000; }
+          .status-delivery-box { 
+            border: 3.5px solid #000; 
+            padding: 8px 10px; 
+            margin: 10px 0; 
+            font-weight: 900; 
+            font-size: 22px; 
+            text-align: center; 
+            text-transform: uppercase; 
+            letter-spacing: 1px;
+            color: #000;
+            background: #fff;
+          }
           .status-box { 
             border: 2px solid #000; 
             padding: 6px 8px; 
             margin: 8px 0; 
             font-weight: 900; 
-            font-size: 15px; 
+            font-size: 14px; 
             text-align: center; 
             text-transform: uppercase; 
             letter-spacing: 0.5px;
           }
           .client-box { 
-            border: 1.5px solid #000; 
+            border: 2px solid #000; 
             padding: 8px 10px; 
             margin: 10px 0; 
             border-radius: 4px;
@@ -119,7 +131,7 @@ export function generateReceiptHTML(order: any, settings: any, isPaid: boolean) 
           .client-title { font-size: 11px; font-weight: 900; text-transform: uppercase; color: #555; margin-bottom: 4px; }
           .client-name { font-size: 16px; font-weight: 900; color: #000; margin-bottom: 2px; }
           .client-phone { font-size: 14px; font-weight: 900; color: #000; margin-bottom: 3px; }
-          .client-addr { font-size: 13px; font-weight: 900; color: #000; line-height: 1.25; }
+          .client-addr { font-size: 14px; font-weight: 900; color: #000; line-height: 1.3; }
           .client-note { margin-top: 6px; border-top: 1.5px dashed #000; padding-top: 6px; font-size: 12px; font-weight: 900; color: #000; }
           h1 { margin: 0 0 2px 0; font-size: 17px; font-weight: 900; }
           h2 { margin: 0 0 2px 0; font-size: 14px; font-weight: 900; }
@@ -140,13 +152,13 @@ export function generateReceiptHTML(order: any, settings: any, isPaid: boolean) 
         <!-- COMMANDE & DATE -->
         <div class="center">
           <h2>${isPaid ? 'TICKET DE CAISSE' : 'BON DE COMMANDE'}</h2>
-          <p style="font-size: 19px; font-weight: 900; margin: 2px 0;">COMMANDE N° ${order?.id || 'TEST'}</p>
-          <p style="font-size: 11px; font-weight: bold;">${orderDate}</p>
+          <p style="font-size: 20px; font-weight: 900; margin: 2px 0;">COMMANDE N° ${order?.id || 'TEST'}</p>
+          <p style="font-size: 12px; font-weight: 900;">${orderDate}</p>
         </div>
 
-        <!-- STATUT LIVRAISON / TAKEAWAY -->
-        <div class="status-box" style="background: #000; color: #FFF;">
-           ${isDelivery ? 'LIVRAISON 🛵' : "À L'EMPORTER 🛍️"}
+        <!-- STATUT LIVRAISON / TAKEAWAY (EXTRA GRAS & TRÈS VISIBLE) -->
+        <div class="status-delivery-box">
+           ${isDelivery ? '🛵 LIVRAISON 🛵' : "🛍️ À L'EMPORTER 🛍️"}
         </div>
 
         ${order?.requestedTime ? `
