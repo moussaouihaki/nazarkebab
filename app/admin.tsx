@@ -3174,67 +3174,72 @@ function SettingsTab() {
            </View>
         </View>
 
-        {/* Sélection d'imprimante AirPrint (iOS) */}
+        {/* Configuration Imprimante : Adapté Web vs iOS */}
         <View style={[styles.settingFieldRow, { borderTopWidth: StyleSheet.hairlineWidth, borderColor: Theme.colors.border }]}>
-          <Text style={[styles.fieldLabel, { marginBottom: 6 }]}>IMPRIMANTE TICKET (AIRPRINT / WI-FI)</Text>
-          {settings.selectedPrinterName ? (
-            <View style={{ backgroundColor: Theme.colors.success + '15', padding: 12, borderRadius: 10, borderWidth: 1, borderColor: Theme.colors.success + '40', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
-                <Ionicons name="checkmark-circle" size={20} color={Theme.colors.success} />
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 13, color: Theme.colors.text }}>{settings.selectedPrinterName}</Text>
-                  <Text style={{ fontFamily: Theme.fonts.body, fontSize: 11, color: Theme.colors.textSecondary }}>Connectée via AirPrint</Text>
-                </View>
+          <Text style={[styles.fieldLabel, { marginBottom: 6 }]}>CONFIGURATION IMPRIMANTE</Text>
+          
+          {Platform.OS === 'web' ? (
+            <View style={{ backgroundColor: Theme.colors.surface, padding: 14, borderRadius: 10, borderWidth: 1, borderColor: Theme.colors.border }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                <Ionicons name="desktop-outline" size={18} color={Theme.colors.primary} />
+                <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 13, color: Theme.colors.text }}>Mode Navigateur Web (PC / Mac)</Text>
               </View>
-              <TouchableOpacity 
-                style={{ backgroundColor: Theme.colors.surface, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: Theme.colors.border }}
-                onPress={async () => {
-                  try {
-                    if (Platform.OS === 'ios') {
+              <Text style={{ fontFamily: Theme.fonts.body, fontSize: 12, color: Theme.colors.textSecondary, lineHeight: 18 }}>
+                Sur navigateur, l'impression utilise l'imprimante thermique reliée à votre ordinateur (USB ou Réseau). Cliquez sur le bouton de test ci-dessous pour ouvrir la boîte d'impression.
+              </Text>
+            </View>
+          ) : (
+            settings.selectedPrinterName ? (
+              <View style={{ backgroundColor: Theme.colors.success + '15', padding: 12, borderRadius: 10, borderWidth: 1, borderColor: Theme.colors.success + '40', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+                  <Ionicons name="checkmark-circle" size={20} color={Theme.colors.success} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 13, color: Theme.colors.text }}>{settings.selectedPrinterName}</Text>
+                    <Text style={{ fontFamily: Theme.fonts.body, fontSize: 11, color: Theme.colors.textSecondary }}>Connectée via AirPrint</Text>
+                  </View>
+                </View>
+                <TouchableOpacity 
+                  style={{ backgroundColor: Theme.colors.surface, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: Theme.colors.border }}
+                  onPress={async () => {
+                    try {
                       const printer = await Print.selectPrinterAsync();
                       if (printer) {
                         updateSettings({ selectedPrinterName: printer.name, selectedPrinterUrl: printer.url });
                         Alert.alert('Imprimante mise à jour', `Connectée à "${printer.name}"`);
                       }
-                    } else {
-                      Alert.alert('Information', 'Sur le web, l\'impression utilise l\'imprimante par défaut de votre navigateur ou système.');
+                    } catch (e) {
+                      console.error('Erreur sélection imprimante', e);
+                    }
+                  }}
+                >
+                  <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 11, color: Theme.colors.primary }}>Changer</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity 
+                style={{ backgroundColor: Theme.colors.primary + '15', padding: 12, borderRadius: 10, borderWidth: 1, borderColor: Theme.colors.primary + '30', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 8 }}
+                onPress={async () => {
+                  try {
+                    const printer = await Print.selectPrinterAsync();
+                    if (printer) {
+                      updateSettings({ selectedPrinterName: printer.name, selectedPrinterUrl: printer.url });
+                      Alert.alert('Imprimante associée', `Connectée à "${printer.name}" avec succès !`);
                     }
                   } catch (e) {
                     console.error('Erreur sélection imprimante', e);
                   }
                 }}
               >
-                <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 11, color: Theme.colors.primary }}>Changer</Text>
+                <Ionicons name="search" size={16} color={Theme.colors.primary} />
+                <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 13, color: Theme.colors.primary }}>Rechercher & Associer une imprimante AirPrint / Wi-Fi</Text>
               </TouchableOpacity>
-            </View>
-          ) : (
-            <TouchableOpacity 
-              style={{ backgroundColor: Theme.colors.primary + '15', padding: 12, borderRadius: 10, borderWidth: 1, borderColor: Theme.colors.primary + '30', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 8 }}
-              onPress={async () => {
-                try {
-                  if (Platform.OS === 'ios') {
-                    const printer = await Print.selectPrinterAsync();
-                    if (printer) {
-                      updateSettings({ selectedPrinterName: printer.name, selectedPrinterUrl: printer.url });
-                      Alert.alert('Imprimante associée', `Connectée à "${printer.name}" avec succès !`);
-                    }
-                  } else {
-                    Alert.alert('Information', 'Sur le web, l\'impression ouvre la boîte de dialogue d\'impression pour choisir votre imprimante de caisse.');
-                  }
-                } catch (e) {
-                  console.error('Erreur sélection imprimante', e);
-                }
-              }}
-            >
-              <Ionicons name="search" size={16} color={Theme.colors.primary} />
-              <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 13, color: Theme.colors.primary }}>Rechercher & Associer une imprimante AirPrint / Wi-Fi</Text>
-            </TouchableOpacity>
+            )
           )}
         </View>
 
         {/* Bouton Test Impression */}
         <TouchableOpacity 
-          style={{ paddingVertical: 14, alignItems: 'center', borderTopWidth: StyleSheet.hairlineWidth, borderColor: Theme.colors.border }}
+          style={{ paddingVertical: 14, alignItems: 'center', borderTopWidth: StyleSheet.hairlineWidth, borderColor: Theme.colors.border, backgroundColor: Theme.colors.primary + '08' }}
           onPress={async () => {
             const sampleOrder = {
               id: 'TEST-' + Math.floor(1000 + Math.random() * 9000),
@@ -3255,17 +3260,27 @@ function SettingsTab() {
             const html = generateReceiptHTML(sampleOrder, settings, true);
             try {
               if (Platform.OS === 'web') {
-                const iframe = document.createElement('iframe');
-                iframe.style.display = 'none';
-                document.body.appendChild(iframe);
-                iframe.contentWindow?.document.write(html);
-                iframe.contentWindow?.document.close();
-                iframe.onload = () => {
+                const printWindow = window.open('', '_blank');
+                if (printWindow) {
+                  printWindow.document.write(html);
+                  printWindow.document.close();
+                  printWindow.focus();
                   setTimeout(() => {
-                    iframe.contentWindow?.print();
-                    setTimeout(() => { if (document.body.contains(iframe)) document.body.removeChild(iframe); }, 1000);
-                  }, 500);
-                };
+                    printWindow.print();
+                  }, 300);
+                } else {
+                  const iframe = document.createElement('iframe');
+                  iframe.style.display = 'none';
+                  document.body.appendChild(iframe);
+                  iframe.contentWindow?.document.write(html);
+                  iframe.contentWindow?.document.close();
+                  iframe.onload = () => {
+                    setTimeout(() => {
+                      iframe.contentWindow?.print();
+                      setTimeout(() => { if (document.body.contains(iframe)) document.body.removeChild(iframe); }, 1000);
+                    }, 300);
+                  };
+                }
               } else {
                 await Print.printAsync({ 
                   html, 
