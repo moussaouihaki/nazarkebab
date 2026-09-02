@@ -70,6 +70,8 @@ export interface RestaurantSettings {
   outOfStockIngredients?: string[]; // Liste des ingrédients en rupture
   promoCodes?: PromoCode[];
   autoPrintEnabled?: boolean;
+  selectedPrinterName?: string;
+  selectedPrinterUrl?: string;
 }
 
 interface RestaurantState {
