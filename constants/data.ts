@@ -136,16 +136,15 @@ export const PRODUCTS: Product[] = [
         maxChoices: 2,
         choices: [
           { name: 'Riz Blanc', priceOffset: 0 },
-          { name: 'Riz Brun', priceOffset: 0 },
           { name: 'Quinoa', priceOffset: 0 },
           { name: 'Boulgour', priceOffset: 0 },
           { name: 'Salade Mixte', priceOffset: 0 }
         ]
       },
       {
-        title: 'Choisis ta protéine (2 au choix)',
+        title: 'Choisis tes protéines',
         required: false,
-        maxChoices: 2,
+        maxChoices: 10,
         choices: [
           { name: 'Saumon Frais', priceOffset: 6.00 },
           { name: 'Thon Frais', priceOffset: 6.00 },
@@ -157,9 +156,9 @@ export const PRODUCTS: Product[] = [
         ]
       },
       {
-        title: 'Choisis tes accompagnements (5 au choix)',
+        title: 'Choisis tes accompagnements',
         required: false,
-        maxChoices: 5,
+        maxChoices: 25,
         choices: [
           { name: 'Avocat', priceOffset: 2.00 },
           { name: 'Mangue', priceOffset: 2.00 },
@@ -186,9 +185,9 @@ export const PRODUCTS: Product[] = [
         ]
       },
       {
-        title: 'Choisis tes toppings (5 au choix)',
+        title: 'Choisis tes toppings',
         required: false,
-        maxChoices: 5,
+        maxChoices: 20,
         choices: [
           { name: 'Oignons Frits', priceOffset: 1.00 },
           { name: 'Graines de Sésame', priceOffset: 1.00 },
@@ -199,6 +198,32 @@ export const PRODUCTS: Product[] = [
           { name: 'Persil', priceOffset: 1.00 },
           { name: 'Ciboulette', priceOffset: 1.00 },
           { name: 'Noix Écrasées', priceOffset: 1.00 }
+        ]
+      },
+      {
+        title: 'Choisis ta sauce (1 au choix)',
+        required: true,
+        maxChoices: 2,
+        choices: [
+          { name: 'Teriyaki', priceOffset: 0 },
+          { name: 'Garlic Teriyaki', priceOffset: 0 },
+          { name: 'Soy (Soja)', priceOffset: 0 },
+          { name: 'Spicy Mayo Maison', priceOffset: 0 },
+          { name: 'Homemade Lemon Olive Oil', priceOffset: 0 },
+          { name: 'Special House Sauce', priceOffset: 0 }
+        ]
+      },
+      {
+        title: 'Sauce Supplémentaire',
+        required: false,
+        maxChoices: 10,
+        choices: [
+          { name: 'Teriyaki (Extra)', priceOffset: 0.50 },
+          { name: 'Garlic Teriyaki (Extra)', priceOffset: 0.50 },
+          { name: 'Soy (Extra)', priceOffset: 0.50 },
+          { name: 'Spicy Mayo Maison (Extra)', priceOffset: 0.50 },
+          { name: 'Homemade Lemon Olive Oil (Extra)', priceOffset: 0.50 },
+          { name: 'Special House Sauce (Extra)', priceOffset: 0.50 }
         ]
       }
     ]

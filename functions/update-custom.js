@@ -1,13 +1,11 @@
-import { initializeApp } from 'firebase/app';
-import { getFirestore, doc, setDoc } from 'firebase/firestore';
+const { initializeApp, applicationDefault } = require('firebase-admin/app');
+const { getFirestore } = require('firebase-admin/firestore');
 
-const firebaseConfig = {
-  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID || "nazarkebab-d7b25",
-  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY || "AIzaSyDummyKey", // Actually, firestore doesn't strictly need apiKey if rules allow it, or I can extract it from firebase.ts
-};
+initializeApp({
+  projectId: 'nazarkebab-d7b25'
+});
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+const db = getFirestore();
 
 const composePoke = {
   name: 'COMPOSE TON POKÉ',
@@ -16,7 +14,7 @@ const composePoke = {
   category: 'COMPOSE TON POKE',
   image: 'poke',
   highlighted: false,
-  hasSauces: false,
+  hasSauces: true,
   displayOrder: 0,
   outOfStock: false,
   allergens: [],
@@ -120,11 +118,9 @@ const composePoke = {
   ]
 };
 
-async function create() {
-  const ref = doc(db, 'pokemoons_products', 'poke-custom');
-  await setDoc(ref, composePoke);
-  console.log('COMPOSE TON POKÉ a été recréé avec succès dans la catégorie "COMPOSE TON POKE" !');
-  process.exit(0);
+async function run() {
+  await db.collection('pokemoons_products').doc('poke-custom').set(composePoke, { merge: true });
+  console.log('SUCCESS: poke-custom mis a jour dans Firestore avec 0 riz brun et plus de 5 ingredients !');
 }
 
-create().catch(console.error);
+run().catch(console.error);
