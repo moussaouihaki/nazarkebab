@@ -1067,7 +1067,26 @@ function KitchenTab() {
   const preparing = activeOrders.filter(o => o.status === 'preparing');
   const ready = activeOrders.filter(o => o.status === 'ready');
 
-  const KanbanColumn = ({ title, data, color, nextStatus, nextLabel }: { title: string, data: any[], color: string, nextStatus?: string, nextLabel?: string }) => (
+  const getOrderAction = (order: any) => {
+    switch (order.status) {
+      case 'pending':
+        return { nextStatus: 'confirmed', label: 'ACCEPTER COMMANDE', color: '#FF9800' };
+      case 'confirmed':
+        return { nextStatus: 'preparing', label: '👨‍🍳 ENVOYER EN CUISINE', color: '#2196F3' };
+      case 'preparing':
+        return { nextStatus: 'ready', label: '✅ PRÊT À SERVIR', color: Theme.colors.success };
+      case 'ready':
+        return { 
+          nextStatus: 'delivered', 
+          label: order.deliveryType === 'delivery' ? '🛵 CONFIRMER LIVRÉ' : '🛍️ REMIS AU CLIENT', 
+          color: Theme.colors.success 
+        };
+      default:
+        return null;
+    }
+  };
+
+  const KanbanColumn = ({ title, data, color }: { title: string, data: any[], color: string }) => (
     <View style={[styles.kanbanCol, !isDesktop && { flex: 1, borderWidth: 0 }]}>
       <View style={[styles.kanbanHeader, { borderBottomColor: color }]}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -1080,6 +1099,7 @@ function KitchenTab() {
         {data.map(o => {
            const minsElapsed = Math.floor((Date.now() - new Date(o.createdAt || new Date()).getTime()) / 60000);
            const isLate = minsElapsed > 15 && o.status !== 'ready';
+           const action = getOrderAction(o);
            return (
              <View key={o.id} style={[styles.kTicket, isLate && { borderColor: Theme.colors.danger, borderWidth: 2 }]}>
                {/* Header Ticket */}
@@ -1157,26 +1177,14 @@ function KitchenTab() {
 
               {/* Action Buttons */}
               <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
-                {nextStatus && (
+                {action && (
                    <TouchableOpacity 
-                     onPress={() => updateOrderStatus(o.id, nextStatus as any)} 
-                     style={[styles.kBtn, { backgroundColor: color, flex: 1, marginTop: 0 }]}
+                     onPress={() => updateOrderStatus(o.id, action.nextStatus as any)} 
+                     style={[styles.kBtn, { backgroundColor: action.color, flex: 1, marginTop: 0 }]}
                      activeOpacity={0.8}
                    >
-                     <Text style={styles.kBtnText}>{nextLabel || 'VALIDER'}</Text>
+                     <Text style={styles.kBtnText}>{action.label}</Text>
                      <Ionicons name="arrow-forward" size={16} color="#fff" />
-                   </TouchableOpacity>
-                )}
-
-                {/* Complete Button (if finished) */}
-                {o.status === 'ready' && (
-                   <TouchableOpacity 
-                     onPress={() => updateOrderStatus(o.id, 'delivered')} 
-                     style={[styles.kBtn, { backgroundColor: Theme.colors.success, flex: 1, marginTop: 0 }]}
-                     activeOpacity={0.8}
-                   >
-                     <Text style={styles.kBtnText}>TERMINÉ / LIVRÉ</Text>
-                     <Ionicons name="checkmark-done" size={18} color="#fff" />
                    </TouchableOpacity>
                 )}
 
@@ -1226,11 +1234,9 @@ function KitchenTab() {
         
         {activeKTab === 'pending' && (
           <KanbanColumn 
-            title="À VALIDER" 
+            title="À CONFIRMER" 
             data={pending} 
             color={Theme.colors.danger} 
-            nextStatus={pending.some(o => o.status === 'pending') ? 'confirmed' : 'preparing'}
-            nextLabel={pending.some(o => o.status === 'pending') ? 'CONFIRMER' : 'CUISINER'}
           />
         )}
         {activeKTab === 'preparing' && (
@@ -1238,8 +1244,6 @@ function KitchenTab() {
             title="EN CUISINE" 
             data={preparing} 
             color={Theme.colors.primary} 
-            nextStatus="ready"
-            nextLabel="TERMINER"
           />
         )}
         {activeKTab === 'ready' && (
@@ -1247,8 +1251,6 @@ function KitchenTab() {
             title="EXPÉDITION" 
             data={ready} 
             color={Theme.colors.success} 
-            nextStatus="delivered"
-            nextLabel="LIVRÉ / REMIS"
           />
         )}
 
@@ -1271,15 +1273,11 @@ function KitchenTab() {
           title="À CONFIRMER" 
           data={pending} 
           color={Theme.colors.danger} 
-          nextStatus={pending.some(o => o.status === 'pending') ? 'confirmed' : 'preparing'}
-          nextLabel={pending.some(o => o.status === 'pending') ? 'CONFIRMER COMMANDE' : 'LANCER PRÉPARATION'}
         />
         <KanbanColumn 
           title="EN CUISINE" 
           data={preparing} 
           color={Theme.colors.primary} 
-          nextStatus="ready"
-          nextLabel="MARQUER COMME PRÊT"
         />
         <KanbanColumn 
           title="PRÊT / EN ROUTE" 
