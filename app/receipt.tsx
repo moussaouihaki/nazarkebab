@@ -126,7 +126,15 @@ export default function ReceiptScreen() {
             <View style={styles.metaData}>
               <Text style={styles.receiptTitle}>{receiptTitle}</Text>
               <Text style={styles.receiptText}>Commande: {order.id}</Text>
-              <Text style={styles.receiptText}>Date: {new Date(order.createdAt).toLocaleString('fr-CH')}</Text>
+              <Text style={styles.receiptText}>
+                Date: {(() => {
+                  const raw = order.createdAt;
+                  if (raw && typeof raw.toDate === 'function') return raw.toDate().toLocaleString('fr-CH');
+                  if (raw && raw.seconds !== undefined) return new Date(raw.seconds * 1000).toLocaleString('fr-CH');
+                  if (raw && !isNaN(new Date(raw).getTime())) return new Date(raw).toLocaleString('fr-CH');
+                  return new Date().toLocaleString('fr-CH');
+                })()}
+              </Text>
               <Text style={styles.receiptText}>Client: {order.customerName}</Text>
               <Text style={styles.receiptText}>Tél: {order.customerPhone}</Text>
               {order.deliveryType === 'delivery' && (

@@ -48,7 +48,23 @@ export function generateReceiptHTML(order: any, settings: any, isPaid: boolean) 
   const storeName = (settings?.name || 'POKÉMOONS').toUpperCase();
   const storeAddress = settings?.address || 'Place du Marché 6, 2300 La Chaux-de-Fonds';
   const storePhone = settings?.phone || '032 913 22 22';
-  const orderDate = order?.createdAt ? new Date(order.createdAt).toLocaleString('fr-CH') : new Date().toLocaleString('fr-CH');
+  
+  let orderDate = '';
+  try {
+    const raw = order?.createdAt;
+    if (raw && typeof raw.toDate === 'function') {
+      orderDate = raw.toDate().toLocaleString('fr-CH');
+    } else if (raw && raw.seconds !== undefined) {
+      orderDate = new Date(raw.seconds * 1000).toLocaleString('fr-CH');
+    } else if (raw && !isNaN(new Date(raw).getTime())) {
+      orderDate = new Date(raw).toLocaleString('fr-CH');
+    } else {
+      orderDate = new Date().toLocaleString('fr-CH');
+    }
+  } catch (e) {
+    orderDate = new Date().toLocaleString('fr-CH');
+  }
+
   const itemsList = Array.isArray(order?.items) ? order.items : [];
 
   return `
