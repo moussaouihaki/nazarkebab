@@ -3573,55 +3573,273 @@ function DeliveryZonesPanel() {
 }
 
 // ──────────────────────────────────
-// INGREDIENTS STOCK PANEL
+// INGREDIENTS STOCK & MENU PANEL
 // ──────────────────────────────────
 function IngredientsStockPanel() {
-  const { products, settings, toggleIngredientStock } = useRestaurantStore();
+  const { products, settings, toggleIngredientStock, addCustomIngredient, updateCustomIngredient, removeCustomIngredient } = useRestaurantStore();
   
-  const allIngredients = useMemo(() => {
-    const ingredients = new Set<string>();
-    products?.forEach(p => {
-      p.customizationSections?.forEach(sec => {
-        sec.choices?.forEach(c => {
-          if (c && c.name) ingredients.add(c.name);
-        });
-      });
-    });
-    return Array.from(ingredients).sort();
+  const [isAdding, setIsAdding] = useState(false);
+  const [selectedSection, setSelectedSection] = useState('accompagnements');
+  const [newIngredientName, setNewIngredientName] = useState('');
+  const [newIngredientPrice, setNewIngredientPrice] = useState('2.00');
+
+  // State for editing an existing ingredient
+  const [editingIngredient, setEditingIngredient] = useState<{ oldName: string; name: string; priceOffset: string } | null>(null);
+
+  const pokeCustom = useMemo(() => {
+    return products?.find(p => p.id === 'poke-custom') || INITIAL_PRODUCTS.find(p => p.id === 'poke-custom');
   }, [products]);
+
+  const sections = pokeCustom?.customizationSections || [];
+
+  const handleAddIngredient = async () => {
+    if (!newIngredientName.trim()) {
+      Alert.alert('Erreur', 'Veuillez saisir le nom de l\'ingrédient.');
+      return;
+    }
+    const price = parseFloat(newIngredientPrice) || 0;
+    await addCustomIngredient(selectedSection, newIngredientName.trim(), price);
+    setNewIngredientName('');
+    setIsAdding(false);
+    Alert.alert('Succès', `L'ingrédient "${newIngredientName.trim()}" a été ajouté au menu et au stock !`);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingIngredient || !editingIngredient.name.trim()) {
+      Alert.alert('Erreur', 'Le nom de l\'ingrédient ne peut pas être vide.');
+      return;
+    }
+    const price = parseFloat(editingIngredient.priceOffset) || 0;
+    await updateCustomIngredient(editingIngredient.oldName, editingIngredient.name.trim(), price);
+    Alert.alert('Succès', `L'ingrédient "${editingIngredient.name.trim()}" a été mis à jour.`);
+    setEditingIngredient(null);
+  };
+
+  const handleRemoveIngredient = (ingName: string) => {
+    Alert.alert(
+      'Supprimer l\'ingrédient',
+      `Voulez-vous vraiment supprimer définitivement "${ingName}" du menu et du stock ?`,
+      [
+        { text: 'Annuler', style: 'cancel' },
+        { 
+          text: 'Supprimer', 
+          style: 'destructive', 
+          onPress: async () => {
+            await removeCustomIngredient(ingName);
+            Alert.alert('Supprimé', `"${ingName}" a été retiré du menu.`);
+          } 
+        }
+      ]
+    );
+  };
 
   const panels = StyleSheet.create({
     card: { backgroundColor: Theme.colors.surface, borderRadius: 16, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: Theme.colors.border },
-    label: { fontFamily: Theme.fonts.bodyBold, fontSize: 13, color: Theme.colors.text, marginBottom: 12, letterSpacing: 1 },
-    subtitle: { fontFamily: Theme.fonts.body, fontSize: 13, color: Theme.colors.textSecondary, marginBottom: 16 },
-    chipContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-    chip: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: Theme.colors.background, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: Theme.colors.border },
+    label: { fontFamily: Theme.fonts.bodyBold, fontSize: 14, color: Theme.colors.text, marginBottom: 6, letterSpacing: 0.5 },
+    subtitle: { fontFamily: Theme.fonts.body, fontSize: 12, color: Theme.colors.textSecondary, marginBottom: 16 },
+    sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, marginBottom: 8, paddingBottom: 4, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: Theme.colors.border },
+    sectionTitle: { fontFamily: Theme.fonts.bodyBold, fontSize: 13, color: Theme.colors.primary, textTransform: 'uppercase' },
+    chipContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
+    chip: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: Theme.colors.background, paddingLeft: 10, paddingRight: 4, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: Theme.colors.border },
     chipOut: { backgroundColor: Theme.colors.danger + '15', borderColor: Theme.colors.danger },
-    chipText: { fontFamily: Theme.fonts.body, fontSize: 13, color: Theme.colors.text },
+    chipText: { fontFamily: Theme.fonts.bodyMedium, fontSize: 12, color: Theme.colors.text },
     chipTextOut: { color: Theme.colors.danger, textDecorationLine: 'line-through' },
+    actionBtn: { padding: 4 },
+    addForm: { backgroundColor: Theme.colors.background, borderRadius: 12, padding: 12, marginBottom: 16, borderWidth: 1, borderColor: Theme.colors.border },
+    input: { backgroundColor: Theme.colors.surface, borderRadius: 8, padding: 10, color: Theme.colors.text, fontFamily: Theme.fonts.body, fontSize: 13, borderWidth: 1, borderColor: Theme.colors.border, marginBottom: 8 },
   });
-
-  if (allIngredients.length === 0) return null;
 
   return (
     <View style={panels.card}>
-      <Text style={panels.label}>INGRÉDIENTS SUR-MESURE</Text>
-      <Text style={panels.subtitle}>Sélectionne les ingrédients actuellement en rupture. Ils seront bloqués dans la composition de Pokébowl.</Text>
-      <View style={panels.chipContainer}>
-        {allIngredients.map(ing => {
-          const isOut = settings?.outOfStockIngredients?.includes(ing);
-          return (
-            <TouchableOpacity 
-              key={ing} 
-              style={[panels.chip, isOut && panels.chipOut]}
-              onPress={() => toggleIngredientStock(ing)}
-            >
-              <Text style={[panels.chipText, isOut && panels.chipTextOut]}>{ing}</Text>
-              {isOut && <Ionicons name="close-circle" size={16} color={Theme.colors.danger} />}
-            </TouchableOpacity>
-          );
-        })}
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+        <Text style={panels.label}>🥗 GESTION DU STOCK & INGRÉDIENTS</Text>
+        <TouchableOpacity 
+          style={{ backgroundColor: isAdding ? Theme.colors.surface : Theme.colors.success, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 }}
+          onPress={() => {
+            setIsAdding(!isAdding);
+            setEditingIngredient(null);
+          }}
+        >
+          <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 12, color: isAdding ? Theme.colors.text : '#FFF' }}>
+            {isAdding ? 'Fermer' : '+ Ajouter un ingrédient'}
+          </Text>
+        </TouchableOpacity>
       </View>
+      <Text style={panels.subtitle}>
+        Appuyez sur un ingrédient pour basculer <Text style={{ color: Theme.colors.danger, fontWeight: 'bold' }}>Rupture</Text> / <Text style={{ color: Theme.colors.success, fontWeight: 'bold' }}>En Stock</Text>. Cliquez sur ✏️ pour modifier son nom/prix ou 🗑️ pour le supprimer.
+      </Text>
+
+      {/* FORMULAIRE DE MODIFICATION D'INGRÉDIENT */}
+      {editingIngredient && (
+        <View style={[panels.addForm, { borderColor: Theme.colors.primary, borderWidth: 1.5 }]}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 12, color: Theme.colors.primary }}>
+              ✏️ MODIFIER : {editingIngredient.oldName}
+            </Text>
+            <TouchableOpacity onPress={() => setEditingIngredient(null)}>
+              <Ionicons name="close-circle" size={20} color={Theme.colors.textSecondary} />
+            </TouchableOpacity>
+          </View>
+
+          <Text style={{ fontFamily: Theme.fonts.body, fontSize: 11, color: Theme.colors.textSecondary, marginBottom: 4 }}>Nom :</Text>
+          <TextInput
+            style={panels.input}
+            placeholder="Nom de l'ingrédient"
+            placeholderTextColor={Theme.colors.textSecondary}
+            value={editingIngredient.name}
+            onChangeText={(val) => setEditingIngredient({ ...editingIngredient, name: val })}
+          />
+
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+            <Text style={{ fontFamily: Theme.fonts.body, fontSize: 12, color: Theme.colors.textSecondary }}>Prix supplément (CHF) :</Text>
+            <TextInput
+              style={[panels.input, { width: 90, marginBottom: 0, paddingVertical: 6, textAlign: 'center' }]}
+              placeholder="0.00"
+              placeholderTextColor={Theme.colors.textSecondary}
+              keyboardType="numeric"
+              value={editingIngredient.priceOffset}
+              onChangeText={(val) => setEditingIngredient({ ...editingIngredient, priceOffset: val })}
+            />
+          </View>
+
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            <TouchableOpacity
+              style={{ flex: 1, backgroundColor: Theme.colors.surface, padding: 10, borderRadius: 8, alignItems: 'center', borderWidth: 1, borderColor: Theme.colors.border }}
+              onPress={() => setEditingIngredient(null)}
+            >
+              <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 13, color: Theme.colors.text }}>Annuler</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={{ flex: 1, backgroundColor: Theme.colors.primary, padding: 10, borderRadius: 8, alignItems: 'center' }}
+              onPress={handleSaveEdit}
+            >
+              <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 13, color: '#000' }}>Sauvegarder</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      {/* FORMULAIRE D'AJOUT D'INGRÉDIENT */}
+      {isAdding && (
+        <View style={panels.addForm}>
+          <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 12, color: Theme.colors.text, marginBottom: 8 }}>
+            AJOUTER UN INGRÉDIENT AU MENU
+          </Text>
+          
+          <Text style={{ fontFamily: Theme.fonts.body, fontSize: 11, color: Theme.colors.textSecondary, marginBottom: 4 }}>Section :</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 10 }}>
+            {sections.map((sec: any, idx: number) => {
+              const isSel = selectedSection === sec.title;
+              return (
+                <TouchableOpacity
+                  key={idx}
+                  style={{
+                    paddingHorizontal: 10, paddingVertical: 5, borderRadius: 14, marginRight: 6,
+                    backgroundColor: isSel ? Theme.colors.primary : Theme.colors.surface,
+                    borderWidth: 1, borderColor: isSel ? Theme.colors.primary : Theme.colors.border
+                  }}
+                  onPress={() => {
+                    setSelectedSection(sec.title);
+                    if (sec.title.toLowerCase().includes('base')) setNewIngredientPrice('0');
+                    else if (sec.title.toLowerCase().includes('protéine')) setNewIngredientPrice('6.00');
+                    else if (sec.title.toLowerCase().includes('accompagnement')) setNewIngredientPrice('2.00');
+                    else if (sec.title.toLowerCase().includes('topping')) setNewIngredientPrice('1.00');
+                    else if (sec.title.toLowerCase().includes('sauce')) setNewIngredientPrice('0.50');
+                  }}
+                >
+                  <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 11, color: isSel ? '#000' : Theme.colors.text }}>
+                    {sec.title}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+
+          <TextInput
+            style={panels.input}
+            placeholder="Nom de l'ingrédient (ex: Mangue, Falafel...)"
+            placeholderTextColor={Theme.colors.textSecondary}
+            value={newIngredientName}
+            onChangeText={setNewIngredientName}
+          />
+
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+            <Text style={{ fontFamily: Theme.fonts.body, fontSize: 12, color: Theme.colors.textSecondary }}>Prix supplément (CHF) :</Text>
+            <TextInput
+              style={[panels.input, { width: 90, marginBottom: 0, paddingVertical: 6, textAlign: 'center' }]}
+              placeholder="0.00"
+              placeholderTextColor={Theme.colors.textSecondary}
+              keyboardType="numeric"
+              value={newIngredientPrice}
+              onChangeText={setNewIngredientPrice}
+            />
+          </View>
+
+          <TouchableOpacity
+            style={{ backgroundColor: Theme.colors.success, padding: 10, borderRadius: 8, alignItems: 'center' }}
+            onPress={handleAddIngredient}
+          >
+            <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 13, color: '#FFF' }}>
+              Enregistrer dans le menu
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* LISTE DES INGRÉDIENTS PAR SECTION */}
+      {sections.map((sec: any, sIdx: number) => {
+        const choices = sec.choices || [];
+        if (choices.length === 0) return null;
+        return (
+          <View key={sIdx}>
+            <View style={panels.sectionHeader}>
+              <Text style={panels.sectionTitle}>{sec.title} ({choices.length})</Text>
+            </View>
+            <View style={panels.chipContainer}>
+              {choices.map((choice: any, cIdx: number) => {
+                const ingName = choice.name;
+                const isOut = settings?.outOfStockIngredients?.includes(ingName);
+                return (
+                  <View key={cIdx} style={[panels.chip, isOut && panels.chipOut]}>
+                    <TouchableOpacity 
+                      style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
+                      onPress={() => toggleIngredientStock(ingName)}
+                    >
+                      <Text style={[panels.chipText, isOut && panels.chipTextOut]}>
+                        {ingName} {choice.priceOffset > 0 ? `(+${choice.priceOffset.toFixed(2)})` : ''}
+                      </Text>
+                      {isOut && <Ionicons name="close-circle" size={15} color={Theme.colors.danger} />}
+                    </TouchableOpacity>
+                    
+                    {/* BOUTON MODIFIER */}
+                    <TouchableOpacity 
+                      style={panels.actionBtn}
+                      onPress={() => {
+                        setEditingIngredient({
+                          oldName: ingName,
+                          name: ingName,
+                          priceOffset: choice.priceOffset?.toString() || '0'
+                        });
+                        setIsAdding(false);
+                      }}
+                    >
+                      <Ionicons name="pencil" size={13} color={Theme.colors.primary} />
+                    </TouchableOpacity>
+
+                    {/* BOUTON SUPPRIMER */}
+                    <TouchableOpacity 
+                      style={panels.actionBtn}
+                      onPress={() => handleRemoveIngredient(ingName)}
+                    >
+                      <Ionicons name="trash-outline" size={13} color={Theme.colors.textSecondary} />
+                    </TouchableOpacity>
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+        );
+      })}
     </View>
   );
 }

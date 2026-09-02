@@ -173,7 +173,6 @@ export const PRODUCTS: Product[] = [
           { name: 'Poivrons', priceOffset: 2.00 },
           { name: 'Champignons Frais', priceOffset: 2.00 },
           { name: 'Lentilles', priceOffset: 2.00 },
-          { name: 'Algues Wakame', priceOffset: 2.00 },
           { name: 'Pois Chiches', priceOffset: 2.00 },
           { name: 'Graines de Grenade', priceOffset: 2.00 },
           { name: 'Citron Vert', priceOffset: 2.00 },

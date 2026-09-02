@@ -100,6 +100,9 @@ interface RestaurantState {
   updateSauces: (sauces: string[]) => Promise<void>;
   updateDrinks: (drinks: Drink[]) => Promise<void>;
   toggleIngredientStock: (ingredient: string) => Promise<void>;
+  addCustomIngredient: (sectionTitle: string, name: string, priceOffset: number) => Promise<void>;
+  updateCustomIngredient: (oldName: string, newName: string, newPriceOffset: number) => Promise<void>;
+  removeCustomIngredient: (ingredientName: string) => Promise<void>;
   addPromoCode: (promo: Omit<PromoCode, 'id'>) => Promise<void>;
   deletePromoCode: (id: string) => Promise<void>;
   togglePromoCode: (id: string) => Promise<void>;
@@ -178,23 +181,16 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
       if (settingsDoc.exists()) {
         const data = settingsDoc.data();
         
-        // AUTO-REPAIR SAUCES (local only)
-        if (!data.sauces || data.sauces.length === 0) {
-           data.sauces = DEFAULT_SETTINGS.sauces;
-        }
-
-        // AUTO-REPAIR ADDRESS, TVA, NAME (local only)
-        if (!data.address) data.address = DEFAULT_SETTINGS.address;
-        if (!data.tva) data.tva = DEFAULT_SETTINGS.tva;
-        if (!data.name) data.name = DEFAULT_SETTINGS.name;
-        if (!data.phone) data.phone = DEFAULT_SETTINGS.phone;
-
-        // AUTO-REPAIR HOURS (local only)
-        if (!data.hours || data.hours.length === 0) {
-           data.hours = DEFAULT_HOURS;
-        }
-
-        set({ settings: { ...DEFAULT_SETTINGS, ...data } as RestaurantSettings });
+        // Merge defaults to avoid missing keys
+        const mergedSettings = {
+          ...DEFAULT_SETTINGS,
+          ...data,
+          hours: data.hours || DEFAULT_HOURS,
+          sauces: data.sauces || DEFAULT_SETTINGS.sauces,
+          drinks: data.drinks || DEFAULT_SETTINGS.drinks,
+          promoCodes: data.promoCodes || DEFAULT_SETTINGS.promoCodes,
+        };
+        set({ settings: mergedSettings as RestaurantSettings });
       } else {
         // First initialization
         await setDoc(doc(db, 'settings', 'pokemoons_restaurant'), DEFAULT_SETTINGS);
@@ -247,9 +243,6 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
         // Merge local missing products to ensure UI always has the defaults
         const mergedProducts = prodList.map(p => {
            const initial = INITIAL_PRODUCTS.find(initP => initP.id === p.id);
-           if (p.id === 'poke-custom' && initial) {
-             return { ...p, customizationSections: initial.customizationSections };
-           }
            return initial ? { ...initial, ...p } : p;
         });
         
@@ -398,6 +391,83 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
       await get().updateSettings({ outOfStockIngredients: newList });
     } catch (err) {
       console.error('Erreur toggle ingredient:', err);
+    }
+  },
+
+  addCustomIngredient: async (sectionTitle, name, priceOffset) => {
+    try {
+      const allProducts = get().products;
+      const pokeCustom = allProducts.find(p => p.id === 'poke-custom') || INITIAL_PRODUCTS.find(p => p.id === 'poke-custom');
+      if (!pokeCustom || !pokeCustom.customizationSections) return;
+
+      const sections = JSON.parse(JSON.stringify(pokeCustom.customizationSections));
+      let targetSection = sections.find((s: any) => s.title.toLowerCase().includes(sectionTitle.toLowerCase()));
+      if (!targetSection) {
+        targetSection = sections[0];
+      }
+      if (targetSection) {
+        if (!targetSection.choices) targetSection.choices = [];
+        if (!targetSection.choices.find((c: any) => c.name.toLowerCase() === name.trim().toLowerCase())) {
+          targetSection.choices.push({ name: name.trim(), priceOffset: Number(priceOffset) || 0 });
+        }
+      }
+      await get().updateProduct('poke-custom', { customizationSections: sections });
+    } catch (err) {
+      console.error('Erreur addCustomIngredient:', err);
+    }
+  },
+
+  removeCustomIngredient: async (ingredientName) => {
+    try {
+      const allProducts = get().products;
+      const pokeCustom = allProducts.find(p => p.id === 'poke-custom') || INITIAL_PRODUCTS.find(p => p.id === 'poke-custom');
+      if (!pokeCustom || !pokeCustom.customizationSections) return;
+
+      const sections = JSON.parse(JSON.stringify(pokeCustom.customizationSections));
+      sections.forEach((sec: any) => {
+        if (sec.choices) {
+          sec.choices = sec.choices.filter((c: any) => c.name.toLowerCase() !== ingredientName.trim().toLowerCase());
+        }
+      });
+
+      await get().updateProduct('poke-custom', { customizationSections: sections });
+
+      const outList = get().settings.outOfStockIngredients || [];
+      if (outList.includes(ingredientName)) {
+        await get().updateSettings({ outOfStockIngredients: outList.filter(i => i !== ingredientName) });
+      }
+    } catch (err) {
+      console.error('Erreur removeCustomIngredient:', err);
+    }
+  },
+
+  updateCustomIngredient: async (oldName, newName, newPriceOffset) => {
+    try {
+      const allProducts = get().products;
+      const pokeCustom = allProducts.find(p => p.id === 'poke-custom') || INITIAL_PRODUCTS.find(p => p.id === 'poke-custom');
+      if (!pokeCustom || !pokeCustom.customizationSections) return;
+
+      const sections = JSON.parse(JSON.stringify(pokeCustom.customizationSections));
+      sections.forEach((sec: any) => {
+        if (sec.choices) {
+          sec.choices.forEach((c: any) => {
+            if (c.name.toLowerCase() === oldName.trim().toLowerCase()) {
+              c.name = newName.trim();
+              c.priceOffset = Number(newPriceOffset) || 0;
+            }
+          });
+        }
+      });
+
+      await get().updateProduct('poke-custom', { customizationSections: sections });
+
+      const outList = get().settings.outOfStockIngredients || [];
+      if (outList.includes(oldName)) {
+        const updatedOutList = outList.map(i => i === oldName ? newName.trim() : i);
+        await get().updateSettings({ outOfStockIngredients: updatedOutList });
+      }
+    } catch (err) {
+      console.error('Erreur updateCustomIngredient:', err);
     }
   },
 
