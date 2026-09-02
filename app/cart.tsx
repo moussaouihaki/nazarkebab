@@ -138,14 +138,15 @@ export default function CartScreen() {
     };
 
     const isToday = selectedDate.toDateString() === new Date().toDateString();
+    const now = new Date();
+    const currentActualMins = now.getHours() * 60 + now.getMinutes();
+
+    // 15-minute intervals for both lunch and evening
+    const stepMins = 15;
+
     let currentMins = 0;
-
-    // Delivery is every 30 mins, Takeaway is every 15 mins
-    const stepMins = deliveryType === 'delivery' ? 30 : 15;
-
     if (isToday) {
-      const now = new Date();
-      currentMins = now.getHours() * 60 + now.getMinutes() + (deliveryType === 'delivery' ? 30 : 15);
+      currentMins = currentActualMins + 10;
       currentMins = Math.ceil(currentMins / stepMins) * stepMins;
     }
 
@@ -157,13 +158,31 @@ export default function CartScreen() {
       }
     };
 
-    generateSlots(parseTime(todayHours.open), parseTime(todayHours.close));
+    const open1 = parseTime(todayHours.open);
+    const close1 = parseTime(todayHours.close);
+    generateSlots(open1, close1);
+
+    let hasShift2 = false;
+    let open2 = 0;
+    let close2 = 0;
     if (todayHours.hasSplitShift && todayHours.open2 && todayHours.close2) {
-      generateSlots(parseTime(todayHours.open2), parseTime(todayHours.close2));
+      hasShift2 = true;
+      open2 = parseTime(todayHours.open2);
+      close2 = parseTime(todayHours.close2);
+      generateSlots(open2, close2);
     }
 
-    if (isToday && times.length > 0) {
-      times.unshift('ASAP');
+    // Check if restaurant is currently open right now
+    const isCurrentlyOpen = isToday && (
+      (currentActualMins >= open1 && currentActualMins <= close1) ||
+      (hasShift2 && currentActualMins >= open2 && currentActualMins <= close2)
+    );
+
+    // If today and restaurant is open (e.g. up to 22h00 in the evening), ASAP is always available!
+    if (isToday && (isCurrentlyOpen || times.length > 0)) {
+      if (!times.includes('ASAP')) {
+        times.unshift('ASAP');
+      }
     }
 
     setAvailableTimes(times);

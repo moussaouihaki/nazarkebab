@@ -106,7 +106,7 @@ interface RestaurantState {
 }
 
 const DEFAULT_HOURS: OpeningHours[] = [
-  { day: 'Lundi',    isOpen: true,  open: '11:00', close: '14:00' },
+  { day: 'Lundi',    isOpen: true,  open: '11:00', close: '14:00', hasSplitShift: true, open2: '18:00', close2: '22:00' },
   { day: 'Mardi',    isOpen: true,  open: '11:00', close: '14:00', hasSplitShift: true, open2: '18:00', close2: '22:00' },
   { day: 'Mercredi', isOpen: true,  open: '11:00', close: '14:00', hasSplitShift: true, open2: '18:00', close2: '22:00' },
   { day: 'Jeudi',    isOpen: true,  open: '11:00', close: '14:00', hasSplitShift: true, open2: '18:00', close2: '22:00' },
