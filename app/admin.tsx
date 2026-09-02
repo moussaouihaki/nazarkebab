@@ -3249,6 +3249,8 @@ function SettingsTab() {
               customerAddress: 'Place du Marché 6, 2300 La Chaux-de-Fonds',
               deliveryType: 'delivery',
               total: 24.50,
+              subTotal: 23.88,
+              taxAmount: 0.62,
               isPaid: true,
               paymentMethod: 'Carte',
               items: [
@@ -3257,29 +3259,29 @@ function SettingsTab() {
               ],
               note: 'Ticket de test Pokémoons',
             };
-            const html = generateReceiptHTML(sampleOrder, settings, true);
             try {
+              const html = generateReceiptHTML(sampleOrder, settings, true);
               if (Platform.OS === 'web') {
-                const printWindow = window.open('', '_blank');
-                if (printWindow) {
-                  printWindow.document.write(html);
-                  printWindow.document.close();
-                  printWindow.focus();
+                const iframe = document.createElement('iframe');
+                iframe.style.position = 'fixed';
+                iframe.style.right = '0';
+                iframe.style.bottom = '0';
+                iframe.style.width = '0';
+                iframe.style.height = '0';
+                iframe.style.border = '0';
+                document.body.appendChild(iframe);
+                const doc = iframe.contentWindow?.document || iframe.contentDocument;
+                if (doc) {
+                  doc.open();
+                  doc.write(html);
+                  doc.close();
                   setTimeout(() => {
-                    printWindow.print();
-                  }, 300);
-                } else {
-                  const iframe = document.createElement('iframe');
-                  iframe.style.display = 'none';
-                  document.body.appendChild(iframe);
-                  iframe.contentWindow?.document.write(html);
-                  iframe.contentWindow?.document.close();
-                  iframe.onload = () => {
+                    iframe.contentWindow?.focus();
+                    iframe.contentWindow?.print();
                     setTimeout(() => {
-                      iframe.contentWindow?.print();
-                      setTimeout(() => { if (document.body.contains(iframe)) document.body.removeChild(iframe); }, 1000);
-                    }, 300);
-                  };
+                      if (document.body.contains(iframe)) document.body.removeChild(iframe);
+                    }, 3000);
+                  }, 250);
                 }
               } else {
                 await Print.printAsync({ 
@@ -3287,8 +3289,13 @@ function SettingsTab() {
                   printerUrl: settings.selectedPrinterUrl || undefined 
                 });
               }
-            } catch (err) {
+            } catch (err: any) {
               console.error('Erreur test impression', err);
+              if (Platform.OS === 'web') {
+                alert('Erreur impression: ' + (err?.message || err));
+              } else {
+                Alert.alert('Erreur', err?.message || 'Impossible d\'imprimer');
+              }
             }
           }}
         >
