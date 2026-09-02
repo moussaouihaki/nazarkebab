@@ -19,7 +19,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.nazar.kebab",
-      "buildNumber": "53",
+      "buildNumber": "54",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "UIBackgroundModes": [
@@ -35,7 +35,7 @@
       }
     },
     "android": {
-      "versionCode": 53,
+      "versionCode": 54,
       "adaptiveIcon": {
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundColor": "#FFFFFF"
