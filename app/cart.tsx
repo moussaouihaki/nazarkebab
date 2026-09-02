@@ -297,12 +297,6 @@ export default function CartScreen() {
       return;
     }
 
-    // Check if slot is already booked for delivery
-    if (deliveryType === 'delivery' && selectedTime !== 'ASAP' && (bookedDeliverySlots[selectedTime] || 0) >= 1) {
-      alert(`Le créneau ${selectedTime} en livraison est déjà complet (1 commande max par 30 min). Veuillez choisir un autre créneau.`);
-      return;
-    }
-
     if (paymentMethod === 'card') {
       const cleanNum = cardNumber.replace(/\s/g, '');
       if (cleanNum.length < 15) {
@@ -480,21 +474,17 @@ export default function CartScreen() {
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
                     {availableTimes.map((t, i) => {
                       const isSelected = selectedTime === t;
-                      const isBookedFull = deliveryType === 'delivery' && t !== 'ASAP' && (bookedDeliverySlots[t] || 0) >= 1;
                       return (
                         <TouchableOpacity 
                           key={i} 
                           style={[
                             styles2.timeChip, 
-                            isSelected && styles2.timeChipActive,
-                            isBookedFull && { opacity: 0.4, borderColor: '#ccc', backgroundColor: '#eee' }
+                            isSelected && styles2.timeChipActive
                           ]} 
-                          disabled={isBookedFull}
                           onPress={() => setSelectedTime(t)}
                         >
-                          <Text style={[styles2.timeChipText, isSelected && styles2.timeChipTextActive, isBookedFull && { color: '#999', textDecorationLine: 'line-through' }]}>
+                          <Text style={[styles2.timeChipText, isSelected && styles2.timeChipTextActive]}>
                             {t === 'ASAP' ? 'Dès que possible' : t}
-                            {isBookedFull ? ' (Complet)' : ''}
                           </Text>
                         </TouchableOpacity>
                       );
@@ -502,11 +492,6 @@ export default function CartScreen() {
                   </ScrollView>
                 ) : (
                   <Text style={{ color: Theme.colors.danger, fontSize: 13 }}>Aucun créneau disponible pour cette date.</Text>
-                )}
-                {deliveryType === 'delivery' && (
-                  <Text style={{ fontFamily: Theme.fonts.body, fontSize: 11, color: Theme.colors.textSecondary, marginTop: 6, fontStyle: 'italic' }}>
-                    ℹ️ Livraison : 1 commande par tranche de 30 min maximum (ou dès que possible).
-                  </Text>
                 )}
               </View>
             )}
