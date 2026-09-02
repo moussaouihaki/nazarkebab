@@ -65,48 +65,48 @@ export function generateReceiptHTML(order: any, settings: any, isPaid: boolean) 
           * { box-sizing: border-box; }
           body { 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif, monospace; 
-            padding: 12px; 
+            padding: 8px; 
             width: 100%; 
-            max-width: 360px; 
+            max-width: 280px; 
             margin: auto; 
             color: #000; 
-            font-size: 15px; 
+            font-size: 13px; 
             font-weight: 600;
-            line-height: 1.35;
+            line-height: 1.3;
           }
           .center { text-align: center; }
-          .divider { border-bottom: 2.5px dashed #000; margin: 14px 0; }
-          .thick-divider { border-bottom: 3px solid #000; margin: 14px 0; }
+          .divider { border-bottom: 1.5px dashed #000; margin: 10px 0; }
+          .thick-divider { border-bottom: 2px solid #000; margin: 10px 0; }
           table { width: 100%; border-collapse: collapse; }
-          td { vertical-align: top; padding: 6px 0; font-size: 15px; }
-          .qty { width: 40px; font-weight: 900; font-size: 18px; color: #000; }
-          .item-name { font-size: 17px; font-weight: 900; color: #000; }
-          .price { text-align: right; white-space: nowrap; font-weight: 900; font-size: 16px; }
-          .total { font-weight: 900; font-size: 1.6em; border-top: 2.5px solid #000; }
+          td { vertical-align: top; padding: 4px 0; font-size: 13px; }
+          .qty { width: 32px; font-weight: 900; font-size: 14px; color: #000; }
+          .item-name { font-size: 13px; font-weight: 900; color: #000; }
+          .price { text-align: right; white-space: nowrap; font-weight: 900; font-size: 13px; }
+          .total { font-weight: 900; font-size: 1.3em; border-top: 2px solid #000; }
           .status-box { 
-            border: 3px solid #000; 
-            padding: 10px; 
-            margin: 12px 0; 
+            border: 2px solid #000; 
+            padding: 6px 8px; 
+            margin: 8px 0; 
             font-weight: 900; 
-            font-size: 20px; 
+            font-size: 15px; 
             text-align: center; 
             text-transform: uppercase; 
             letter-spacing: 0.5px;
           }
           .client-box { 
-            border: 2.5px solid #000; 
-            padding: 12px; 
-            margin: 14px 0; 
+            border: 1.5px solid #000; 
+            padding: 8px 10px; 
+            margin: 10px 0; 
             border-radius: 4px;
             background: #fafafa;
           }
-          .client-title { font-size: 13px; font-weight: 900; text-transform: uppercase; color: #444; margin-bottom: 6px; }
-          .client-name { font-size: 22px; font-weight: 900; color: #000; margin-bottom: 4px; }
-          .client-phone { font-size: 19px; font-weight: 900; color: #000; margin-bottom: 6px; }
-          .client-addr { font-size: 18px; font-weight: 900; color: #000; line-height: 1.3; }
-          .client-note { margin-top: 8px; border-top: 2px dashed #000; padding-top: 8px; font-size: 16px; font-weight: 900; color: #000; }
-          h1 { margin: 0 0 4px 0; font-size: 24px; font-weight: 900; }
-          h2 { margin: 0 0 4px 0; font-size: 18px; font-weight: 900; }
+          .client-title { font-size: 11px; font-weight: 900; text-transform: uppercase; color: #555; margin-bottom: 4px; }
+          .client-name { font-size: 16px; font-weight: 900; color: #000; margin-bottom: 2px; }
+          .client-phone { font-size: 14px; font-weight: 900; color: #000; margin-bottom: 3px; }
+          .client-addr { font-size: 13px; font-weight: 900; color: #000; line-height: 1.25; }
+          .client-note { margin-top: 6px; border-top: 1.5px dashed #000; padding-top: 6px; font-size: 12px; font-weight: 900; color: #000; }
+          h1 { margin: 0 0 2px 0; font-size: 17px; font-weight: 900; }
+          h2 { margin: 0 0 2px 0; font-size: 14px; font-weight: 900; }
           p { margin: 2px 0; }
         </style>
       </head>
@@ -114,18 +114,18 @@ export function generateReceiptHTML(order: any, settings: any, isPaid: boolean) 
         <!-- EN-TÊTE DU RESTAURANT -->
         <div class="center">
           <h1>${storeName}</h1>
-          <p style="font-size: 14px; font-weight: bold;">${storeAddress}</p>
-          <p style="font-size: 15px; font-weight: 900;">Tél: ${storePhone}</p>
-          ${settings?.tva ? `<p style="font-size: 12px;">N° IDE/TVA: ${settings.tva}</p>` : ''}
+          <p style="font-size: 11px; font-weight: bold;">${storeAddress}</p>
+          <p style="font-size: 12px; font-weight: 900;">Tél: ${storePhone}</p>
+          ${settings?.tva ? `<p style="font-size: 10px;">N° IDE/TVA: ${settings.tva}</p>` : ''}
         </div>
         
         <div class="divider"></div>
         
         <!-- COMMANDE & DATE -->
         <div class="center">
-          <h2 style="letter-spacing: 1px;">${isPaid ? 'TICKET DE CAISSE' : 'BON DE COMMANDE'}</h2>
-          <p style="font-size: 26px; font-weight: 900; margin: 4px 0;">COMMANDE N° ${order?.id || 'TEST'}</p>
-          <p style="font-size: 14px; font-weight: bold;">${orderDate}</p>
+          <h2>${isPaid ? 'TICKET DE CAISSE' : 'BON DE COMMANDE'}</h2>
+          <p style="font-size: 19px; font-weight: 900; margin: 2px 0;">COMMANDE N° ${order?.id || 'TEST'}</p>
+          <p style="font-size: 11px; font-weight: bold;">${orderDate}</p>
         </div>
 
         <!-- STATUT LIVRAISON / TAKEAWAY -->
@@ -134,14 +134,14 @@ export function generateReceiptHTML(order: any, settings: any, isPaid: boolean) 
         </div>
 
         ${order?.requestedTime ? `
-          <div class="status-box" style="background: #eee; font-size: 21px;">
+          <div class="status-box" style="background: #eee; font-size: 15px;">
             POUR : ${order.requestedTime}
           </div>
         ` : ''}
 
-        <!-- COORDONNÉES CLIENT (GRAND & TRÈS VISIBLE) -->
+        <!-- COORDONNÉES CLIENT (NET & LISIBLE) -->
         <div class="client-box">
-          <div class="client-title">COORDONNÉES CLIENT</div>
+          <div class="client-title">CLIENT</div>
           <div class="client-name">👤 ${order?.customerName || 'Client'}</div>
           <div class="client-phone">📞 ${order?.customerPhone || 'Non renseigné'}</div>
           ${isDelivery ? `
@@ -157,12 +157,12 @@ export function generateReceiptHTML(order: any, settings: any, isPaid: boolean) 
         <!-- LISTE DES ARTICLES -->
         <table>
           ${itemsList.map((item: any) => `
-            <tr style="border-bottom: 1px dashed #ccc;">
+            <tr style="border-bottom: 1px dashed #ddd;">
               <td class="qty">${item.quantity || 1}x</td>
               <td>
                 <div class="item-name">${item.name || 'Article'}</div>
                 ${renderOptions(item)}
-                ${item.note ? `<div style="font-size: 14px; margin-top: 4px; font-weight: bold; background: #eee; padding: 2px 4px;">Note: ${item.note}</div>` : ''}
+                ${item.note ? `<div style="font-size: 11px; margin-top: 3px; font-weight: bold; background: #eee; padding: 2px 4px;">Note: ${item.note}</div>` : ''}
               </td>
               <td class="price">${((item.price || 0) * (item.quantity || 1)).toFixed(2)}</td>
             </tr>
@@ -179,21 +179,21 @@ export function generateReceiptHTML(order: any, settings: any, isPaid: boolean) 
         <div class="thick-divider"></div>
         
         <!-- TOTAUX & TVA -->
-        <table style="margin-top: 6px;">
-          <tr><td style="font-weight: bold; font-size: 16px;">Total HT :</td><td class="price" style="font-size: 16px;">${subTotal.toFixed(2)} CHF</td></tr>
-          <tr><td style="font-weight: bold; font-size: 16px;">TVA incl. (2.6%) :</td><td class="price" style="font-size: 16px;">${taxAmount.toFixed(2)} CHF</td></tr>
+        <table style="margin-top: 4px;">
+          <tr><td style="font-weight: bold; font-size: 12px;">Total HT :</td><td class="price" style="font-size: 12px;">${subTotal.toFixed(2)} CHF</td></tr>
+          <tr><td style="font-weight: bold; font-size: 12px;">TVA incl. (2.6%) :</td><td class="price" style="font-size: 12px;">${taxAmount.toFixed(2)} CHF</td></tr>
           <tr class="total">
-            <td style="padding-top: 10px; font-size: 22px; font-weight: 900;">TOTAL TTC :</td>
-            <td class="price" style="padding-top: 10px; font-size: 24px; font-weight: 900;">${orderTotal.toFixed(2)} CHF</td>
+            <td style="padding-top: 6px; font-size: 16px; font-weight: 900;">TOTAL TTC :</td>
+            <td class="price" style="padding-top: 6px; font-size: 17px; font-weight: 900;">${orderTotal.toFixed(2)} CHF</td>
           </tr>
         </table>
         
         <!-- PAIEMENT -->
-        <div class="status-box" style="margin-top: 16px; font-size: 19px; background: ${isPaid ? '#e8f5e9' : '#ffebee'}; border-color: ${isPaid ? '#2e7d32' : '#c62828'};">
+        <div class="status-box" style="margin-top: 10px; font-size: 14px; background: ${isPaid ? '#e8f5e9' : '#ffebee'}; border-color: ${isPaid ? '#2e7d32' : '#c62828'};">
            RÈGLEMENT : ${isPaid ? 'PAYÉ PAR CARTE ✅' : 'À ENCAISSER EN CASH ❌'}
         </div>
         
-        <div class="center" style="margin-top: 20px; font-size: 14px; font-weight: bold;">
+        <div class="center" style="margin-top: 14px; font-size: 12px; font-weight: bold;">
           <p>Merci de votre commande !</p>
           <p>www.pokemoons.ch</p>
         </div>
