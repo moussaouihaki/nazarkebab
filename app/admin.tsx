@@ -2084,6 +2084,9 @@ function MenuTab() {
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
+        {/* POKÉMOONS DU MOIS MANAGER */}
+        <PokeOfTheMonthPanel />
+
         {filtered.length === 0 && (
           <Text style={styles.emptySubtitle}>Aucun produit dans cette catégorie.</Text>
         )}
@@ -3840,6 +3843,266 @@ function IngredientsStockPanel() {
           </View>
         );
       })}
+    </View>
+  );
+}
+
+// ──────────────────────────────────
+// POKÉMOONS DU MOIS PANEL (ADMIN)
+// ──────────────────────────────────
+function PokeOfTheMonthPanel() {
+  const { settings, products, updatePokeOfTheMonth } = useRestaurantStore();
+  const cfg = settings?.pokeOfTheMonth || {
+    enabled: true,
+    productId: 'poke-salmon',
+    monthLabel: 'SEPTEMBRE 2026',
+    badgeText: 'ÉDITION DU MOIS ⭐',
+    tagline: 'Recette exclusive du Chef & Ingrédients de saison',
+    customTitle: '',
+    customDescription: '',
+  };
+
+  const [isOpen, setIsOpen] = useState(false);
+  const [enabled, setEnabled] = useState(cfg.enabled);
+  const [productId, setProductId] = useState(cfg.productId || 'poke-salmon');
+  const [monthLabel, setMonthLabel] = useState(cfg.monthLabel || 'SEPTEMBRE 2026');
+  const [customTitle, setCustomTitle] = useState(cfg.customTitle || '');
+  const [tagline, setTagline] = useState(cfg.tagline || 'Recette exclusive du Chef & Ingrédients de saison');
+  const [badgeText, setBadgeText] = useState(cfg.badgeText || 'ÉDITION DU MOIS ⭐');
+  const [customDescription, setCustomDescription] = useState(cfg.customDescription || '');
+
+  React.useEffect(() => {
+    if (settings?.pokeOfTheMonth) {
+      setEnabled(settings.pokeOfTheMonth.enabled);
+      setProductId(settings.pokeOfTheMonth.productId || 'poke-salmon');
+      setMonthLabel(settings.pokeOfTheMonth.monthLabel || 'SEPTEMBRE 2026');
+      setCustomTitle(settings.pokeOfTheMonth.customTitle || '');
+      setTagline(settings.pokeOfTheMonth.tagline || 'Recette exclusive du Chef & Ingrédients de saison');
+      setBadgeText(settings.pokeOfTheMonth.badgeText || 'ÉDITION DU MOIS ⭐');
+      setCustomDescription(settings.pokeOfTheMonth.customDescription || '');
+    }
+  }, [settings?.pokeOfTheMonth]);
+
+  const selectedProd = products.find(p => p.id === productId) || products[0];
+
+  const handleSave = async () => {
+    await updatePokeOfTheMonth({
+      enabled,
+      productId,
+      monthLabel: monthLabel.trim(),
+      customTitle: customTitle.trim(),
+      tagline: tagline.trim(),
+      badgeText: badgeText.trim(),
+      customDescription: customDescription.trim(),
+    });
+    Alert.alert('Succès', 'Le Pokémoons du Mois a été mis à jour et est affiché sur l\'accueil du site et de l\'application !');
+    setIsOpen(false);
+  };
+
+  const pStyles = StyleSheet.create({
+    container: {
+      backgroundColor: '#0F172A',
+      borderRadius: 18,
+      padding: 16,
+      marginBottom: 20,
+      borderWidth: 1.5,
+      borderColor: '#334155',
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    titleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+    },
+    title: {
+      fontFamily: Theme.fonts.bodyBold,
+      fontSize: 14,
+      color: '#FFD700',
+      letterSpacing: 0.5,
+    },
+    subTitle: {
+      fontFamily: Theme.fonts.body,
+      fontSize: 12,
+      color: '#94A3B8',
+      marginTop: 2,
+    },
+    form: {
+      marginTop: 16,
+      paddingTop: 16,
+      borderTopWidth: 1,
+      borderColor: '#334155',
+    },
+    fieldLabel: {
+      fontFamily: Theme.fonts.bodyBold,
+      fontSize: 11,
+      color: '#94A3B8',
+      marginBottom: 4,
+      textTransform: 'uppercase',
+    },
+    input: {
+      backgroundColor: '#1E293B',
+      borderRadius: 10,
+      padding: 10,
+      color: '#FFF',
+      fontFamily: Theme.fonts.body,
+      fontSize: 13,
+      borderWidth: 1,
+      borderColor: '#475569',
+      marginBottom: 12,
+    },
+    prodPicker: {
+      flexDirection: 'row',
+      gap: 10,
+      marginBottom: 16,
+    },
+    prodCard: {
+      width: 100,
+      backgroundColor: '#1E293B',
+      borderRadius: 12,
+      padding: 8,
+      alignItems: 'center',
+      borderWidth: 1.5,
+      borderColor: '#334155',
+    },
+    prodCardActive: {
+      borderColor: '#10B981',
+      backgroundColor: '#064E3B',
+    },
+    prodCardImg: {
+      width: 60,
+      height: 60,
+      borderRadius: 8,
+      marginBottom: 6,
+    },
+    prodCardText: {
+      fontFamily: Theme.fonts.bodyBold,
+      fontSize: 10,
+      color: '#FFF',
+      textAlign: 'center',
+    },
+    saveBtn: {
+      backgroundColor: '#10B981',
+      paddingVertical: 12,
+      borderRadius: 10,
+      alignItems: 'center',
+      marginTop: 8,
+    },
+    saveBtnText: {
+      fontFamily: Theme.fonts.bodyBold,
+      fontSize: 13,
+      color: '#000',
+    }
+  });
+
+  return (
+    <View style={pStyles.container}>
+      <View style={pStyles.header}>
+        <View style={pStyles.titleRow}>
+          <Ionicons name="star" size={20} color="#FFD700" />
+          <View>
+            <Text style={pStyles.title}>🌟 POKÉMOONS DU MOIS</Text>
+            <Text style={pStyles.subTitle}>
+              {enabled ? `Actif (${monthLabel} : ${customTitle || selectedProd?.name || 'Sélectionné'})` : 'Désactivé'}
+            </Text>
+          </View>
+        </View>
+        <TouchableOpacity 
+          style={{ backgroundColor: isOpen ? '#334155' : '#10B981', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 }}
+          onPress={() => setIsOpen(!isOpen)}
+        >
+          <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 12, color: isOpen ? '#FFF' : '#000' }}>
+            {isOpen ? 'Fermer' : 'Gérer'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {isOpen && (
+        <View style={pStyles.form}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+            <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 12, color: '#FFF' }}>Afficher sur l'accueil du site & app :</Text>
+            <Switch
+              value={enabled}
+              onValueChange={setEnabled}
+              trackColor={{ false: '#334155', true: '#10B98188' }}
+              thumbColor={enabled ? '#10B981' : '#94A3B8'}
+            />
+          </View>
+
+          <Text style={pStyles.fieldLabel}>Choisir le bowl à mettre à l'honneur :</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
+            <View style={pStyles.prodPicker}>
+              {products.map(p => {
+                const isSel = productId === p.id;
+                return (
+                  <TouchableOpacity
+                    key={p.id}
+                    style={[pStyles.prodCard, isSel && pStyles.prodCardActive]}
+                    onPress={() => setProductId(p.id)}
+                  >
+                    <Image source={getImageSource(p.image)} style={pStyles.prodCardImg} contentFit="cover" />
+                    <Text style={pStyles.prodCardText} numberOfLines={2}>{p.name}</Text>
+                    <Text style={{ color: '#10B981', fontSize: 10, fontFamily: Theme.fonts.bodyBold, marginTop: 2 }}>{p.price.toFixed(2)} CHF</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </ScrollView>
+
+          <Text style={pStyles.fieldLabel}>Mois / Label (ex: SEPTEMBRE 2026) :</Text>
+          <TextInput
+            style={pStyles.input}
+            placeholder="SEPTEMBRE 2026"
+            placeholderTextColor="#64748B"
+            value={monthLabel}
+            onChangeText={setMonthLabel}
+          />
+
+          <Text style={pStyles.fieldLabel}>Badge supérieur (ex: ÉDITION DU MOIS ⭐) :</Text>
+          <TextInput
+            style={pStyles.input}
+            placeholder="ÉDITION DU MOIS ⭐"
+            placeholderTextColor="#64748B"
+            value={badgeText}
+            onChangeText={setBadgeText}
+          />
+
+          <Text style={pStyles.fieldLabel}>Titre personnalisé (ou laisser vide pour nom du produit) :</Text>
+          <TextInput
+            style={pStyles.input}
+            placeholder={selectedProd?.name || 'Nom du produit'}
+            placeholderTextColor="#64748B"
+            value={customTitle}
+            onChangeText={setCustomTitle}
+          />
+
+          <Text style={pStyles.fieldLabel}>Sous-titre / Accroche du Chef :</Text>
+          <TextInput
+            style={pStyles.input}
+            placeholder="Recette exclusive du Chef & Ingrédients de saison"
+            placeholderTextColor="#64748B"
+            value={tagline}
+            onChangeText={setTagline}
+          />
+
+          <Text style={pStyles.fieldLabel}>Description personnalisée :</Text>
+          <TextInput
+            style={[pStyles.input, { height: 70, textAlignVertical: 'top' }]}
+            placeholder={selectedProd?.description || 'Description du bowl...'}
+            placeholderTextColor="#64748B"
+            multiline
+            value={customDescription}
+            onChangeText={setCustomDescription}
+          />
+
+          <TouchableOpacity style={pStyles.saveBtn} onPress={handleSave}>
+            <Text style={pStyles.saveBtnText}>Enregistrer le Pokémoons du Mois</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 }

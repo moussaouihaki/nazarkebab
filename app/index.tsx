@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useMemo } from 'react';
 import { View, Text, StyleSheet, Dimensions, TouchableOpacity, Platform, useWindowDimensions, Modal } from 'react-native';
 import Animated, { useAnimatedScrollHandler, useSharedValue, useAnimatedStyle, interpolate, Extrapolation, FadeInDown } from 'react-native-reanimated';
 import { BlurView } from 'expo-blur';
@@ -43,6 +43,12 @@ export default function HomeScreen() {
   React.useEffect(() => {
     fetchContent();
   }, []);
+
+  const pokeOfTheMonthProduct = useMemo(() => {
+    const cfg = settings?.pokeOfTheMonth;
+    if (!cfg || !cfg.enabled) return null;
+    return products.find(p => p.id === cfg.productId) || products.find(p => p.highlighted) || products[0];
+  }, [settings?.pokeOfTheMonth, products]);
 
   const populars = products
     .filter(p => p.highlighted && !p.outOfStock)
@@ -196,6 +202,63 @@ export default function HomeScreen() {
             </View>
           ))}
         </View>
+
+        {/* 🌟 LE POKÉMOONS DU MOIS (HERO SHOWCASE) 🌟 */}
+        {settings?.pokeOfTheMonth?.enabled && pokeOfTheMonthProduct && (
+          <Animated.View entering={FadeInDown.delay(150).springify()} style={styles.pokeMonthContainer}>
+            <TouchableOpacity
+              activeOpacity={0.92}
+              style={styles.pokeMonthCard}
+              onPress={() => router.push({ pathname: '/product/[id]', params: { id: pokeOfTheMonthProduct.id } })}
+            >
+              {/* HEADER BADGE */}
+              <View style={styles.pokeMonthHeaderRow}>
+                <View style={styles.pokeMonthBadge}>
+                  <Ionicons name="star" size={13} color="#FFD700" />
+                  <Text style={styles.pokeMonthBadgeText}>
+                    {settings.pokeOfTheMonth.badgeText || 'POKÉMOONS DU MOIS'}
+                  </Text>
+                </View>
+                <View style={styles.pokeMonthDateBadge}>
+                  <Text style={styles.pokeMonthDateText}>
+                    {settings.pokeOfTheMonth.monthLabel || 'ÉDITION LIMITÉE'}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={[styles.pokeMonthBody, isDesktop && { flexDirection: 'row', alignItems: 'center' }]}>
+                <View style={styles.pokeMonthImgWrapper}>
+                  <Image
+                    source={getImageSource(pokeOfTheMonthProduct.image)}
+                    style={styles.pokeMonthImg}
+                    contentFit="cover"
+                  />
+                  <View style={styles.pokeMonthPriceTag}>
+                    <Text style={styles.pokeMonthPrice}>{pokeOfTheMonthProduct.price.toFixed(2)}</Text>
+                    <Text style={styles.pokeMonthPriceCurrency}>CHF</Text>
+                  </View>
+                </View>
+
+                <View style={styles.pokeMonthInfo}>
+                  <Text style={styles.pokeMonthTagline}>
+                    {settings.pokeOfTheMonth.tagline || 'Recette signature exclusive du Chef'}
+                  </Text>
+                  <Text style={styles.pokeMonthTitle} numberOfLines={2}>
+                    {settings.pokeOfTheMonth.customTitle || pokeOfTheMonthProduct.name}
+                  </Text>
+                  <Text style={styles.pokeMonthDesc} numberOfLines={3}>
+                    {settings.pokeOfTheMonth.customDescription || pokeOfTheMonthProduct.description || 'Une création gourmande et raffinée avec des ingrédients de saison sélectionnés chaque matin.'}
+                  </Text>
+                  
+                  <View style={styles.pokeMonthBtn}>
+                    <Text style={styles.pokeMonthBtnText}>COMMANDER LE BOWL DU MOIS</Text>
+                    <Ionicons name="arrow-forward" size={16} color="#000" />
+                  </View>
+                </View>
+              </View>
+            </TouchableOpacity>
+          </Animated.View>
+        )}
 
         {/* SHARP CATEGORIES (Chic, zero border radius) */}
         <View style={styles.sectionHeader}>
@@ -934,5 +997,146 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#FFF',
     textAlign: 'center',
+  },
+
+  // 🌟 POKÉMOONS DU MOIS LUXURY STYLES 🌟
+  pokeMonthContainer: {
+    marginBottom: 28,
+    marginHorizontal: Platform.OS === 'web' ? 0 : 8,
+  },
+  pokeMonthCard: {
+    backgroundColor: '#0F172A',
+    borderRadius: 24,
+    padding: 20,
+    borderWidth: 1.5,
+    borderColor: '#334155',
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.18,
+    shadowRadius: 24,
+    elevation: 8,
+    overflow: 'hidden',
+  },
+  pokeMonthHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  pokeMonthBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255, 215, 0, 0.15)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 215, 0, 0.4)',
+  },
+  pokeMonthBadgeText: {
+    fontFamily: Theme.fonts.bodyBold,
+    fontSize: 11,
+    color: '#FFD700',
+    letterSpacing: 0.8,
+  },
+  pokeMonthDateBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+  },
+  pokeMonthDateText: {
+    fontFamily: Theme.fonts.bodyBold,
+    fontSize: 10,
+    color: '#94A3B8',
+    letterSpacing: 0.5,
+  },
+  pokeMonthBody: {
+    gap: 16,
+  },
+  pokeMonthImgWrapper: {
+    width: '100%',
+    height: 190,
+    borderRadius: 18,
+    overflow: 'hidden',
+    position: 'relative',
+    backgroundColor: '#1E293B',
+  },
+  pokeMonthImg: {
+    width: '100%',
+    height: '100%',
+  },
+  pokeMonthPriceTag: {
+    position: 'absolute',
+    bottom: 12,
+    right: 12,
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 14,
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  pokeMonthPrice: {
+    fontFamily: Theme.fonts.title,
+    fontSize: 18,
+    color: '#FFF',
+  },
+  pokeMonthPriceCurrency: {
+    fontFamily: Theme.fonts.bodyBold,
+    fontSize: 11,
+    color: '#10B981',
+  },
+  pokeMonthInfo: {
+    flex: 1,
+    gap: 6,
+  },
+  pokeMonthTagline: {
+    fontFamily: Theme.fonts.bodyMedium,
+    fontSize: 12,
+    color: '#10B981',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  pokeMonthTitle: {
+    fontFamily: Theme.fonts.title,
+    fontSize: 22,
+    color: '#FFF',
+    lineHeight: 26,
+  },
+  pokeMonthDesc: {
+    fontFamily: Theme.fonts.body,
+    fontSize: 13,
+    color: '#94A3B8',
+    lineHeight: 19,
+    marginBottom: 8,
+  },
+  pokeMonthBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#10B981',
+    paddingVertical: 13,
+    paddingHorizontal: 18,
+    borderRadius: 14,
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    elevation: 6,
+    marginTop: 4,
+  },
+  pokeMonthBtnText: {
+    fontFamily: Theme.fonts.bodyBold,
+    fontSize: 13,
+    color: '#000',
+    letterSpacing: 0.5,
   }
 });

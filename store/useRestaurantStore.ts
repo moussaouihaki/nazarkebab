@@ -42,6 +42,16 @@ export interface PromoCode {
   firstOrderOnly?: boolean;
 }
 
+export interface PokeOfTheMonth {
+  enabled: boolean;
+  productId: string;
+  monthLabel?: string;
+  customTitle?: string;
+  customDescription?: string;
+  badgeText?: string;
+  tagline?: string;
+}
+
 export interface RestaurantSettings {
   name: string;
   slogan: string;
@@ -72,6 +82,7 @@ export interface RestaurantSettings {
   autoPrintEnabled?: boolean;
   selectedPrinterName?: string;
   selectedPrinterUrl?: string;
+  pokeOfTheMonth?: PokeOfTheMonth;
 }
 
 interface RestaurantState {
@@ -103,6 +114,7 @@ interface RestaurantState {
   addCustomIngredient: (sectionTitle: string, name: string, priceOffset: number) => Promise<void>;
   updateCustomIngredient: (oldName: string, newName: string, newPriceOffset: number) => Promise<void>;
   removeCustomIngredient: (ingredientName: string) => Promise<void>;
+  updatePokeOfTheMonth: (data: Partial<PokeOfTheMonth>) => Promise<void>;
   addPromoCode: (promo: Omit<PromoCode, 'id'>) => Promise<void>;
   deletePromoCode: (id: string) => Promise<void>;
   togglePromoCode: (id: string) => Promise<void>;
@@ -165,6 +177,15 @@ const DEFAULT_SETTINGS: RestaurantSettings = {
     { id: 'p2', code: 'POKE5', discountType: 'fixed', discountValue: 5, active: true, minOrder: 30 }
   ],
   autoPrintEnabled: false,
+  pokeOfTheMonth: {
+    enabled: true,
+    productId: 'poke-salmon',
+    monthLabel: 'SEPTEMBRE 2026',
+    badgeText: 'ÉDITION DU MOIS ⭐',
+    tagline: 'Recette exclusive du Chef & Ingrédients de saison',
+    customTitle: '',
+    customDescription: '',
+  },
 };
 
 export const useRestaurantStore = create<RestaurantState>((set, get) => ({
@@ -468,6 +489,24 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
       }
     } catch (err) {
       console.error('Erreur updateCustomIngredient:', err);
+    }
+  },
+
+  updatePokeOfTheMonth: async (data) => {
+    try {
+      const current = get().settings.pokeOfTheMonth || {
+        enabled: true,
+        productId: 'poke-salmon',
+        monthLabel: 'SEPTEMBRE 2026',
+        badgeText: 'ÉDITION DU MOIS ⭐',
+        tagline: 'Recette exclusive du Chef & Ingrédients de saison',
+        customTitle: '',
+        customDescription: '',
+      };
+      const updated = { ...current, ...data };
+      await get().updateSettings({ pokeOfTheMonth: updated });
+    } catch (err) {
+      console.error('Erreur updatePokeOfTheMonth:', err);
     }
   },
 
