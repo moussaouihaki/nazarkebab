@@ -2,64 +2,97 @@ const fs = require('fs');
 const { createCanvas, registerFont } = require('canvas');
 
 // Register fonts
-registerFont('./node_modules/@expo-google-fonts/bebas-neue/400Regular/BebasNeue_400Regular.ttf', { family: 'BebasNeue' });
-registerFont('./node_modules/@expo-google-fonts/inter/700Bold/Inter_700Bold.ttf', { family: 'InterBold' });
+try {
+  registerFont('./node_modules/@expo-google-fonts/bebas-neue/400Regular/BebasNeue_400Regular.ttf', { family: 'BebasNeue' });
+  registerFont('./node_modules/@expo-google-fonts/inter/700Bold/Inter_700Bold.ttf', { family: 'InterBold' });
+} catch (e) {}
 
-function generateIcon(width, height, outputFilePath) {
+function generateAppIcon(width, height, outputFilePath) {
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext('2d');
 
-    // Background (Dark Theme)
-    ctx.fillStyle = '#040404'; // Deep Black
+    // Background: Deep Dark Luxury Slate
+    ctx.fillStyle = '#0B132B';
     ctx.fillRect(0, 0, width, height);
 
-    // Inner glow / subtle surface
-    const gradient = ctx.createRadialGradient(width/2, height/2, 0, width/2, height/2, width/1.5);
-    gradient.addColorStop(0, '#1A1A1A');
-    gradient.addColorStop(1, '#040404');
+    // Subtle emerald radial glow
+    const gradient = ctx.createRadialGradient(width/2, height/2, 0, width/2, height/2, width * 0.7);
+    gradient.addColorStop(0, '#1C2541');
+    gradient.addColorStop(0.8, '#0B132B');
+    gradient.addColorStop(1, '#050814');
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, width, height);
 
-    // POKÉ (White)
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     
-    // Scale font based on width
-    const fontSizeNazar = width * 0.35; // 35% of width
-    ctx.font = `${fontSizeNazar}px "BebasNeue"`;
-    ctx.fillStyle = '#F5F5F5';
-    // Add subtle text shadow
-    ctx.shadowColor = 'rgba(0,0,0,0.8)';
-    ctx.shadowBlur = 15;
+    // POKÉ (White)
+    const fontSizePoke = width * 0.32;
+    ctx.font = `${fontSizePoke}px "BebasNeue", sans-serif`;
+    ctx.fillStyle = '#FFFFFF';
+    ctx.shadowColor = 'rgba(0,0,0,0.6)';
+    ctx.shadowBlur = 12;
     ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 10;
-    
-    // Draw POKÉ slightly above center
-    ctx.fillText('POKÉ', width / 2, height / 2 - (fontSizeNazar * 0.15));
+    ctx.shadowOffsetY = 6;
+    ctx.fillText('POKÉ', width / 2, height / 2 - (fontSizePoke * 0.22));
 
-    // MOONS (Green/Primary)
-    const fontSizeKebab = width * 0.10;
-    ctx.font = `${fontSizeKebab}px "InterBold"`;
-    ctx.fillStyle = '#297f3a'; // Theme.colors.success/primary
-    ctx.letterSpacing = '10px'; // canvas doesn't support letterSpacing directly, we'll draw text normally but add space
-    
-    // Draw MOONS below POKÉ
-    const kebabY = height / 2 + (fontSizeNazar * 0.45);
-    
-    // Simulate letter spacing
-    const text = 'M O O N S'; // Trick for spacing
-    ctx.fillText(text, width / 2, kebabY);
+    // MOONS (Emerald Green #10B981)
+    const fontSizeMoons = width * 0.11;
+    ctx.font = `bold ${fontSizeMoons}px "InterBold", sans-serif`;
+    ctx.fillStyle = '#10B981';
+    ctx.shadowColor = 'rgba(16, 185, 129, 0.4)';
+    ctx.shadowBlur = 10;
+    ctx.fillText('M O O N S', width / 2, height / 2 + (fontSizePoke * 0.38));
 
     const buffer = canvas.toBuffer('image/png');
     fs.writeFileSync(outputFilePath, buffer);
-    console.log(`Generated ${outputFilePath}`);
+    console.log(`Generated icon: ${outputFilePath}`);
+}
+
+function generateSplashIcon(width, height, outputFilePath) {
+    const canvas = createCanvas(width, height);
+    const ctx = canvas.getContext('2d');
+
+    // Clean transparent for seamless #0B132B background
+    ctx.clearRect(0, 0, width, height);
+
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    
+    // POKÉ (White)
+    const fontSizePoke = width * 0.24;
+    ctx.font = `${fontSizePoke}px "BebasNeue", sans-serif`;
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillText('POKÉ', width / 2, height / 2 - (fontSizePoke * 0.25));
+
+    // MOONS (Vibrant Emerald)
+    const fontSizeMoons = width * 0.085;
+    ctx.font = `bold ${fontSizeMoons}px "InterBold", sans-serif`;
+    ctx.fillStyle = '#10B981';
+    ctx.fillText('M O O N S', width / 2, height / 2 + (fontSizePoke * 0.35));
+
+    // Subtitle
+    const fontSizeSub = width * 0.030;
+    ctx.font = `bold ${fontSizeSub}px "InterBold", sans-serif`;
+    ctx.fillStyle = '#94A3B8';
+    ctx.fillText('POKÉ BOWLS • LA CHAUX-DE-FONDS', width / 2, height / 2 + (fontSizePoke * 0.70));
+
+    const buffer = canvas.toBuffer('image/png');
+    fs.writeFileSync(outputFilePath, buffer);
+    console.log(`Generated splash: ${outputFilePath}`);
 }
 
 try {
-    generateIcon(1024, 1024, './assets/icon.png');
-    generateIcon(1024, 1024, './assets/adaptive-icon.png');
-    generateIcon(1280, 1280, './assets/splash-icon.png');
-    console.log("All text-based icons generated successfully!");
+    generateAppIcon(1024, 1024, './assets/icon.png');
+    generateAppIcon(1024, 1024, './assets/adaptive-icon.png');
+    generateAppIcon(1024, 1024, './assets/android-icon-foreground.png');
+    generateAppIcon(512, 512, './assets/favicon.png');
+    generateAppIcon(512, 512, './assets/images/favicon.png');
+    generateAppIcon(512, 512, './assets/images/logo.png');
+
+    generateSplashIcon(1280, 1280, './assets/splash-icon.png');
+    generateSplashIcon(1280, 1280, './assets/images/splash-icon.png');
+    console.log("All Pokémoons icons and splash screens successfully generated!");
 } catch(e) {
     console.error("Error generating icons:", e);
 }

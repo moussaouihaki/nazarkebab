@@ -201,26 +201,54 @@ export default function RootLayout() {
     };
   }, []);
 
-  useEffect(() => {
-    if (loaded || error) {
-      SplashScreen.hideAsync().catch(() => {});
-    }
-  }, [loaded, error]);
+  const [isSplashDone, setIsSplashDone] = React.useState(false);
 
-  if (!loaded && !error) {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsSplashDone(true);
+      SplashScreen.hideAsync().catch(() => {});
+    }, 1800); // 1.8 seconds smooth branded splash
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (!loaded && !error || !isSplashDone) {
     return (
-      <View style={styles.loading}>
+      <View style={[styles.loading, { backgroundColor: '#0B132B' }]}>
+        <StatusBar style="light" />
         <View style={{ alignItems: 'center' }}>
           <Text style={{ 
-            fontFamily: 'BebasNeue_400Regular', 
-            fontSize: 48, 
-            color: Theme.colors.success, 
-            letterSpacing: 8,
-            textAlign: 'center'
+            fontFamily: loaded ? 'BebasNeue_400Regular' : 'sans-serif', 
+            fontSize: 54, 
+            color: '#FFFFFF', 
+            letterSpacing: 6,
+            textAlign: 'center',
+            lineHeight: 56,
           }}>
-            POKÉ{"\n"}MOONS
+            POKÉ
           </Text>
-          <ActivityIndicator color={Theme.colors.success} size="small" style={{ marginTop: 30 }} />
+          <Text style={{ 
+            fontFamily: loaded ? 'Inter_700Bold' : 'sans-serif', 
+            fontSize: 18, 
+            color: '#10B981', 
+            letterSpacing: 8,
+            textAlign: 'center',
+            marginTop: 4,
+          }}>
+            MOONS
+          </Text>
+          <Text style={{ 
+            fontFamily: loaded ? 'Inter_500Medium' : 'sans-serif', 
+            fontSize: 10, 
+            color: '#64748B', 
+            letterSpacing: 2,
+            textAlign: 'center',
+            marginTop: 12,
+            textTransform: 'uppercase',
+          }}>
+            Poké Bowls • La Chaux-de-Fonds
+          </Text>
+          <ActivityIndicator color="#10B981" size="small" style={{ marginTop: 32 }} />
         </View>
       </View>
     );
