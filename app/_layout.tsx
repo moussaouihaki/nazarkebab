@@ -22,7 +22,6 @@ import { useCartStore } from '../store/useCartStore';
 import { registerForPushNotificationsAsync } from '../lib/pushNotifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNotificationStore } from '../store/useNotificationStore';
-import { ThemeProvider, DarkTheme, DefaultTheme } from '@react-navigation/native';
 
 // Doit être appelé AVANT tout composant pour que les notifs s'affichent
 if (Platform.OS !== 'web') {
@@ -262,31 +261,29 @@ export default function RootLayout() {
         <link rel="icon" href="/favicon.png?v=2" />
         <link rel="shortcut icon" href="/favicon.ico?v=2" />
       </Head>
-      <ThemeProvider value={DefaultTheme}>
-        <View style={styles.webWrapper}>
-          {!hideHeader && <DesktopHeader />}
-          <GlobalBanners />
-          <SafeAreaProvider style={styles.container}>
-            <StatusBar style="dark" />
-            <Stack screenOptions={{ 
-              headerShown: false, 
-              animation: 'fade',
-              presentation: 'card',
-              contentStyle: { backgroundColor: Theme.colors.background } 
-            }}>
-              <Stack.Screen name="index" options={{ presentation: 'card' }} />
-              <Stack.Screen name="menu" options={{ presentation: 'card' }} />
-              <Stack.Screen name="product/[id]" options={{ presentation: 'card' }} />
-              <Stack.Screen name="cart" options={{ presentation: 'card' }} />
-              <Stack.Screen name="admin" options={{ presentation: 'card' }} />
-              <Stack.Screen name="driver" options={{ presentation: 'card' }} />
-              <Stack.Screen name="auth" options={{ presentation: 'card' }} />
-              <Stack.Screen name="profile" options={{ presentation: 'card' }} />
-              <Stack.Screen name="tracking" options={{ presentation: 'card' }} />
-            </Stack>
-          </SafeAreaProvider>
-        </View>
-      </ThemeProvider>
+      <View style={styles.webWrapper}>
+        {!hideHeader && <DesktopHeader />}
+        <GlobalBanners />
+        <SafeAreaProvider style={styles.container}>
+          <StatusBar style="dark" />
+          <Stack screenOptions={{ 
+            headerShown: false, 
+            animation: 'fade',
+            presentation: 'card',
+            contentStyle: { backgroundColor: Theme.colors.background } 
+          }}>
+            <Stack.Screen name="index" options={{ presentation: 'card' }} />
+            <Stack.Screen name="menu" options={{ presentation: 'card' }} />
+            <Stack.Screen name="product/[id]" options={{ presentation: 'card' }} />
+            <Stack.Screen name="cart" options={{ presentation: 'card' }} />
+            <Stack.Screen name="admin" options={{ presentation: 'card' }} />
+            <Stack.Screen name="driver" options={{ presentation: 'card' }} />
+            <Stack.Screen name="auth" options={{ presentation: 'card' }} />
+            <Stack.Screen name="profile" options={{ presentation: 'card' }} />
+            <Stack.Screen name="tracking" options={{ presentation: 'card' }} />
+          </Stack>
+        </SafeAreaProvider>
+      </View>
     </SafeAreaProvider>
   );
 }
