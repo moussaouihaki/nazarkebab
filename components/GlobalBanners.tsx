@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Platform, Modal, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Platform, Modal, TouchableOpacity, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { usePathname } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Theme } from '../constants/theme';
 import { useRestaurantStore } from '../store/useRestaurantStore';
@@ -8,38 +9,46 @@ import { useRestaurantStore } from '../store/useRestaurantStore';
 export function GlobalBanners() {
   const { settings } = useRestaurantStore();
   const [showClosureModal, setShowClosureModal] = useState(true);
+  const pathname = usePathname();
+  const { width } = useWindowDimensions();
 
   if (!settings) return null;
+
+  const isAdminPage = pathname?.startsWith('/admin');
+  const isWebDesktop = Platform.OS === 'web' && width >= 768;
+  const isCustomerDesktop = isWebDesktop && !isAdminPage;
+
+  const WrapperComponent = Platform.OS === 'web' ? View : SafeAreaView;
 
   return (
     <>
       {/* BANNIÈRES */}
-      <View style={{ marginTop: Platform.OS === 'web' ? 80 : 0 }}>
+      <View style={{ marginTop: isCustomerDesktop ? 80 : 0 }}>
         {/* BANNIÈRE DE FERMETURE EXCEPTIONNELLE */}
         {!settings.isOpen && settings.openOverrideMessage ? (
-          <SafeAreaView edges={['top']} style={{ backgroundColor: Theme.colors.danger }}>
-            <View style={{ padding: 20, alignItems: 'center' }}>
-              <Ionicons name="alert-circle" size={32} color="#FFF" style={{ marginBottom: 8 }} />
-              <Text style={{ fontFamily: Theme.fonts.bodyBold, color: '#FFF', fontSize: 16, textAlign: 'center' }}>
+          <WrapperComponent edges={['top']} style={{ backgroundColor: Theme.colors.danger }}>
+            <View style={{ padding: 14, alignItems: 'center' }}>
+              <Ionicons name="alert-circle" size={26} color="#FFF" style={{ marginBottom: 4 }} />
+              <Text style={{ fontFamily: Theme.fonts.bodyBold, color: '#FFF', fontSize: 15, textAlign: 'center' }}>
                 {settings.openOverrideMessage}
               </Text>
-              <Text style={{ fontFamily: Theme.fonts.body, color: '#FFF', fontSize: 14, textAlign: 'center', marginTop: 4 }}>
+              <Text style={{ fontFamily: Theme.fonts.body, color: '#FFF', fontSize: 13, textAlign: 'center', marginTop: 2 }}>
                 Les commandes sont temporairement suspendues.
               </Text>
             </View>
-          </SafeAreaView>
+          </WrapperComponent>
         ) : null}
 
         {/* BANNIÈRE D'ANNONCE / INFORMATION */}
         {settings.announcementEnabled && !!settings.announcementMessage ? (
-          <SafeAreaView edges={['top']} style={{ backgroundColor: '#FF9500' }}>
-            <View style={{ padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-              <Ionicons name="megaphone" size={24} color="#FFF" />
-              <Text style={{ fontFamily: Theme.fonts.bodyBold, color: '#FFF', fontSize: 15, textAlign: 'center', flex: 1 }}>
+          <WrapperComponent edges={['top']} style={{ backgroundColor: '#FF9500' }}>
+            <View style={{ paddingVertical: 12, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+              <Ionicons name="megaphone" size={20} color="#FFF" />
+              <Text style={{ fontFamily: Theme.fonts.bodyBold, color: '#FFF', fontSize: 14, textAlign: 'center', flex: 1 }}>
                 {settings.announcementMessage}
               </Text>
             </View>
-          </SafeAreaView>
+          </WrapperComponent>
         ) : null}
       </View>
 
