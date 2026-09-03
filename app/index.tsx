@@ -236,8 +236,8 @@ export default function HomeScreen() {
                 </View>
               </View>
 
-              <View style={[styles.pokeMonthBody, isDesktop && { flexDirection: 'row', alignItems: 'center' }]}>
-                <View style={styles.pokeMonthImgWrapper}>
+              <View style={[styles.pokeMonthBody, isDesktop && { flexDirection: 'row', alignItems: 'center', gap: 32 }]}>
+                <View style={[styles.pokeMonthImgWrapper, isDesktop && { width: 380, height: 250, flexShrink: 0 }]}>
                   <Image
                     source={getImageSource(pokeOfTheMonthProduct.image)}
                     style={styles.pokeMonthImg}
@@ -249,18 +249,18 @@ export default function HomeScreen() {
                   </View>
                 </View>
 
-                <View style={styles.pokeMonthInfo}>
+                <View style={[styles.pokeMonthInfo, isDesktop && { paddingLeft: 12 }]}>
                   <Text style={styles.pokeMonthTagline}>
                     {settings.pokeOfTheMonth.tagline || 'Recette signature exclusive du Chef'}
                   </Text>
-                  <Text style={styles.pokeMonthTitle} numberOfLines={2}>
+                  <Text style={[styles.pokeMonthTitle, isDesktop && { fontSize: 28, lineHeight: 34 }]} numberOfLines={2}>
                     {settings.pokeOfTheMonth.name || pokeOfTheMonthProduct.name}
                   </Text>
-                  <Text style={styles.pokeMonthDesc} numberOfLines={3}>
+                  <Text style={[styles.pokeMonthDesc, isDesktop && { fontSize: 14, lineHeight: 22 }]} numberOfLines={4}>
                     {settings.pokeOfTheMonth.description || pokeOfTheMonthProduct.description || 'Une création gourmande et raffinée avec des ingrédients de saison sélectionnés chaque matin.'}
                   </Text>
                   
-                  <View style={styles.pokeMonthBtn}>
+                  <View style={[styles.pokeMonthBtn, isDesktop && { alignSelf: 'flex-start', paddingHorizontal: 28 }]}>
                     <Text style={styles.pokeMonthBtnText}>COMMANDER LE BOWL DU MOIS</Text>
                     <Ionicons name="arrow-forward" size={16} color="#000" />
                   </View>

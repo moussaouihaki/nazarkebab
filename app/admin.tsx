@@ -3945,6 +3945,11 @@ function PokeOfTheMonthPanel() {
     }
   };
 
+  const handleToggleEnabled = async (val: boolean) => {
+    setEnabled(val);
+    await updatePokeOfTheMonth({ enabled: val });
+  };
+
   const handleSave = async () => {
     if (!name.trim()) {
       Alert.alert('Erreur', 'Veuillez saisir un nom pour le nouveau Poké du Mois.');
@@ -4113,7 +4118,7 @@ function PokeOfTheMonthPanel() {
             <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 12, color: '#FFF' }}>Afficher sur l'accueil du site & app :</Text>
             <Switch
               value={enabled}
-              onValueChange={setEnabled}
+              onValueChange={handleToggleEnabled}
               trackColor={{ false: '#334155', true: '#10B98188' }}
               thumbColor={enabled ? '#10B981' : '#94A3B8'}
             />
