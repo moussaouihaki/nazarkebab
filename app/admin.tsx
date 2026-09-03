@@ -3890,6 +3890,7 @@ function PokeOfTheMonthPanel() {
   const [monthLabel, setMonthLabel] = useState(cfg.monthLabel || 'SEPTEMBRE 2026');
   const [badgeText, setBadgeText] = useState(cfg.badgeText || 'ÉDITION DU MOIS ⭐');
   const [tagline, setTagline] = useState(cfg.tagline || 'Création exclusive du Chef');
+  const [isUploading, setIsUploading] = useState(false);
 
   React.useEffect(() => {
     if (settings?.pokeOfTheMonth) {
@@ -3912,6 +3913,37 @@ function PokeOfTheMonthPanel() {
     { key: 'poke_shrimp', label: 'Crevettes' },
     { key: 'compose-white', label: 'Sur-Mesure' },
   ];
+
+  const pickCustomImage = async () => {
+    try {
+      setIsUploading(true);
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert('Permission refusée', "Autorisez l'accès à votre galerie dans les paramètres.");
+        setIsUploading(false);
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+      if (!result.canceled && result.assets[0]) {
+        const uri = result.assets[0].uri;
+        const filename = uri.substring(uri.lastIndexOf('/') + 1);
+        Alert.alert('Upload en cours', 'Téléchargement de votre photo vers Firebase Storage...');
+        const downloadUrl = await uploadImageAsync(uri, `poke_month/${Date.now()}_${filename}`);
+        setImage(downloadUrl);
+        Alert.alert('Succès', 'Votre photo personnalisée a été téléchargée et sélectionnée !');
+      }
+    } catch (err) {
+      console.error(err);
+      Alert.alert('Erreur', 'Impossible de télécharger la photo.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!name.trim()) {
@@ -4121,6 +4153,47 @@ function PokeOfTheMonthPanel() {
           </View>
 
           <Text style={pStyles.fieldLabel}>Photo du Bowl :</Text>
+          
+          {/* UPLOAD CUSTOM PHOTO BUTTON */}
+          <TouchableOpacity
+            style={{
+              backgroundColor: '#1E293B',
+              borderWidth: 1.5,
+              borderColor: image?.startsWith('http') ? '#10B981' : '#475569',
+              borderStyle: 'dashed',
+              borderRadius: 12,
+              padding: 12,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 10,
+              marginBottom: 12,
+            }}
+            onPress={pickCustomImage}
+            disabled={isUploading}
+          >
+            {isUploading ? (
+              <ActivityIndicator color="#10B981" size="small" />
+            ) : (
+              <Ionicons name="cloud-upload-outline" size={20} color="#10B981" />
+            )}
+            <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 12, color: '#FFF' }}>
+              {isUploading ? 'Téléchargement en cours...' : '📷 Importer ma propre photo (Galerie)'}
+            </Text>
+          </TouchableOpacity>
+
+          {/* PREVIEW IF CUSTOM UPLOADED IMAGE */}
+          {image?.startsWith('http') && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#064E3B', padding: 10, borderRadius: 10, marginBottom: 12, borderWidth: 1, borderColor: '#10B981' }}>
+              <Image source={{ uri: image }} style={{ width: 45, height: 45, borderRadius: 8 }} contentFit="cover" />
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 12, color: '#FFF' }}>Photo personnalisée active ✅</Text>
+                <Text style={{ fontFamily: Theme.fonts.body, fontSize: 10, color: '#A7F3D0' }} numberOfLines={1}>Image importée depuis vos fichiers</Text>
+              </View>
+            </View>
+          )}
+
+          <Text style={[pStyles.fieldLabel, { fontSize: 10, color: '#64748B' }]}>Ou choisir parmi nos modèles HD :</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
             <View style={pStyles.imgPicker}>
               {AVAILABLE_IMAGES.map(item => {
