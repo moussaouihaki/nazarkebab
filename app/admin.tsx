@@ -3925,16 +3925,20 @@ function PokeOfTheMonthPanel() {
       marginBottom: 20,
       borderWidth: 1.5,
       borderColor: '#334155',
+      overflow: 'hidden',
     },
     header: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
+      gap: 12,
     },
     titleRow: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 10,
+      flex: 1,
+      minWidth: 0, // prevents text overflow in flexbox
     },
     title: {
       fontFamily: Theme.fonts.bodyBold,
@@ -3947,6 +3951,16 @@ function PokeOfTheMonthPanel() {
       fontSize: 12,
       color: '#94A3B8',
       marginTop: 2,
+    },
+    actionBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      backgroundColor: '#10B981',
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 10,
+      flexShrink: 0,
     },
     form: {
       marginTop: 16,
@@ -4020,25 +4034,29 @@ function PokeOfTheMonthPanel() {
 
   return (
     <View style={pStyles.container}>
-      <View style={pStyles.header}>
+      <TouchableOpacity 
+        style={pStyles.header} 
+        activeOpacity={0.8}
+        onPress={() => setIsOpen(!isOpen)}
+      >
         <View style={pStyles.titleRow}>
-          <Ionicons name="star" size={20} color="#FFD700" />
-          <View>
-            <Text style={pStyles.title}>🌟 CRÉATEUR POKÉMOONS DU MOIS</Text>
-            <Text style={pStyles.subTitle}>
-              {enabled ? `Actif (${monthLabel} : ${name} - ${parseFloat(price || '0').toFixed(2)} CHF)` : 'Désactivé'}
+          <Ionicons name="star" size={22} color="#FFD700" />
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text style={pStyles.title} numberOfLines={1}>🌟 CRÉATEUR POKÉMOONS DU MOIS</Text>
+            <Text style={pStyles.subTitle} numberOfLines={1}>
+              {enabled ? `${monthLabel} : ${name}` : 'Désactivé'}
             </Text>
           </View>
         </View>
-        <TouchableOpacity 
-          style={{ backgroundColor: isOpen ? '#334155' : '#10B981', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 }}
-          onPress={() => setIsOpen(!isOpen)}
+        <View 
+          style={[pStyles.actionBadge, { backgroundColor: isOpen ? '#334155' : '#10B981' }]}
         >
-          <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 12, color: isOpen ? '#FFF' : '#000' }}>
-            {isOpen ? 'Fermer' : 'Créer / Modifier'}
+          <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 11, color: isOpen ? '#FFF' : '#000' }}>
+            {isOpen ? 'Fermer' : 'Gérer'}
           </Text>
-        </TouchableOpacity>
-      </View>
+          <Ionicons name={isOpen ? "chevron-up" : "create-outline"} size={14} color={isOpen ? '#FFF' : '#000'} />
+        </View>
+      </TouchableOpacity>
 
       {isOpen && (
         <View style={pStyles.form}>
