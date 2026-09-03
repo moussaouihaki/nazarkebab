@@ -300,6 +300,8 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
 
   updateProduct: async (id, data) => {
     try {
+      const updatedProducts = get().products.map(p => p.id === id ? { ...p, ...data } : p);
+      set({ products: updatedProducts });
       await setDoc(doc(db, 'pokemoons_products', id), data, { merge: true });
     } catch (err: any) {
       console.error('Erreur MAJ produit:', err);

@@ -3635,7 +3635,15 @@ function IngredientsStockPanel() {
     setEditingIngredient(null);
   };
 
-  const handleRemoveIngredient = (ingName: string) => {
+  const handleRemoveIngredient = async (ingName: string) => {
+    if (Platform.OS === 'web') {
+      const ok = window.confirm(`Voulez-vous vraiment supprimer définitivement "${ingName}" du menu et du stock ?`);
+      if (ok) {
+        await removeCustomIngredient(ingName);
+        window.alert(`"${ingName}" a été retiré du menu.`);
+      }
+      return;
+    }
     Alert.alert(
       'Supprimer l\'ingrédient',
       `Voulez-vous vraiment supprimer définitivement "${ingName}" du menu et du stock ?`,
