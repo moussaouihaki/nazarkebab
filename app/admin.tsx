@@ -3322,7 +3322,7 @@ function SettingsTab() {
         <View style={[styles.switchRow, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Theme.colors.border, paddingTop: 14, marginTop: 4 }]}>
           <View style={{ flex: 1 }}>
             <Text style={styles.switchLabel}>Nombre de tampons requis</Text>
-            <Text style={styles.switchSubtitle}>Généralement 10 pour un cadeau.</Text>
+            <Text style={styles.switchSubtitle}>Nombre de commandes pour débloquer le Poké gratuit.</Text>
           </View>
           <TextInput 
             style={[styles.timeInput, { width: 60, backgroundColor: Theme.colors.surface }]} 
@@ -3330,6 +3330,23 @@ function SettingsTab() {
             onChangeText={v => updateSettings({ loyaltyMinPoints: parseInt(v) || 10 })}
             keyboardType="numeric"
           />
+        </View>
+        <View style={[styles.switchRow, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Theme.colors.border, paddingTop: 14, marginTop: 4 }]}>
+          <View style={{ flex: 1, paddingRight: 8 }}>
+            <Text style={styles.switchLabel}>Valeur max offerte (CHF)</Text>
+            <Text style={styles.switchSubtitle}>Plafond max pour le Poké classique offert (ex: 20 CHF).</Text>
+          </View>
+          <TextInput 
+            style={[styles.timeInput, { width: 70, backgroundColor: Theme.colors.surface }]} 
+            value={String(settings.loyaltyMaxDiscount ?? 20.00)} 
+            onChangeText={v => updateSettings({ loyaltyMaxDiscount: parseFloat(v) || 20.00 })}
+            keyboardType="numeric"
+          />
+        </View>
+        <View style={{ marginTop: 12, padding: 10, borderRadius: 10, backgroundColor: Theme.colors.success + '12', borderWidth: 1, borderColor: Theme.colors.success + '33' }}>
+          <Text style={{ fontFamily: Theme.fonts.body, fontSize: 11, color: Theme.colors.textSecondary, lineHeight: 16 }}>
+            💡 <Text style={{ fontFamily: Theme.fonts.bodyBold, color: Theme.colors.success }}>Règle de fidélité :</Text> Le Poké offert s'applique uniquement sur les Poké Bowls classiques du menu (jusqu'à {String(settings.loyaltyMaxDiscount ?? 20.00)} CHF maximum). Il ne s'applique pas aux bols sur-mesure ni au bol du mois.
+          </Text>
         </View>
       </View>
 

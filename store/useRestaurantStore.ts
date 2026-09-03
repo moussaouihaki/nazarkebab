@@ -77,6 +77,7 @@ export interface RestaurantSettings {
   takeAwayTime: string; // e.g. "15-20"
   loyaltyEnabled: boolean;
   loyaltyMinPoints: number;
+  loyaltyMaxDiscount?: number;
   announcementEnabled: boolean;   // Afficher ou non la bannière
   announcementMessage: string;    // Texte du message (ex: "Fermé du 1 au 15 août")
   outOfStockIngredients?: string[]; // Liste des ingrédients en rupture
@@ -171,6 +172,7 @@ const DEFAULT_SETTINGS: RestaurantSettings = {
   takeAwayTime: '15-20',
   loyaltyEnabled: true,
   loyaltyMinPoints: 10,
+  loyaltyMaxDiscount: 20.00,
   announcementEnabled: false,
   announcementMessage: '',
   outOfStockIngredients: [],

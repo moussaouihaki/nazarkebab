@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, TextInput, Platform, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect, useMemo } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, TextInput, Platform, ActivityIndicator, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { Theme } from '../constants/theme';
 import { useCartStore } from '../store/useCartStore';
@@ -63,7 +63,7 @@ export default function CartScreen() {
 
   const { user, updateProfile } = useAuthStore();
   const { zones, getZoneForAddress, fetchZones } = useDeliveryZoneStore();
-  const { settings } = useRestaurantStore();
+  const { settings, products } = useRestaurantStore();
 
   useEffect(() => { fetchZones(); }, []);
 
@@ -270,15 +270,44 @@ export default function CartScreen() {
     }
   }, [user?.address, user?.street, user?.postalCode, user?.city]);
 
-  // Recalculate zone when address, total, deliveryType or zones list changes
-  useEffect(() => {
-    checkZone(address, total, deliveryType);
-  }, [address, total, deliveryType, zones]);
+  // Eligible classic poké bowls for loyalty reward (max 20 CHF, strictly excluding custom and poke du mois)
+  const eligibleLoyaltyItems = useMemo(() => {
+    return items.filter(item => {
+      if (item.id.startsWith('poke-custom') || item.id.startsWith('poke-du-mois')) return false;
+      const matchedProd = products.find(p => p.id === item.id || item.id.startsWith(p.id));
+      if (matchedProd && matchedProd.category === 'LES POKÉBOWLS SIGNATURES' && matchedProd.id !== 'poke-custom' && matchedProd.id !== 'poke-du-mois') {
+        return true;
+      }
+      return item.name?.toUpperCase().includes('POKÉ') && !item.name?.toUpperCase().includes('SUR-MESURE') && !item.name?.toUpperCase().includes('DU MOIS');
+    });
+  }, [items, products]);
 
-  const loyaltyDiscount = useLoyalty ? 18.00 : 0; // Prix moyen offert pour un poké
+  const maxLoyaltyDiscount = settings?.loyaltyMaxDiscount || 20.00;
+
+  const loyaltyDiscount = useMemo(() => {
+    if (!useLoyalty || eligibleLoyaltyItems.length === 0) return 0;
+    const highestPrice = Math.max(...eligibleLoyaltyItems.map(i => i.price));
+    return Math.min(highestPrice, maxLoyaltyDiscount);
+  }, [useLoyalty, eligibleLoyaltyItems, maxLoyaltyDiscount]);
+
   const promoDiscount = appliedPromo ? (appliedPromo.discountPercent ? (total * appliedPromo.discountPercent) / 100 : (appliedPromo.fixedAmount || 0)) : 0;
   const activeOrdersCount = orders.filter(o => !['delivered', 'cancelled'].includes(o.status)).length;
   const grandTotal = Math.max(0, total + deliveryFee + tipAmount - loyaltyDiscount - promoDiscount);
+
+  const handleToggleLoyalty = () => {
+    if (!useLoyalty) {
+      if (eligibleLoyaltyItems.length === 0) {
+        Alert.alert(
+          'Poké Gratuit Fidélité',
+          `Le Poké gratuit de fidélité s'applique uniquement sur les Poké Bowls classiques du menu (jusqu'à ${maxLoyaltyDiscount.toFixed(2)} CHF max, hors création sur-mesure et Poké du mois).\n\nVeuillez ajouter un Poké Bowl classique à votre panier pour en profiter.`
+        );
+        return;
+      }
+      setUseLoyalty(true);
+    } else {
+      setUseLoyalty(false);
+    }
+  };
 
   const handleGoToInfo = () => {
     if (items.length === 0) return;
@@ -866,21 +895,26 @@ export default function CartScreen() {
                     ))}
                   </View>
 
-                  {(user.loyaltyPoints || 0) >= 10 && (
-                    <TouchableOpacity 
-                      style={[styles.useLoyaltyBtn, useLoyalty && styles.useLoyaltyBtnActive]}
-                      onPress={() => setUseLoyalty(!useLoyalty)}
-                    >
-                      <Ionicons name={useLoyalty ? "checkmark-circle" : "add-circle-outline"} size={20} color={useLoyalty ? "#000" : Theme.colors.success} />
-                      <Text style={[styles.useLoyaltyText, useLoyalty && styles.useLoyaltyTextActive]}>
-                        {useLoyalty ? "Poké Gratuit Appliqué ! ✅" : "Utiliser mon Poké Gratuit 🎁"}
+                  {(user.loyaltyPoints || 0) >= (settings.loyaltyMinPoints || 10) && (
+                    <>
+                      <TouchableOpacity 
+                        style={[styles.useLoyaltyBtn, useLoyalty && styles.useLoyaltyBtnActive]}
+                        onPress={handleToggleLoyalty}
+                      >
+                        <Ionicons name={useLoyalty ? "checkmark-circle" : "gift-outline"} size={20} color={useLoyalty ? "#000" : Theme.colors.success} />
+                        <Text style={[styles.useLoyaltyText, useLoyalty && styles.useLoyaltyTextActive]}>
+                          {useLoyalty ? `Poké Classique Offert (-${loyaltyDiscount.toFixed(2)} CHF) ✅` : `Utiliser mon Poké Gratuit (max. ${maxLoyaltyDiscount.toFixed(2)} CHF) 🎁`}
+                        </Text>
+                      </TouchableOpacity>
+                      <Text style={[styles.loyaltySubtext, { marginTop: 8, fontSize: 10 }]}>
+                        * Valable sur un Poké Bowl classique du menu (max. {maxLoyaltyDiscount.toFixed(2)} CHF, hors création sur-mesure et bol du mois).
                       </Text>
-                    </TouchableOpacity>
+                    </>
                   )}
                   
-                  {(user.loyaltyPoints || 0) < 10 && (
+                  {(user.loyaltyPoints || 0) < (settings.loyaltyMinPoints || 10) && (
                    <Text style={styles.loyaltySubtext}>
-                     Encore {10 - (user.loyaltyPoints || 0)} commande(s) pour votre prochain cadeau !
+                     Encore {(settings.loyaltyMinPoints || 10) - (user.loyaltyPoints || 0)} commande(s) pour votre prochain cadeau !
                    </Text>
                   )}
                 </View>
