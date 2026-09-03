@@ -45,6 +45,7 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-native": "0.86.3",
+    "react-native-gesture-handler": "~3.2.1",
     "react-native-reanimated": "4.5.1",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "~4.26.0",
@@ -54,7 +55,15 @@
     "zustand": "4.5.5"
   },
   "devDependencies": {
+    "@babel/plugin-transform-react-jsx-self": "7.29.7",
+    "@babel/plugin-transform-react-jsx-source": "7.29.7",
+    "@babel/plugin-transform-regenerator": "7.29.8",
+    "@react-native/babel-preset": "0.86.3",
+    "@react-native/metro-babel-transformer": "0.86.3",
+    "@react-native/metro-config": "0.86.3",
     "@types/react": "~19.2.4",
+    "@types/react-test-renderer": "19.1.0",
+    "babel-plugin-syntax-hermes-parser": "0.36.0",
     "babel-plugin-transform-import-meta": "^2.2.1",
     "babel-preset-expo": "~57.0.0",
     "canvas": "^3.2.1",
