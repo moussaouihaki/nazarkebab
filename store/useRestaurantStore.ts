@@ -269,7 +269,14 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
         // Merge local missing products to ensure UI always has the defaults
         const mergedProducts = prodList.map(p => {
            const initial = INITIAL_PRODUCTS.find(initP => initP.id === p.id);
-           return initial ? { ...initial, ...p } : p;
+           const merged = initial ? { ...initial, ...p } : p;
+           if (merged.id === 'poke-custom') {
+             merged.hasSauces = true;
+             if (merged.customizationSections) {
+               merged.customizationSections = merged.customizationSections.filter((s: any) => !s.title.toLowerCase().includes('sauce'));
+             }
+           }
+           return merged;
         });
         
         INITIAL_PRODUCTS.forEach(initialP => {

@@ -3610,7 +3610,7 @@ function IngredientsStockPanel() {
     return products?.find(p => p.id === 'poke-custom') || INITIAL_PRODUCTS.find(p => p.id === 'poke-custom');
   }, [products]);
 
-  const sections = pokeCustom?.customizationSections || [];
+  const sections = (pokeCustom?.customizationSections || []).filter((s: any) => !s.title.toLowerCase().includes('sauce'));
 
   const handleAddIngredient = async () => {
     if (!newIngredientName.trim()) {
