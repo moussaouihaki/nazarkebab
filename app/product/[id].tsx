@@ -16,7 +16,27 @@ const { height } = Dimensions.get('window');
 export default function ProductDetailScreen() {
   const { id, editCartItemId } = useLocalSearchParams();
   const { products, settings } = useRestaurantStore();
-  const product = products.find((p) => p.id === id) || PRODUCTS.find((p) => p.id === id);
+  const rawProduct = products.find((p) => p.id === id) || PRODUCTS.find((p) => p.id === id);
+  const isPokeDuMois = id === 'poke-du-mois';
+  const cfgMonth = settings?.pokeOfTheMonth;
+  const product = isPokeDuMois ? {
+    id: 'poke-du-mois',
+    name: cfgMonth?.name || rawProduct?.name || 'Pokémoons du Mois',
+    price: Number(cfgMonth?.price) || rawProduct?.price || 22.50,
+    image: cfgMonth?.image || rawProduct?.image || 'poke_salmon',
+    description: cfgMonth?.description || rawProduct?.description || 'Recette exclusive du Chef.',
+    category: 'LES POKÉBOWLS SIGNATURES',
+    highlighted: true,
+    outOfStock: !(cfgMonth?.enabled ?? true),
+    customizationSections: rawProduct?.customizationSections || [
+      {
+        title: 'CHOIX DE LA SAUCE (1 OBLIGATOIRE)',
+        required: true,
+        maxChoices: 1,
+        choices: (settings?.sauces || []).map((s: string) => ({ name: s, priceOffset: 0 }))
+      }
+    ]
+  } : rawProduct;
   const addItem = useCartStore((state) => state.addItem);
   const removeAllOfItem = useCartStore((state) => state.removeAllOfItem);
   const cartItems = useCartStore((state) => state.items);

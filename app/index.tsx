@@ -47,7 +47,17 @@ export default function HomeScreen() {
   const pokeOfTheMonthProduct = useMemo(() => {
     const cfg = settings?.pokeOfTheMonth;
     if (!cfg || !cfg.enabled) return null;
-    return products.find(p => p.id === cfg.productId) || products.find(p => p.highlighted) || products[0];
+    const fromList = products.find(p => p.id === 'poke-du-mois');
+    return {
+      id: 'poke-du-mois',
+      name: cfg.name || fromList?.name || 'Pokémoons du Mois',
+      price: Number(cfg.price) || fromList?.price || 22.50,
+      image: cfg.image || fromList?.image || 'poke_salmon',
+      description: cfg.description || fromList?.description || '',
+      category: 'LES POKÉBOWLS SIGNATURES',
+      highlighted: true,
+      outOfStock: false,
+    };
   }, [settings?.pokeOfTheMonth, products]);
 
   const populars = products
