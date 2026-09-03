@@ -44,12 +44,14 @@ export interface PromoCode {
 
 export interface PokeOfTheMonth {
   enabled: boolean;
-  productId: string;
+  name: string;
+  price: number;
+  image?: string;
+  description: string;
   monthLabel?: string;
-  customTitle?: string;
-  customDescription?: string;
   badgeText?: string;
   tagline?: string;
+  productId?: string;
 }
 
 export interface RestaurantSettings {
@@ -179,12 +181,14 @@ const DEFAULT_SETTINGS: RestaurantSettings = {
   autoPrintEnabled: false,
   pokeOfTheMonth: {
     enabled: true,
-    productId: 'poke-salmon',
+    name: 'Pokémoons de Septembre : Le Dragon Yuzu',
+    price: 22.50,
+    image: 'poke_salmon',
+    description: 'Saumon mariné au yuzu & sésame, mangue fraîche, avocat crémeux, edamame, grenade et sauce spéciale.',
     monthLabel: 'SEPTEMBRE 2026',
     badgeText: 'ÉDITION DU MOIS ⭐',
-    tagline: 'Recette exclusive du Chef & Ingrédients de saison',
-    customTitle: '',
-    customDescription: '',
+    tagline: 'Création exclusive du Chef',
+    productId: 'poke-du-mois',
   },
 };
 
@@ -197,25 +201,24 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
   fetchInitialData: async () => {
     set({ isLoading: true });
     try {
-      // 1. Fetch Settings
-      const settingsDoc = await getDoc(doc(db, 'settings', 'pokemoons_restaurant'));
-      if (settingsDoc.exists()) {
-        const data = settingsDoc.data();
-        
-        // Merge defaults to avoid missing keys
-        const mergedSettings = {
-          ...DEFAULT_SETTINGS,
-          ...data,
-          hours: data.hours || DEFAULT_HOURS,
-          sauces: data.sauces || DEFAULT_SETTINGS.sauces,
-          drinks: data.drinks || DEFAULT_SETTINGS.drinks,
-          promoCodes: data.promoCodes || DEFAULT_SETTINGS.promoCodes,
-        };
-        set({ settings: mergedSettings as RestaurantSettings });
-      } else {
-        // First initialization
-        await setDoc(doc(db, 'settings', 'pokemoons_restaurant'), DEFAULT_SETTINGS);
-      }
+      // 1. Listen to Settings in real-time
+      onSnapshot(doc(db, 'settings', 'pokemoons_restaurant'), (settingsSnap) => {
+        if (settingsSnap.exists()) {
+          const data = settingsSnap.data();
+          const mergedSettings = {
+            ...DEFAULT_SETTINGS,
+            ...data,
+            hours: data.hours || DEFAULT_HOURS,
+            sauces: data.sauces || DEFAULT_SETTINGS.sauces,
+            drinks: data.drinks || DEFAULT_SETTINGS.drinks,
+            promoCodes: data.promoCodes || DEFAULT_SETTINGS.promoCodes,
+            pokeOfTheMonth: data.pokeOfTheMonth || DEFAULT_SETTINGS.pokeOfTheMonth,
+          };
+          set({ settings: mergedSettings as RestaurantSettings });
+        } else {
+          setDoc(doc(db, 'settings', 'pokemoons_restaurant'), DEFAULT_SETTINGS);
+        }
+      });
 
       // 2. Fetch Categories
       const categoriesDoc = await getDoc(doc(db, 'settings', 'pokemoons_categories'));
@@ -492,29 +495,11 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
     }
   },
 
-  updatePokeOfTheMonth: async (data) => {
-    try {
-      const current = get().settings.pokeOfTheMonth || {
-        enabled: true,
-        productId: 'poke-salmon',
-        monthLabel: 'SEPTEMBRE 2026',
-        badgeText: 'ÉDITION DU MOIS ⭐',
-        tagline: 'Recette exclusive du Chef & Ingrédients de saison',
-        customTitle: '',
-        customDescription: '',
-      };
-      const updated = { ...current, ...data };
-      await get().updateSettings({ pokeOfTheMonth: updated });
-    } catch (err) {
-      console.error('Erreur updatePokeOfTheMonth:', err);
-    }
-  },
-
   updateHours: async (day, data) => {
     try {
       const newHours = get().settings.hours.map(h => h.day === day ? { ...h, ...data } : h);
       const updatedSettings = { ...get().settings, hours: newHours };
-      await setDoc(doc(db, 'settings', 'restaurant'), updatedSettings);
+      await setDoc(doc(db, 'settings', 'pokemoons_restaurant'), updatedSettings);
       set({ settings: updatedSettings });
     } catch (err) {
       console.error('Erreur MAJ horaires:', err);
@@ -524,7 +509,7 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
   updateSauces: async (sauces: string[]) => {
     try {
       const updatedSettings = { ...get().settings, sauces };
-      await setDoc(doc(db, 'settings', 'restaurant'), updatedSettings);
+      await setDoc(doc(db, 'settings', 'pokemoons_restaurant'), updatedSettings);
       set({ settings: updatedSettings });
     } catch (err) {
       console.error('Erreur MAJ sauces:', err);
@@ -534,7 +519,7 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
   updateDrinks: async (drinks: Drink[]) => {
     try {
       const updatedSettings = { ...get().settings, drinks };
-      await setDoc(doc(db, 'settings', 'restaurant'), updatedSettings);
+      await setDoc(doc(db, 'settings', 'pokemoons_restaurant'), updatedSettings);
       set({ settings: updatedSettings });
     } catch (err) {
       console.error('Erreur MAJ boissons:', err);
@@ -563,13 +548,66 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
     }
   },
 
-  togglePromoCode: async (id) => {
+  togglePromoCode: async (id: string) => {
     try {
       const currentPromos = get().settings.promoCodes || [];
       const updatedPromos = currentPromos.map(p => p.id === id ? { ...p, active: !p.active } : p);
       await get().updateSettings({ promoCodes: updatedPromos });
     } catch (err) {
       console.error('Erreur toggle promo code:', err);
+    }
+  },
+
+  updatePokeOfTheMonth: async (data: Partial<PokeOfTheMonth>) => {
+    try {
+      const current = get().settings.pokeOfTheMonth || {
+        enabled: true,
+        name: 'Pokémoons du Mois',
+        price: 22.50,
+        image: 'poke_salmon',
+        description: 'Recette exclusive du mois.',
+        monthLabel: 'SEPTEMBRE 2026',
+        badgeText: 'ÉDITION DU MOIS ⭐',
+        tagline: 'Création exclusive du Chef',
+        productId: 'poke-du-mois',
+      };
+      const updated: PokeOfTheMonth = { ...current, ...data };
+      await get().updateSettings({ pokeOfTheMonth: updated });
+
+      // Automatically sync or create the 'poke-du-mois' product in menu
+      const allProducts = get().products;
+      const existing = allProducts.find(p => p.id === 'poke-du-mois');
+      const sauces = get().settings?.sauces || DEFAULT_SETTINGS.sauces;
+      const productPayload: any = {
+        name: updated.name,
+        price: Number(updated.price) || 22.50,
+        image: updated.image || 'poke_salmon',
+        description: updated.description,
+        category: 'LES POKÉBOWLS SIGNATURES',
+        highlighted: true,
+        outOfStock: !updated.enabled,
+        customizationSections: [
+          {
+            title: 'CHOIX DE LA SAUCE (1 OBLIGATOIRE)',
+            required: true,
+            maxChoices: 1,
+            choices: sauces.map((s: string) => ({ name: s, priceOffset: 0 }))
+          }
+        ]
+      };
+
+      if (existing) {
+        await get().updateProduct('poke-du-mois', productPayload);
+      } else {
+        await setDoc(doc(db, 'pokemoons_products', 'poke-du-mois'), {
+          ...productPayload,
+          id: 'poke-du-mois',
+          displayOrder: -1
+        });
+        set({ products: [{ ...productPayload, id: 'poke-du-mois', displayOrder: -1 }, ...allProducts] });
+      }
+    } catch (err) {
+      console.error('Erreur updatePokeOfTheMonth:', err);
     }
   },
 }));

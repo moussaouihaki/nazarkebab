@@ -213,41 +213,15 @@ export default function RootLayout() {
 
   if (!loaded && !error || !isSplashDone) {
     return (
-      <View style={[styles.loading, { backgroundColor: '#0B132B' }]}>
-        <StatusBar style="light" />
-        <View style={{ alignItems: 'center' }}>
-          <Text style={{ 
-            fontFamily: loaded ? 'BebasNeue_400Regular' : 'sans-serif', 
-            fontSize: 54, 
-            color: '#FFFFFF', 
-            letterSpacing: 6,
-            textAlign: 'center',
-            lineHeight: 56,
-          }}>
-            POKÉ
-          </Text>
-          <Text style={{ 
-            fontFamily: loaded ? 'Inter_700Bold' : 'sans-serif', 
-            fontSize: 18, 
-            color: '#10B981', 
-            letterSpacing: 8,
-            textAlign: 'center',
-            marginTop: 4,
-          }}>
-            MOONS
-          </Text>
-          <Text style={{ 
-            fontFamily: loaded ? 'Inter_500Medium' : 'sans-serif', 
-            fontSize: 10, 
-            color: '#64748B', 
-            letterSpacing: 2,
-            textAlign: 'center',
-            marginTop: 12,
-            textTransform: 'uppercase',
-          }}>
-            Poké Bowls • La Chaux-de-Fonds
-          </Text>
-          <ActivityIndicator color="#10B981" size="small" style={{ marginTop: 32 }} />
+      <View style={[styles.loading, { backgroundColor: '#FFFFFF' }]}>
+        <StatusBar style="dark" />
+        <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+          <Image 
+            source={require('../assets/images/logo_pokemoons.png')}
+            style={{ width: 260, height: 170 }}
+            contentFit="contain"
+          />
+          <ActivityIndicator color="#166534" size="small" style={{ marginTop: 24 }} />
         </View>
       </View>
     );

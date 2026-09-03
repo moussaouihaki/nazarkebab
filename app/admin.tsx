@@ -3851,51 +3851,69 @@ function IngredientsStockPanel() {
 // POKÉMOONS DU MOIS PANEL (ADMIN)
 // ──────────────────────────────────
 function PokeOfTheMonthPanel() {
-  const { settings, products, updatePokeOfTheMonth } = useRestaurantStore();
+  const { settings, updatePokeOfTheMonth } = useRestaurantStore();
   const cfg = settings?.pokeOfTheMonth || {
     enabled: true,
-    productId: 'poke-salmon',
+    name: 'Pokémoons de Septembre : Le Dragon Yuzu',
+    price: 22.50,
+    image: 'poke_salmon',
+    description: 'Saumon mariné au yuzu & sésame, mangue fraîche, avocat crémeux, edamame, grenade et sauce spéciale maison.',
     monthLabel: 'SEPTEMBRE 2026',
     badgeText: 'ÉDITION DU MOIS ⭐',
-    tagline: 'Recette exclusive du Chef & Ingrédients de saison',
-    customTitle: '',
-    customDescription: '',
+    tagline: 'Création exclusive du Chef',
+    productId: 'poke-du-mois',
   };
 
   const [isOpen, setIsOpen] = useState(false);
-  const [enabled, setEnabled] = useState(cfg.enabled);
-  const [productId, setProductId] = useState(cfg.productId || 'poke-salmon');
+  const [enabled, setEnabled] = useState(cfg.enabled ?? true);
+  const [name, setName] = useState(cfg.name || 'Pokémoons de Septembre : Le Dragon Yuzu');
+  const [price, setPrice] = useState(String(cfg.price || 22.50));
+  const [image, setImage] = useState(cfg.image || 'poke_salmon');
+  const [description, setDescription] = useState(cfg.description || 'Saumon mariné au yuzu & sésame, mangue fraîche, avocat crémeux, edamame, grenade et sauce spéciale maison.');
   const [monthLabel, setMonthLabel] = useState(cfg.monthLabel || 'SEPTEMBRE 2026');
-  const [customTitle, setCustomTitle] = useState(cfg.customTitle || '');
-  const [tagline, setTagline] = useState(cfg.tagline || 'Recette exclusive du Chef & Ingrédients de saison');
   const [badgeText, setBadgeText] = useState(cfg.badgeText || 'ÉDITION DU MOIS ⭐');
-  const [customDescription, setCustomDescription] = useState(cfg.customDescription || '');
+  const [tagline, setTagline] = useState(cfg.tagline || 'Création exclusive du Chef');
 
   React.useEffect(() => {
     if (settings?.pokeOfTheMonth) {
-      setEnabled(settings.pokeOfTheMonth.enabled);
-      setProductId(settings.pokeOfTheMonth.productId || 'poke-salmon');
+      setEnabled(settings.pokeOfTheMonth.enabled ?? true);
+      setName(settings.pokeOfTheMonth.name || 'Pokémoons du Mois');
+      setPrice(String(settings.pokeOfTheMonth.price || 22.50));
+      setImage(settings.pokeOfTheMonth.image || 'poke_salmon');
+      setDescription(settings.pokeOfTheMonth.description || '');
       setMonthLabel(settings.pokeOfTheMonth.monthLabel || 'SEPTEMBRE 2026');
-      setCustomTitle(settings.pokeOfTheMonth.customTitle || '');
-      setTagline(settings.pokeOfTheMonth.tagline || 'Recette exclusive du Chef & Ingrédients de saison');
       setBadgeText(settings.pokeOfTheMonth.badgeText || 'ÉDITION DU MOIS ⭐');
-      setCustomDescription(settings.pokeOfTheMonth.customDescription || '');
+      setTagline(settings.pokeOfTheMonth.tagline || 'Création exclusive du Chef');
     }
   }, [settings?.pokeOfTheMonth]);
 
-  const selectedProd = products.find(p => p.id === productId) || products[0];
+  const AVAILABLE_IMAGES = [
+    { key: 'poke_salmon', label: 'Saumon' },
+    { key: 'poke_chicken', label: 'Poulet' },
+    { key: 'poke_falafel', label: 'Falafel Veggie' },
+    { key: 'poke_beef', label: 'Bœuf' },
+    { key: 'poke_shrimp', label: 'Crevettes' },
+    { key: 'compose-white', label: 'Sur-Mesure' },
+  ];
 
   const handleSave = async () => {
+    if (!name.trim()) {
+      Alert.alert('Erreur', 'Veuillez saisir un nom pour le nouveau Poké du Mois.');
+      return;
+    }
+    const numPrice = parseFloat(price) || 22.50;
     await updatePokeOfTheMonth({
       enabled,
-      productId,
+      name: name.trim(),
+      price: numPrice,
+      image,
+      description: description.trim(),
       monthLabel: monthLabel.trim(),
-      customTitle: customTitle.trim(),
       tagline: tagline.trim(),
       badgeText: badgeText.trim(),
-      customDescription: customDescription.trim(),
+      productId: 'poke-du-mois',
     });
-    Alert.alert('Succès', 'Le Pokémoons du Mois a été mis à jour et est affiché sur l\'accueil du site et de l\'application !');
+    Alert.alert('Succès', 'Le nouveau Pokémoons du Mois a été créé et publié sur la vitrine et le menu !');
     setIsOpen(false);
   };
 
@@ -3954,31 +3972,31 @@ function PokeOfTheMonthPanel() {
       borderColor: '#475569',
       marginBottom: 12,
     },
-    prodPicker: {
+    imgPicker: {
       flexDirection: 'row',
       gap: 10,
       marginBottom: 16,
     },
-    prodCard: {
-      width: 100,
+    imgCard: {
+      width: 90,
       backgroundColor: '#1E293B',
       borderRadius: 12,
-      padding: 8,
+      padding: 6,
       alignItems: 'center',
       borderWidth: 1.5,
       borderColor: '#334155',
     },
-    prodCardActive: {
+    imgCardActive: {
       borderColor: '#10B981',
       backgroundColor: '#064E3B',
     },
-    prodCardImg: {
-      width: 60,
-      height: 60,
+    imgCardImg: {
+      width: 65,
+      height: 65,
       borderRadius: 8,
       marginBottom: 6,
     },
-    prodCardText: {
+    imgCardText: {
       fontFamily: Theme.fonts.bodyBold,
       fontSize: 10,
       color: '#FFF',
@@ -3986,7 +4004,7 @@ function PokeOfTheMonthPanel() {
     },
     saveBtn: {
       backgroundColor: '#10B981',
-      paddingVertical: 12,
+      paddingVertical: 14,
       borderRadius: 10,
       alignItems: 'center',
       marginTop: 8,
@@ -3995,6 +4013,8 @@ function PokeOfTheMonthPanel() {
       fontFamily: Theme.fonts.bodyBold,
       fontSize: 13,
       color: '#000',
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
     }
   });
 
@@ -4004,9 +4024,9 @@ function PokeOfTheMonthPanel() {
         <View style={pStyles.titleRow}>
           <Ionicons name="star" size={20} color="#FFD700" />
           <View>
-            <Text style={pStyles.title}>🌟 POKÉMOONS DU MOIS</Text>
+            <Text style={pStyles.title}>🌟 CRÉATEUR POKÉMOONS DU MOIS</Text>
             <Text style={pStyles.subTitle}>
-              {enabled ? `Actif (${monthLabel} : ${customTitle || selectedProd?.name || 'Sélectionné'})` : 'Désactivé'}
+              {enabled ? `Actif (${monthLabel} : ${name} - ${parseFloat(price || '0').toFixed(2)} CHF)` : 'Désactivé'}
             </Text>
           </View>
         </View>
@@ -4015,7 +4035,7 @@ function PokeOfTheMonthPanel() {
           onPress={() => setIsOpen(!isOpen)}
         >
           <Text style={{ fontFamily: Theme.fonts.bodyBold, fontSize: 12, color: isOpen ? '#FFF' : '#000' }}>
-            {isOpen ? 'Fermer' : 'Gérer'}
+            {isOpen ? 'Fermer' : 'Créer / Modifier'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -4032,74 +4052,93 @@ function PokeOfTheMonthPanel() {
             />
           </View>
 
-          <Text style={pStyles.fieldLabel}>Choisir le bowl à mettre à l'honneur :</Text>
+          <Text style={pStyles.fieldLabel}>Nom de la nouvelle création :</Text>
+          <TextInput
+            style={pStyles.input}
+            placeholder="ex: Pokémoons de Septembre : Le Dragon Yuzu"
+            placeholderTextColor="#64748B"
+            value={name}
+            onChangeText={setName}
+          />
+
+          <View style={{ flexDirection: 'row', gap: 12 }}>
+            <View style={{ flex: 1 }}>
+              <Text style={pStyles.fieldLabel}>Prix (CHF) :</Text>
+              <TextInput
+                style={pStyles.input}
+                placeholder="22.50"
+                placeholderTextColor="#64748B"
+                keyboardType="numeric"
+                value={price}
+                onChangeText={setPrice}
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={pStyles.fieldLabel}>Mois / Édition :</Text>
+              <TextInput
+                style={pStyles.input}
+                placeholder="SEPTEMBRE 2026"
+                placeholderTextColor="#64748B"
+                value={monthLabel}
+                onChangeText={setMonthLabel}
+              />
+            </View>
+          </View>
+
+          <Text style={pStyles.fieldLabel}>Photo du Bowl :</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
-            <View style={pStyles.prodPicker}>
-              {products.map(p => {
-                const isSel = productId === p.id;
+            <View style={pStyles.imgPicker}>
+              {AVAILABLE_IMAGES.map(item => {
+                const isSel = image === item.key;
                 return (
                   <TouchableOpacity
-                    key={p.id}
-                    style={[pStyles.prodCard, isSel && pStyles.prodCardActive]}
-                    onPress={() => setProductId(p.id)}
+                    key={item.key}
+                    style={[pStyles.imgCard, isSel && pStyles.imgCardActive]}
+                    onPress={() => setImage(item.key)}
                   >
-                    <Image source={getImageSource(p.image)} style={pStyles.prodCardImg} contentFit="cover" />
-                    <Text style={pStyles.prodCardText} numberOfLines={2}>{p.name}</Text>
-                    <Text style={{ color: '#10B981', fontSize: 10, fontFamily: Theme.fonts.bodyBold, marginTop: 2 }}>{p.price.toFixed(2)} CHF</Text>
+                    <Image source={getImageSource(item.key)} style={pStyles.imgCardImg} contentFit="cover" />
+                    <Text style={pStyles.imgCardText} numberOfLines={1}>{item.label}</Text>
                   </TouchableOpacity>
                 );
               })}
             </View>
           </ScrollView>
 
-          <Text style={pStyles.fieldLabel}>Mois / Label (ex: SEPTEMBRE 2026) :</Text>
+          <Text style={pStyles.fieldLabel}>Ingrédients & Recette détaillée :</Text>
           <TextInput
-            style={pStyles.input}
-            placeholder="SEPTEMBRE 2026"
-            placeholderTextColor="#64748B"
-            value={monthLabel}
-            onChangeText={setMonthLabel}
-          />
-
-          <Text style={pStyles.fieldLabel}>Badge supérieur (ex: ÉDITION DU MOIS ⭐) :</Text>
-          <TextInput
-            style={pStyles.input}
-            placeholder="ÉDITION DU MOIS ⭐"
-            placeholderTextColor="#64748B"
-            value={badgeText}
-            onChangeText={setBadgeText}
-          />
-
-          <Text style={pStyles.fieldLabel}>Titre personnalisé (ou laisser vide pour nom du produit) :</Text>
-          <TextInput
-            style={pStyles.input}
-            placeholder={selectedProd?.name || 'Nom du produit'}
-            placeholderTextColor="#64748B"
-            value={customTitle}
-            onChangeText={setCustomTitle}
-          />
-
-          <Text style={pStyles.fieldLabel}>Sous-titre / Accroche du Chef :</Text>
-          <TextInput
-            style={pStyles.input}
-            placeholder="Recette exclusive du Chef & Ingrédients de saison"
-            placeholderTextColor="#64748B"
-            value={tagline}
-            onChangeText={setTagline}
-          />
-
-          <Text style={pStyles.fieldLabel}>Description personnalisée :</Text>
-          <TextInput
-            style={[pStyles.input, { height: 70, textAlignVertical: 'top' }]}
-            placeholder={selectedProd?.description || 'Description du bowl...'}
+            style={[pStyles.input, { height: 80, textAlignVertical: 'top' }]}
+            placeholder="ex: Riz vinaigré, saumon mariné au yuzu, mangue fraîche, avocat crémeux, edamame, grenade, sésame grillé..."
             placeholderTextColor="#64748B"
             multiline
-            value={customDescription}
-            onChangeText={setCustomDescription}
+            value={description}
+            onChangeText={setDescription}
           />
 
+          <View style={{ flexDirection: 'row', gap: 12 }}>
+            <View style={{ flex: 1 }}>
+              <Text style={pStyles.fieldLabel}>Badge supérieur :</Text>
+              <TextInput
+                style={pStyles.input}
+                placeholder="ÉDITION DU MOIS ⭐"
+                placeholderTextColor="#64748B"
+                value={badgeText}
+                onChangeText={setBadgeText}
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={pStyles.fieldLabel}>Accroche du Chef :</Text>
+              <TextInput
+                style={pStyles.input}
+                placeholder="Création exclusive du Chef"
+                placeholderTextColor="#64748B"
+                value={tagline}
+                onChangeText={setTagline}
+              />
+            </View>
+          </View>
+
           <TouchableOpacity style={pStyles.saveBtn} onPress={handleSave}>
-            <Text style={pStyles.saveBtnText}>Enregistrer le Pokémoons du Mois</Text>
+            <Text style={pStyles.saveBtnText}>✨ Enregistrer & Publier le Pokémoons du Mois</Text>
           </TouchableOpacity>
         </View>
       )}

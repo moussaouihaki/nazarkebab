@@ -244,10 +244,10 @@ export default function HomeScreen() {
                     {settings.pokeOfTheMonth.tagline || 'Recette signature exclusive du Chef'}
                   </Text>
                   <Text style={styles.pokeMonthTitle} numberOfLines={2}>
-                    {settings.pokeOfTheMonth.customTitle || pokeOfTheMonthProduct.name}
+                    {settings.pokeOfTheMonth.name || pokeOfTheMonthProduct.name}
                   </Text>
                   <Text style={styles.pokeMonthDesc} numberOfLines={3}>
-                    {settings.pokeOfTheMonth.customDescription || pokeOfTheMonthProduct.description || 'Une création gourmande et raffinée avec des ingrédients de saison sélectionnés chaque matin.'}
+                    {settings.pokeOfTheMonth.description || pokeOfTheMonthProduct.description || 'Une création gourmande et raffinée avec des ingrédients de saison sélectionnés chaque matin.'}
                   </Text>
                   
                   <View style={styles.pokeMonthBtn}>
