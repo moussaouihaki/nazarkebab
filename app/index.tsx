@@ -137,17 +137,17 @@ export default function HomeScreen() {
         
         {/* EDITORIAL HERO BANNER (Bleed Edge with Parallax) */}
         <View style={styles.heroContainer}>
-           <Animated.View style={[StyleSheet.absoluteFillObject, heroAnimatedStyle]}>
+           <Animated.View style={[(StyleSheet.absoluteFill as any), heroAnimatedStyle]}>
               <Image 
                 source={require('../assets/images/hero-white.jpg')} 
-                style={[StyleSheet.absoluteFillObject, { backgroundColor: '#FFFFFF' }]} 
+                style={[(StyleSheet.absoluteFill as any), { backgroundColor: '#FFFFFF' }]} 
                 contentFit="cover"
                 contentPosition="center"
               />
             </Animated.View>
            <LinearGradient 
               colors={['rgba(255,255,255,0.9)', 'rgba(255,255,255,0.7)', 'rgba(255,255,255,0.1)']} 
-              style={StyleSheet.absoluteFillObject} 
+              style={(StyleSheet.absoluteFill as any)} 
            />
            <View style={[styles.heroContent, { gap: 12 }]}>
             
@@ -289,7 +289,7 @@ export default function HomeScreen() {
              activeOpacity={0.9}
              onPress={() => router.push({ pathname: '/product/[id]', params: { id: 'poke-custom' } })}
            >
-             <Image source={require('../assets/images/compose-white.jpg')} style={StyleSheet.absoluteFillObject} contentFit="cover" />
+             <Image source={require('../assets/images/compose-white.jpg')} style={(StyleSheet.absoluteFill as any)} contentFit="cover" />
              <View style={[styles.composeOverlay, { backgroundColor: 'rgba(255,255,255,0.6)' }]} />
              <View style={styles.composeContent}>
                <Text style={[styles.composeTitle, { color: '#1B5E20' }]}>CRÉE TON POKÉ SUR-MESURE</Text>
@@ -520,7 +520,7 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   heroOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...(StyleSheet.absoluteFill as any),
     backgroundColor: 'rgba(0,0,0,0.6)', // Deep mood (will be overridden by inline if needed)
   },
   heroContent: {
@@ -710,7 +710,7 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   composeOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...(StyleSheet.absoluteFill as any),
     backgroundColor: 'rgba(0,0,0,0.6)',
   },
   composeContent: {

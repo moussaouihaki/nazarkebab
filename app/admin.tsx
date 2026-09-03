@@ -4235,7 +4235,7 @@ const styles = StyleSheet.create({
   
   chartCard: { backgroundColor: Theme.colors.surface, borderRadius: 16, padding: 32, borderWidth: 1, borderColor: Theme.colors.border },
   fakeChart: { height: 200, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', paddingTop: 20, position: 'relative' },
-  chartGridLines: { ...StyleSheet.absoluteFillObject, justifyContent: 'space-between', borderBottomWidth: 1, borderColor: Theme.colors.border, paddingBottom: 24 },
+  chartGridLines: { ...(StyleSheet.absoluteFill as any), justifyContent: 'space-between', borderBottomWidth: 1, borderColor: Theme.colors.border, paddingBottom: 24 },
   chartGridLine: { height: 1, backgroundColor: Theme.colors.border, opacity: 0.5 },
   chartBarWrapper: { alignItems: 'center', flex: 1, height: '100%', justifyContent: 'flex-end', zIndex: 2 },
   chartBar: { width: 32, backgroundColor: Theme.colors.primary, borderTopLeftRadius: 6, borderTopRightRadius: 6 },

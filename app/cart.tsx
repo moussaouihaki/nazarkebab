@@ -806,7 +806,7 @@ export default function CartScreen() {
                       transition={200}
                     />
                     {!item.image && (
-                      <View style={{ ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' }}>
+                      <View style={{ ...(StyleSheet.absoluteFill as any), alignItems: 'center', justifyContent: 'center' }}>
                          <Ionicons name="restaurant-outline" size={24} color={Theme.colors.textSecondary} />
                       </View>
                     )}
