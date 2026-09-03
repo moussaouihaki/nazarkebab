@@ -27,15 +27,8 @@ export default function ProductDetailScreen() {
     description: cfgMonth?.description || rawProduct?.description || 'Recette exclusive du Chef.',
     category: 'LES POKÉBOWLS SIGNATURES',
     highlighted: true,
+    hasSauces: true,
     outOfStock: !(cfgMonth?.enabled ?? true),
-    customizationSections: rawProduct?.customizationSections || [
-      {
-        title: 'CHOIX DE LA SAUCE (1 OBLIGATOIRE)',
-        required: true,
-        maxChoices: 1,
-        choices: (settings?.sauces || []).map((s: string) => ({ name: s, priceOffset: 0 }))
-      }
-    ]
   } : rawProduct;
   const addItem = useCartStore((state) => state.addItem);
   const removeAllOfItem = useCartStore((state) => state.removeAllOfItem);

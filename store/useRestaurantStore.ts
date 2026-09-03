@@ -579,7 +579,6 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
       // Automatically sync or create the 'poke-du-mois' product in menu
       const allProducts = get().products;
       const existing = allProducts.find(p => p.id === 'poke-du-mois');
-      const sauces = get().settings?.sauces || DEFAULT_SETTINGS.sauces;
       const productPayload: any = {
         name: updated.name,
         price: Number(updated.price) || 22.50,
@@ -588,14 +587,7 @@ export const useRestaurantStore = create<RestaurantState>((set, get) => ({
         category: 'LES POKÉBOWLS SIGNATURES',
         highlighted: true,
         outOfStock: !updated.enabled,
-        customizationSections: [
-          {
-            title: 'CHOIX DE LA SAUCE (1 OBLIGATOIRE)',
-            required: true,
-            maxChoices: 1,
-            choices: sauces.map((s: string) => ({ name: s, priceOffset: 0 }))
-          }
-        ]
+        hasSauces: true,
       };
 
       if (existing) {
